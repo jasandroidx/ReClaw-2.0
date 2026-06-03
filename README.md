@@ -8,8 +8,11 @@ Primary goal: Harvest public county data (property, budgets, salaries, GIS) for 
 
 This repo contains the full working implementation.
 
+<<<<<<< HEAD
 Primary goal: Harvest public county data (property, budgets, salaries, GIS) for rural Indiana (starting with Pike County / Winslow), run it through red-flag analysis, and emit ready-to-use content packages as Obsidian markdown + JSON sidecars.
 
+=======
+>>>>>>> 8eb14a88f305fc4f95f986bf15fd540773010550
 Later phases add Scriptwriter, Visuals, and local business automation services (GBP rescue, review systems, automations for the same small rural shops).
 
 ## Core Principles (from SOUL.md)
@@ -88,7 +91,11 @@ Full details: [docs/SECURITY.md](docs/SECURITY.md)
 2. Declare its capabilities in `core/security.py`
 3. Update `AGENTS.md` routing
 4. Wire it in the Orchestrator or a future richer pipeline
+<<<<<<< HEAD
 5. Add to docker-compose if it needs special resources
+=======
+5. Add to docker-compose if it needs extra resources
+>>>>>>> 8eb14a88f305fc4f95f986bf15fd540773010550
 
 When we add the business services side (GBP for auto shops etc.), they will live in a parallel tree but use the exact same Gateway, session, security, and handoff patterns.
 
@@ -106,4 +113,8 @@ MVP complete:
 
 Next: real live county fetchers (one source at a time), Scriptwriter agent, first faceless channel episodes from the packages, and the business automation agents.
 
+<<<<<<< HEAD
 Run it. Read the SOUL files. Respect the gates. Ship small.
+=======
+Run it. Read the SOUL files. Respect the gates. Ship small.
+>>>>>>> 8eb14a88f305fc4f95f986bf15fd540773010550
