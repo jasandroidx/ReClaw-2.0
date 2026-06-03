@@ -1,105 +1,107 @@
 # ReClaw 2.0
 
-**Clean Rebuild of OpenClaw for Rural Data Faceless Channel Swarm + Local Monetization**
+**Rural Data Faceless Channel Agent Swarm** — a clean, production-grade, OpenClaw-pattern rebuild.
 
-A practical, production-ready OpenClaw setup for building and running an agent swarm that researches public data, analyzes red flags in local economies/budgets/salaries, and generates complete content packages for a faceless YouTube/TikTok/Shorts channel. It also supports real-world side hustles and services in rural Indiana.
+**Repo**: https://github.com/jasandroidx/ReClaw-2.0
 
-**Repo Purpose**: Clean foundation after previous OpenClaw instances became bloated and confusing between local PC and Hetzner. Fresh, maintainable start with clear architecture, strong security, Docker deployment, Tailscale access, and direct integration with your tools (Obsidian, Notion, Discord).
+Primary goal: Harvest public county data (property, budgets, salaries, GIS) for rural Indiana (starting with Pike County / Winslow), run it through red-flag analysis, and emit ready-to-use content packages as Obsidian markdown + JSON sidecars.
 
-Drawn from best practices in:
-- Official OpenClaw architecture & security patterns
-- *Make Money with OpenClaw in 30 Days* (Patrick Andrei)
-- *Automate Everything: The OpenClaw Handbook* (Kelly Claude)
-- *OpenClaw: The Complete Guide* (Orange Paper)
+This repo contains the full working implementation.
 
-## Core Goals
-- Hetzner as single production instance (with GPU)
-- Local PC as clean dev mirror (git-based)
-- Agent swarm that outputs directly to Obsidian
-- Controllable via Discord bot (primary) + optional Web UI
-- Docker for consistency and easy updates
-- Tailscale for simple remote access (no more manual SSH tunnel hassle)
-- Strong security by default
-- Ready for the Rural Data Faceless Channel + real local monetization
+Later phases add Scriptwriter, Visuals, and local business automation services (GBP rescue, review systems, automations for the same small rural shops).
 
-## Architecture (Inspired by Official OpenClaw Patterns)
+## Core Principles (from SOUL.md)
+- Truth + provenance only. No hype.
+- Least privilege + explicit approval gates for anything risky.
+- Session isolation for every run (full audit trail on disk).
+- Obsidian is the durable output + human review surface.
+- Docker + Tailscale on Hetzner GPU box = prod. Local PC = identical dev mirror.
+- Small, readable, extendable Python. No bloat.
 
-### Core Structure
-- **Gateway**: Root control plane (WebSocket orchestration, model routing)
-- **Agents**: Logic layer with session isolation and memory
-- **Channels**: Discord (primary), with room for WhatsApp/Telegram later
-- **Tools/Skills**: Modular execution layer (browser, file system, data pulling, with approval gates)
+## Current Swarm (MVP)
+- **Researcher** (`agents/researcher/`) — pulls or loads seed data → ResearchPackage (JSON)
+- **Analyst / Red Flag** (`agents/analyst/`) — turns research into insights + red flags + channel angles → AnalysisPackage
+- **Light Orchestrator** — sequences them, enforces quality gates from SOUL, assembles ContentPackage, writes to Obsidian channel
+- **Gateway** (`api/main.py`) — the control plane. Creates sessions, loads identities, manages permissions/approvals, exposes HTTP for triggers + status.
 
-### Agent Identities & Routing
-Each agent has a clear identity (SOUL.md style) and explicit permissions/routing rules (AGENTS.md style). No agent gets blanket access to shell or browser actions.
+## Quick Start (Local)
 
-### Starting Swarm
-1. **Researcher Agent** — Pulls public data (county sites, budgets, salary records, property data). Outputs structured JSON + summary.
-2. **Analyst / Red Flag Agent** — Interprets data into practical rural insights, budget implications, and job market red flags.
-3. **Orchestrator** — Coordinates the above and assembles the final content package (script outline, visual prompts, thumbnail ideas, affiliate suggestions).
+```bash
+cp .env.example .env
+# edit OBSIDIAN_VAULT_PATH to point at your vault (or leave as outputs/obsidian for testing)
 
-Later expansion: Scriptwriter + Visuals agents (using your local ComfyUI/SD or Grok Imagine).
+pip install -r requirements.txt
 
-### Handoff Format
-Clean structured JSON between agents. Example in `docs/handoff-example.json`.
+# Full end-to-end with seeds (safest)
+python -m reclaw.cli run --county Pike --area Winslow
 
-### Memory & Context
-- Short-term: JSON handoff only
-- Long-term: Obsidian notes + project context files
+# Via the Gateway (also creates full session + approval records)
+python -c "
+from api.main import run_sync
+print(run_sync('Pike', 'Winslow'))
+"
+```
 
-## Security (Non-Negotiable)
-- Least privilege by default
-- Manual approval gates for any shell, browser, or network actions
-- Docker sandboxing for higher-risk execution
-- Non-root service accounts where possible
-- Session isolation between agents
-- API keys scoped appropriately
+The markdown package will be written directly into your configured Obsidian folder under the "Rural Data" subdir (or whatever you set in .env).
 
-## Deployment (Docker + Tailscale)
+## Production on Hetzner
 
-### Docker
-`docker-compose.yml` for Hetzner production with GPU support. The same setup works on your local dev mirror with smaller models.
+See [docs/SETUP.md](docs/SETUP.md) and [docs/tailscale.md](docs/tailscale.md).
 
-### Tailscale
-Recommended for simple, secure access from phone, laptop, or truck. One-command connection. Full guide in `docs/tailscale.md`. Clean SSH key fallback also documented.
+```bash
+docker compose up -d
+# Then hit the Gateway over Tailscale
+curl -X POST "https://your-reclaw-box.ts.net/trigger/Pike?auto_approve=true"
+```
 
-## Integration with Your Stack
-- **Obsidian**: Agents write research, scripts, and final packages as markdown
-- **Notion**: High-level command center (this repo is linked from the page we created)
-- **Discord Bot**: Primary control interface (revive and expand your previous working bot)
-- **Web UI** (optional): Gradio or Streamlit dashboard for visual review of outputs
+## Key Folders
 
-## Monetization Angle
-This directly powers your Rural Data Faceless Channel. It can also serve as the foundation for:
-- Freelancing AI automation/research services
-- Local AI services for rural Indiana businesses (GBP cleanup, review management, content)
-- Building an automation agency or selling digital products (templates, toolkits, prompt packs)
+- `agents/<name>/SOUL.md` — identity loaded by every run of that agent (OpenClaw style)
+- `core/handoff.py` — the strict JSON contract between agents (ResearchPackage, AnalysisPackage, ContentPackage)
+- `core/security.py` — capability registry + approval gate implementation
+- `core/session.py` — isolation: every run gets `data/sessions/<id>/` with souls, handoffs, approvals, logs
+- `data/seeds/` — deterministic test data for Pike/Winslow (and future counties)
+- `data/runs/` + `data/sessions/` — the full audit history
+- `docs/SECURITY.md` — how the gates and Docker sandboxing work
+- `docker-compose.yml` + `docker/Dockerfile` — GPU-ready, non-root, volume layout for Hetzner
 
-## Getting Started
-1. Clone the repo
-2. Follow `docs/setup.md` for Docker on Hetzner + Tailscale + security basics
-3. Test the swarm on sample data (Pike County example included)
-4. Connect your Discord bot
-5. Start generating content packages
+## Handoff Example
 
-## Repo Structure
-- `README.md` (this file)
-- `docs/` — Architecture, handoffs, setup guides, Tailscale, security, monetization notes
-- `agents/` — Individual agent code (with identity files)
-- `docker/` — docker-compose.yml and related files
-- `api/` — FastAPI control layer
-- `examples/` — Sample outputs and test data
+All agents talk only via the Pydantic models serialized to JSON files inside the session `handoffs/` dir (or returned directly).
 
-## Next Steps in This Repo
-- Full agent implementations (Researcher + Analyst first, with proper identities and security gates)
-- Docker Compose with GPU support
-- Discord bot integration example
-- Sample content package that writes cleanly to Obsidian
-- Integration with local business prospecting workflows
+See `examples/sample_research_output.json` and the generated packages in your vault.
 
-This is the clean, secure, and directly useful foundation we've been building toward. No more bloat or machine confusion.
+## Security Highlights
 
-Let's make it profitable.
+- Live fetches are medium risk and go through the gate (see `SecurityManager.request_approval`).
+- No agent can write outside its session or the approved obsidian path.
+- Every grant and every capability use is logged.
+- `POST /sessions/<id>/approve` is the human/bot approval endpoint on the Gateway.
 
----
-*ReClaw 2.0 — Clean OpenClaw that actually helps you make money in rural Indiana.*
+Full details: [docs/SECURITY.md](docs/SECURITY.md)
+
+## Extending
+
+1. Add a new agent dir with its own `SOUL.md`
+2. Declare its capabilities in `core/security.py`
+3. Update `AGENTS.md` routing
+4. Wire it in the Orchestrator or a future richer pipeline
+5. Add to docker-compose if it needs extra resources
+
+When we add the business services side (GBP for auto shops etc.), they will live in a parallel tree but use the exact same Gateway, session, security, and handoff patterns.
+
+## Status
+
+MVP complete:
+- Folder structure + identities
+- Two core agents + light orchestrator with quality gates
+- Clean JSON handoffs
+- Obsidian writer
+- Gateway with approval endpoints
+- Docker + GPU compose
+- Tailscale + security docs
+- Pike/Winslow seed data + runnable examples
+
+Next: real live county fetchers (one source at a time), Scriptwriter agent, first faceless channel episodes from the packages, and the business automation agents.
+
+Run it. Read the SOUL files. Respect the gates. Ship small.

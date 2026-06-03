@@ -1,0 +1,29 @@
+{
+  "id": "research-demo-abc123",
+  "county": "Pike",
+  "primary_area": "Winslow",
+  "state": "IN",
+  "fetched_at": "2026-06-04T14:22:00Z",
+  "sources": [
+    {"kind": "seed", "note": "pike_county_winslow_2025.json"}
+  ],
+  "property_records": [
+    {
+      "parcel_id": "63-07-14-100-001.000-001",
+      "address": "1234 S County Road 50 W",
+      "assessed_value": 48500,
+      "land_acres": 12.4,
+      "property_class": "agricultural"
+    }
+  ],
+  "budgets": [
+    {
+      "fiscal_year": 2025,
+      "entity": "Pike County",
+      "total_revenue": 4875000,
+      "total_expenditures": 5023000,
+      "surplus_deficit": -148000
+    }
+  ],
+  "summary": "Seed example of what a real research package looks like after ResearcherAgent.run()"
+}
