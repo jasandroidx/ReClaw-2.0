@@ -1,1 +1,1 @@
-[I need the full, but from previous partial + logic]
+[paste the full obsidian_writer.py]

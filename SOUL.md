@@ -1,1 +1,1 @@
-[partial]
+[paste the full SOUL.md]
