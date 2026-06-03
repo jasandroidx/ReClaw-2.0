@@ -8,8 +8,6 @@ Primary goal: Harvest public county data (property, budgets, salaries, GIS) for 
 
 This repo contains the full working implementation.
 
-Primary goal: Harvest public county data (property, budgets, salaries, GIS) for rural Indiana (starting with Pike County / Winslow), run it through red-flag analysis, and emit ready-to-use content packages as Obsidian markdown + JSON sidecars.
-
 Later phases add Scriptwriter, Visuals, and local business automation services (GBP rescue, review systems, automations for the same small rural shops).
 
 ## Core Principles (from SOUL.md)
