@@ -1,4 +1,1 @@
-"""
-ReClaw Gateway (Control Plane) — FastAPI implementation.
-... (full FastAPI code)
-"""
+[the full api/main.py from the read]
