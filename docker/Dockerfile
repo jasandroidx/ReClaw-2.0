@@ -26,3 +26,11 @@ ENV RECLAW_ENV=prod
 
 # Default command runs the API (override for one-off orchestrator runs)
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Run as non-root user (security)
+RUN useradd -m -u 1000 reclawuser && chown -R reclawuser:reclawuser /app
+USER reclawuser
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python -c "import httpx; httpx.get('http://localhost:8000/health', timeout=3)" || exit 1

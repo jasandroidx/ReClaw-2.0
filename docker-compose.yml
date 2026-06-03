@@ -1,76 +1,49 @@
-# ReClaw 2.0 — docker-compose for Hetzner production (GPU capable)
-#
-# Usage on Hetzner:
-#   docker compose up -d --build
-#
-# Security / Sandbox notes:
-# - Container runs as non-root user (reclaw:1000) per Dockerfile.
-# - Gateway only binds 127.0.0.1 inside the container (see api/main.py + compose ports).
-# - Mounts are limited. For stronger isolation later: add :ro on code mounts and use
-#   --read-only + tmpfs for the container, giving agents only their session subdir.
-# - Approval gates (core/security.py) are the software layer on top of Docker isolation.
-#
-# GPU notes:
-# - Requires NVIDIA Container Toolkit on the host.
-# - Current agents (Researcher/Analyst) are pure CPU + network. GPU is for future
-#   local models (Ollama/vLLM) used by Scriptwriter or business agents.
-#
-# Volumes:
-# - ./data : persistent seeds + run history + sessions (the full audit trail)
-# - obsidian_exports : final .md packages. Use Tailscale/Syncthing/git to bring them
-#   into your real Obsidian vault (see docs/tailscale.md and docs/SETUP.md).
-#
-# Access:
-# - Tailscale is primary (see docs/tailscale.md). Gateway + tailscale serve.
-# - SSH fallback over Tailscale IP is fine for ops.
-
 version: "3.9"
 
 services:
-  reclaw-api:
+  reclaw:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: reclaw:2.0
-    container_name: reclaw-api
+    container_name: reclaw
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:8000:8000"   # IMPORTANT: localhost only inside the box. Access exclusively via Tailscale.
-    environment:
-      - RECLAW_ENV=prod
-      - LOG_LEVEL=INFO
-      # Point this at wherever your Obsidian (or export folder) lives on the Hetzner filesystem
-      - OBSIDIAN_VAULT_PATH=/data/obsidian-exports
-      - USE_LIVE_FETCH=false   # flip to true once you have robust county scrapers
+    env_file:
+      - .env
     volumes:
       - ./data:/app/data
       - ./outputs:/app/outputs
-      - obsidian_exports:/data/obsidian-exports
-    # GPU example (uncomment when you run LLM services):
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+      - /c/Users/Jason/Obsidian/RuralData:/app/obsidian_vault
+    networks:
+      - reclaw-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2G
 
-  # Example future GPU service (Ollama for local models when Analyst goes LLM)
-  # ollama:
-  #   image: ollama/ollama:latest
-  #   container_name: ollama
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ollama_data:/root/.ollama
-  #   # deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: 1, capabilities: [gpu] } ] } } }
-  #   ports:
-  #     - "127.0.0.1:11434:11434"
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: reclaw-tailscale
+    restart: unless-stopped
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    network_mode: service:reclaw
+    cap_add:
+      - net_admin
+      - sys_module
+
+networks:
+  reclaw-net:
+    driver: bridge
 
 volumes:
-  obsidian_exports:
-  # ollama_data:
+  tailscale-state:
