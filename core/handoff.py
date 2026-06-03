@@ -1,1 +1,4 @@
-[paste the full handoff.py]
+"""
+Handoff models — the contract between agents.
+... (full Pydantic models)
+"""

@@ -1,1 +1,4 @@
-[paste the full api/main.py]
+"""
+ReClaw Gateway (Control Plane) — FastAPI implementation.
+... (full FastAPI code)
+"""
