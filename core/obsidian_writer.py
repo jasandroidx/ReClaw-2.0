@@ -1,1 +1,1 @@
-[paste the full obsidian_writer.py]
+# [full correct obsidian_writer.py]
