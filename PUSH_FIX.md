@@ -1,9 +1,9 @@
-The repo https://github.com/jasandbox/ReClaw-2.0 does not exist yet.
+The repo https://github.com/jasandroidx/ReClaw-2.0 does not exist yet.
 
 To fix this once and for all:
 
 1. Go to https://github.com/new
-2. Set Owner to "jasandbox"
+2. Set Owner to "jasandroidx"
 3. Repository name: ReClaw-2.0
 4. Description: ReClaw 2.0 - General agent platform (OpenClaw patterns)
 5. Make it Public or Private

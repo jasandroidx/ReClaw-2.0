@@ -2,7 +2,7 @@
 
 **General-purpose agent operating platform** (OpenClaw-pattern aligned) with initial rural-data workflow module. A clean, production-grade foundation.
 
-**Repo**: https://github.com/jasandbox/ReClaw-2.0
+**Repo**: https://github.com/jasandroidx/ReClaw-2.0
 
 ReClaw 2.0 provides domain-agnostic core (Gateway, Session isolation, Security/approval gates, Obsidian durable memory, event model for future visual frontend). The current repo implements rural_data (county research, red-flag analysis, content packages) as the first concrete module. Future domains (grants, local_leads, content, research_packets, visual office) add cleanly under agents/<domain>/ without changing core.
 
