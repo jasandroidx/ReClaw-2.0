@@ -162,6 +162,21 @@ class ContentPackage(BaseModel):
     video_title_ideas: list[str] = Field(default_factory=list)
     key_stats: dict[str, Any] = Field(default_factory=dict)  # for voiceover / thumbnails
 
+    def to_obsidian_frontmatter(self) -> dict[str, Any]:
+        """Frontmatter for Obsidian .md output. Matches what writer expects."""
+        return {
+            "id": self.id,
+            "county": self.county,
+            "primary_area": self.primary_area,
+            "date": self.generated_at.date().isoformat(),
+            "research_id": self.research.id,
+            "analysis_id": self.analysis.id,
+            "tags": self.tags,
+            "risk_score": getattr(self.analysis, "overall_risk_score", 5.0),
+            "flags": len(getattr(self.analysis, "red_flags", [])),
+            "insights": len(getattr(self.analysis, "insights", [])),
+        }
+
 # Future visual office / agent frontend event contract (first-class, disk-based)
 # Consumed by visual layer (out of Phase 1 scope). Emitted by Gateway/Session for real-time state.
 class AgentEvent(BaseModel):
@@ -177,16 +192,5 @@ class AgentEvent(BaseModel):
     run_id: str | None = None  # links to session/run
 
     def to_json(self) -> dict:
+        """Serialize for disk handoff / event log."""
         return self.model_dump(mode="json")
-
-    def to_obsidian_frontmatter(self) -> dict[str, Any]:
-        return {
-            "id": self.id,
-            "county": self.county,
-            "area": self.primary_area,
-            "date": self.generated_at.date().isoformat(),
-            "research_id": self.research.id,
-            "analysis_id": self.analysis.id,
-            "tags": self.tags,
-            "risk_score": self.analysis.overall_risk_score,
-        }

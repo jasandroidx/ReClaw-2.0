@@ -25,33 +25,37 @@ tailscale ip -4
 tailscale status
 ```
 
-## Expose the ReClaw Gateway (the OpenClaw way)
+## Hardened Tailscale Exposure (current production on Openclaw box)
 
-The Gateway container only listens on 127.0.0.1:8000 inside the box (see docker-compose).
+**Current docker-compose.yml** uses `ports: "8000:8000"` (binds 0.0.0.0 on host for Tailscale IP compatibility) + healthcheck/restart. Tailscale runs **on the host** (recommended systemd unit for 24/7).
 
-On the Hetzner host:
+Recommended commands (run yourself):
 
 ```bash
-# Serve it over Tailscale (background)
-tailscale serve --bg http://127.0.0.1:8000
+# Ensure Tailscale is active
+tailscale status
+tailscale ip -4
 
-# Check what URL + token you got
+# Serve Gateway over Tailscale (background, survives reboots if in systemd)
+tailscale serve --bg http://127.0.0.1:8000
 tailscale serve status
 ```
 
-You will get something like:
-https://reclaw-box-XXXX.ts.net
-
-And a token you can put in openclaw-style configs or just use the HTTPS URL + Tailscale identity.
-
-From any device on the same tailnet you can now:
-
+Test from this box or any Tailscale peer:
 ```bash
-curl https://reclaw-box-XXXX.ts.net/health
-curl -X POST "https://reclaw-box-XXXX.ts.net/trigger/Pike?auto_approve=true"
+curl -f http://127.0.0.1:8000/health
+# or via magic DNS
+curl -f https://openclaw.your-tailnet.ts.net/health
 ```
 
-No port forwarding, no Cloudflare tunnel, no nginx config (yet).
+**Hardening notes** (reflected in updated docker-compose.yml + SETUP.md):
+- Docker logging driver with rotation (no unbounded growth)
+- Container ulimits + resource limits
+- All session activity logged to disk (`data/sessions/*/logs/`) — survives restarts
+- Vault mount (`/root/obsidian_vault`) is the durable long-term memory
+- No public ports; all access authenticated by Tailscale
+
+This is the clean, cheap, reliable pattern. For full boot persistence, wrap the `tailscale serve` in a systemd service (`reclaw-tailscale-serve.service`). See SETUP.md for full deploy checklist.
 
 ## On Your Local Dev PC (Windows)
 

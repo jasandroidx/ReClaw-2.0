@@ -52,21 +52,35 @@ curl -X POST "http://localhost:8000/run-sync?county=Pike&area=Winslow&auto_appro
 
 Check `data/sessions/` and your Obsidian folder.
 
-## 4. Hetzner Production Deploy
+## 4. Hetzner Production Deploy (Hardened)
 
-1. `rsync -a --delete ./ user@hetzner-ip:/opt/reclaw/` (or git pull)
-2. On the box: `cd /opt/reclaw && docker compose pull || docker compose build`
-3. `docker compose up -d`
-4. Test: `curl -H "Host: ..." http://127.0.0.1:8000/health` (from inside Tailscale)
+Current state on this Openclaw box (/opt/reclaw):
 
-Add a systemd timer or simple cron that does:
+1. Ensure host prep (one-time):
+   - `sudo chown -R 1000:1000 /root/obsidian_vault /opt/reclaw/data /opt/reclaw/outputs` (matches container user)
+   - Tailscale running + `tailscale serve --bg http://127.0.0.1:8000` (or as systemd unit `reclaw-tailscale-serve`)
 
+2. Deploy (safe, no data loss):
+   ```bash
+   cd /opt/reclaw
+   docker compose config                  # validate changes
+   docker compose down --remove-orphans   # stops cleanly
+   docker compose up -d --build
+   docker compose ps
+   curl -f http://127.0.0.1:8000/health   # should return {"status": "ok", ...}
+   ```
+
+3. Logs (new hardening):
+   - Container: `docker compose logs --tail=100 reclaw-api` or `journalctl -u docker --since "10 min ago"`
+   - Session audit: `data/sessions/<id>/logs/session.log` and `security.log` (disk truth, survives restarts)
+   - Rotation: Docker json-file (10m max, 3 files) prevents unbounded growth.
+
+Cron example (host level, seeds-first):
 ```bash
-curl -X POST "http://127.0.0.1:8000/trigger/Pike?area=Winslow&write_obsidian=true&auto_approve=true" \
-  -H "Authorization: Bearer $RECLAW_TOKEN"
+0 8 * * * cd /opt/reclaw && docker compose exec -T reclaw-api python -m reclaw.cli run --county Pike --area Winslow --dry >> /var/log/reclaw-daily.log 2>&1
 ```
 
-(You will add token auth in a small follow-up.)
+This keeps everything simple, cheap, and reliable. Obsidian vault at `/root/obsidian_vault` is the long-term memory.
 
 ## 5. Tailscale (Primary Remote Access — Recommended)
 

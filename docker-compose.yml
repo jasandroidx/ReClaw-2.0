@@ -1,22 +1,24 @@
-# ReClaw 2.0 — Production docker-compose (Hetzner GPU, clean Tailscale, persistent vault)
-# Approved & upgraded per plan.md (env_file, non-root alignment, /vault mount, systemd Tailscale).
+# ReClaw 2.0 — Hardened Production docker-compose (Hetzner GPU, Tailscale-only, persistent vault)
+# Approved per current hardening plan. No destructive changes.
 #
-# Usage:
-#   cd /opt/reclaw && docker compose down && docker compose up -d --build
-#   systemctl status reclaw-tailscale-serve
-#   curl -X POST "http://127.0.0.1:8000/trigger/Pike?area=Winslow&auto_approve=true"
+# Usage (run these yourself):
+#   cd /opt/reclaw
+#   docker compose config                  # validate
+#   docker compose down && docker compose up -d --build
+#   docker compose ps
+#   curl -f http://127.0.0.1:8000/health
+#   journalctl -u docker.service -n 50 --no-pager   # or docker compose logs
 #
-# Key Upgrades (long-term focused):
-# - env_file: .env (loads OBSIDIAN_SUBDIR, WRITE_DRY_RUN, token, etc. cleanly; Pydantic Settings respected).
-# - Persistent vault at /root/obsidian_vault mounted to /vault (writable by uid=1000; creates Rural Data/).
-# - Explicit user: 1000:1000 + chown on host dirs.
-# - Tailscale exposure via host systemd service (reliable 24/7, no sidecar bloat).
-# - Healthcheck, restart, resource limits, read-only where safe.
-# - Supports autonomous daily runs, future "claws" (add services), GPU for Ollama/LLMs.
-# - Security: no exposed TS key, least-privilege, approval gates in core/security.py.
-# - Obsidian as durable memory for research, grant hunting, business scans, faceless video gen.
+# Hardening added:
+# - logging: json-file with rotation (prevents unbounded log growth)
+# - ulimits: nofile for high-connection stability
+# - Explicit restart: unless-stopped + healthcheck already present
+# - Volume labels and comments clarified for /root/obsidian_vault (long-term memory)
+# - Keeps Tailscale on host (systemd serve to 127.0.0.1:8000 inside container)
+# - Non-root (uid 1000), resource limits, env_file from .env (Pydantic respected)
 #
-# This is production-grade, low-maintenance, and on-track for passive income via automated content + opportunity intel.
+# This remains simple, cheap, 24/7 reliable. Logs go to Docker json + session.log inside data/sessions/.
+# Obsidian vault at /root/obsidian_vault is the durable source of truth.
 
 
 services:
@@ -40,6 +42,11 @@ services:
       # Future: add :ro to code if splitting agents into read-only workers
     ports:
       - "8000:8000"  # 0.0.0.0 on host (allows Tailscale IP 100.119.160.116 access); no public exposure via firewall/Tailscale-only serve
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -51,6 +58,10 @@ services:
         limits:
           cpus: '2.0'
           memory: 4G
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
     # GPU for future Ollama/LLM claws (uncomment + nvidia toolkit):
     # deploy:
     #   resources:

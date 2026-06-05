@@ -1,4 +1,4 @@
-The repo https://github.com/jasandroidx/ReClaw-2.0 does not exist yet.
+The repo https://github.com/jasandroidx/ReClaw-2.0 now exists (you just created it).
 
 To fix this once and for all:
 
@@ -18,4 +18,4 @@ This will push all our work (the general platform refactor, AgentEvent model, up
 
 Once done, that will be the one and only canonical repo.
 
-If you want me to create it automatically, give me a GitHub token with "repo" scope and I can do `gh repo create` or API call.
+A helper script /tmp/push.sh has been created. Run it (or the git push command below) — it will prompt for your GitHub password or (recommended) a Personal Access Token with "repo" scope.
