@@ -1,14 +1,12 @@
 # ReClaw 2.0
 
-**Rural Data Faceless Channel Agent Swarm** — a clean, production-grade, OpenClaw-pattern rebuild.
+**General-purpose agent operating platform** (OpenClaw-pattern aligned) with initial rural-data workflow module. A clean, production-grade foundation.
 
-**Repo**: https://github.com/jasandroidx/ReClaw-2.0
+**Repo**: https://github.com/jasandbox/ReClaw-2.0
 
-Primary goal: Harvest public county data (property, budgets, salaries, GIS) for rural Indiana (starting with Pike County / Winslow), run it through red-flag analysis, and emit ready-to-use content packages as Obsidian markdown + JSON sidecars.
+ReClaw 2.0 provides domain-agnostic core (Gateway, Session isolation, Security/approval gates, Obsidian durable memory, event model for future visual frontend). The current repo implements rural_data (county research, red-flag analysis, content packages) as the first concrete module. Future domains (grants, local_leads, content, research_packets, visual office) add cleanly under agents/<domain>/ without changing core.
 
-This repo contains the full working implementation.
-
-Later phases add Scriptwriter, Visuals, and local business automation services (GBP rescue, review systems, automations for the same small rural shops).
+Later phases add Scriptwriter, Visuals, business automation services, and the visual agent office layer. Phase 1 = clean foundation only.
 
 ## Core Principles (from SOUL.md)
 - Truth + provenance only. No hype.
@@ -18,11 +16,14 @@ Later phases add Scriptwriter, Visuals, and local business automation services (
 - Docker + Tailscale on Hetzner GPU box = prod. Local PC = identical dev mirror.
 - Small, readable, extendable Python. No bloat.
 
-## Current Swarm (MVP)
+## Current Implementation (MVP rural_data module)
+Core platform is domain-agnostic. This module demonstrates the patterns:
 - **Researcher** (`agents/researcher/`) — pulls or loads seed data → ResearchPackage (JSON)
 - **Analyst / Red Flag** (`agents/analyst/`) — turns research into insights + red flags + channel angles → AnalysisPackage
 - **Light Orchestrator** — sequences them, enforces quality gates from SOUL, assembles ContentPackage, writes to Obsidian channel
-- **Gateway** (`api/main.py`) — the control plane. Creates sessions, loads identities, manages permissions/approvals, exposes HTTP for triggers + status.
+- **Gateway** (`api/main.py`) — the control plane. Creates sessions, loads identities, manages permissions/approvals, exposes HTTP for triggers + status + future event feed.
+
+See AGENTS.md for routing and core/platform capabilities. Future domains live in parallel under `agents/`.
 
 ## Quick Start (Local)
 

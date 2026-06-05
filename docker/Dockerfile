@@ -17,8 +17,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source
 COPY . .
 
-# Non-root
-RUN useradd -m -u 1000 reclaw && chown -R reclaw:reclaw /app
+# Non-root (matches host uid 1000 for volume mounts)
+RUN useradd -m -u 1000 -s /bin/bash reclaw && chown -R reclaw:reclaw /app
 USER reclaw
 
 ENV PYTHONPATH=/app

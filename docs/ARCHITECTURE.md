@@ -1,44 +1,49 @@
-# ARCHITECTURE.md — ReClaw 2.0 (OpenClaw-aligned)
+# ARCHITECTURE.md — ReClaw 2.0 (OpenClaw-aligned Platform)
 
-## High Level
+## High Level (Domain-Agnostic Core)
 
-Gateway (control plane)
-  └── creates Session (isolation)
-        ├── loads SOUL.md (system + per-agent)
-        ├── creates SecurityManager (permissions + gates)
-        └── invokes Orchestrator
-              ├── Researcher (with gate checks)
-              ├── Analyst
+Core Platform (domain agnostic):
+- Gateway (control plane, api/main.py)
+  └── creates Session (isolation, core/session.py)
+        ├── loads SOUL.md (system + per-domain-agent)
+        ├── creates SecurityManager (core/security.py, permissions + gates)
+        ├── manages events (future JSON contract for visual office)
+        └── invokes Orchestrator (per-domain)
+              ├── Domain agents (e.g. rural_data/researcher with gate checks)
+              ├── Analyst / other specialists
               └── quality gates → ContentPackage
-                    └── ObsidianWriter (channel)
+                    └── ObsidianWriter (core/obsidian_writer.py or domain channel)
 
-All durable communication = JSON files in the session handoffs/ dir.
+All durable communication = JSON files in the session handoffs/ dir + explicit event/state records.
 
 ## Why This Shape
 
-- Matches the patterns in the parent ~/clawd workspace (SOUL, AGENTS, handoff protocol, file-as-memory).
-- Matches the official OpenClaw Gateway + agents + Tailscale + session concepts visible in the Obsidian knowledge base and plugin.
-- Gives us security (gates), audit (sessions), and human review surface (Obsidian) with almost zero moving parts.
+- Matches the patterns in the parent ~/clawd workspace (SOUL, AGENTS, handoff protocol, file-as-memory, approval gates).
+- Matches official OpenClaw Gateway + agents + Tailscale + session + Obsidian concepts.
+- Core is general-purpose platform; rural_data is first module. Gives security (gates), audit (sessions), durable memory (Obsidian), and first-class event model for future visual frontend with almost zero moving parts. Domain isolation allows clean addition of grants, local_leads, content, visual_office etc.
 
 ## Components
 
-- `core/handoff.py` — the schema contract (never change lightly)
-- `core/session.py` — the isolation mechanism
-- `core/security.py` — capability declarations + gate enforcement
-- `agents/*/SOUL.md` — identity loaded fresh every run
-- `AGENTS.md` + `SOUL.md` (root) — routing + non-negotiables
-- `api/main.py` — the Gateway HTTP surface (can later become a standalone `gateway/` package)
-- `channels/` (future) — other writers (Discord, etc.)
+**Core Platform (domain-agnostic):**
+- `core/handoff.py` + future events.py — schema + JSON event/state contract (`agent_id`, `role`, `state`, `current_task`, `started_at`, `updated_at`, `last_result`, `last_error`, `run_id`)
+- `core/session.py` — isolation mechanism (sessions/ as truth)
+- `core/security.py` — capability declarations + gate enforcement (shared)
+- `core/config.py`, `core/obsidian_writer.py` — shared infrastructure
+- `AGENTS.md` + root `SOUL.md` — platform routing + non-negotiables
+
+**Domain modules (e.g. rural_data):**
+- `agents/researcher.py` + `agents/researcher/SOUL.md`, `agents/analyst.py` etc.
+- `api/main.py` — the Gateway HTTP surface (domain routing via AGENTS.md; can later become standalone `gateway/` package)
+
+`channels/` and per-domain orchestrators (future).
 
 ## Docker View
 
-One main container for the Gateway + in-process agents (simple and sufficient for the data volume we expect).
+One main container for the Gateway + in-process agents (simple and sufficient for MVP data volume). /root/obsidian_vault:/vault is current Phase 1 choice.
 
-Later, when we have heavy LLM agents or many concurrent business jobs, we can split into:
-- gateway container (orchestration only)
-- worker containers per agent type, given only their session dir as a volume mount
+Later: split into gateway + per-domain workers (only their session dir mounted). GPU for future LLMs. Visual frontend consumes event JSON (out of scope).
 
-GPU is available on the host for future local models (Ollama/vLLM service in compose).
+This supports multiple domains cleanly while preserving OpenClaw conventions.
 
 ## Data Flow for a Typical Run
 

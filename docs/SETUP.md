@@ -1,4 +1,4 @@
-# SETUP.md — ReClaw 2.0 (Local Dev + Hetzner Production)
+# SETUP.md — ReClaw 2.0 Platform (Local Dev + Hetzner Production)
 
 ## 1. Clone & Environment (both places)
 
@@ -39,7 +39,7 @@ print(run_sync(county='Pike', area='Winslow', auto_approve=False))
 "
 ```
 
-The markdown will appear in your vault under the Rural Data subfolder.
+The markdown (from the initial rural_data module) will appear in your vault under the Rural Data subfolder.
 
 ## 3. Docker (local test of prod image)
 
@@ -93,7 +93,7 @@ Rural Data/
   _latest.md
 ```
 
-Open the .md. It contains frontmatter + the exact sections the faceless channel needs (Key Stats, Red Flags, Content Angles, full provenance).
+Open the .md (from rural_data module). It contains frontmatter + the exact sections needed for content/channel use (Key Stats, Red Flags, Content Angles, full provenance). Future domains will have analogous structured output.
 
 ## 7. Adding a New County Seed
 

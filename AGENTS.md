@@ -1,6 +1,6 @@
-# AGENTS.md — ReClaw 2.0 Swarm Routing & Permissions
+# AGENTS.md — ReClaw 2.0 Platform Routing & Permissions
 
-This is the operational routing document for the Rural Data agent swarm. It follows the same patterns as the parent winslow-core AGENTS.md in ~/clawd.
+This is the operational routing document for the general ReClaw 2.0 platform (with initial rural-data workflow package). It follows the same patterns as the parent winslow-core AGENTS.md in ~/clawd. Core is domain-agnostic; rural_data, grants, local_leads, content and future modules are isolated under agents/.
 
 ## Primary Entry Point: Gateway (Control Plane)
 - The Gateway (FastAPI in api/main.py or future dedicated gateway/server.py) is the only thing that creates sessions, loads SOUL files, and dispatches work.
@@ -12,9 +12,11 @@ This is the operational routing document for the Rural Data agent swarm. It foll
   - Status tracking and artifact collection
   - Calling the Orchestrator for full pipeline runs
 
-## Current Agent Roster (MVP Swarm)
+## Current Agent Roster (MVP — rural_data module)
 
-### researcher
+**Note:** This is the first concrete domain module (rural_data). Core platform (Gateway, Session, Security, events) is domain-agnostic. Future domains (grants, local_leads, content, research_packets, visual_office) follow the same structure under agents/<domain>/.
+
+### researcher (rural_data)
 - **SOUL:** agents/researcher/SOUL.md
 - **Mission:** Harvest public county data into a validated ResearchPackage.
 - **Capabilities (declared skills):**
@@ -24,7 +26,7 @@ This is the operational routing document for the Rural Data agent swarm. It foll
 - **Outputs:** ResearchPackage (written to session/handoffs/research.json)
 - **Handoff target:** analyst or orchestrator
 
-### analyst
+### analyst (rural_data)
 - **SOUL:** agents/analyst/SOUL.md
 - **Mission:** Convert ResearchPackage into practical insights + red flags + channel-ready angles.
 - **Capabilities:**
@@ -46,11 +48,11 @@ This is the operational routing document for the Rural Data agent swarm. It foll
 - **Outputs:** ContentPackage + sidecar JSON + Obsidian .md
 
 ## Routing Rules (Gateway decides)
-- "Run Pike Winslow research package" → full pipeline via Orchestrator (default happy path)
-- "Just harvest data for Pike" → researcher only, return ResearchPackage JSON, no Obsidian write
+- "Run Pike Winslow research package" (or any domain trigger) → full pipeline via Orchestrator (default happy path for rural_data module)
+- "Just harvest data for Pike" → researcher only (rural_data), return ResearchPackage JSON, no Obsidian write
 - "Re-analyze existing research <id>" → load from runs/ or session, run analyst only
 - "Re-export package <id> to Obsidian" → load package, call writer (bypass gates if already approved)
-- Future: "Audit GBP for Smith Auto" → will route to a services/ business agent (different tree)
+- Future: "Audit GBP for Smith Auto" → will route to grants or local_leads domain (parallel tree sharing core Gateway/Security/Session)
 
 If the task is ambiguous, Gateway creates a session, loads context, and asks for clarification (or writes a decision request to the session log for human).
 
@@ -91,11 +93,13 @@ This is the "strong security by default" requirement.
 See core/security.py (to be implemented) and docs/SECURITY.md for exact gate examples and how Docker volumes are mounted read-only where possible.
 
 ## Explicit Permissions for Current MVP
-For a standard "Pike Winslow daily run":
+For a standard rural_data ("Pike Winslow") daily run (first domain):
 - researcher: seed read = allowed, live_fetch = medium (default off unless .env USE_LIVE_FETCH or per-session grant)
 - analyst: heuristic only = allowed
 - orchestrator: write to configured obsidian_vault_path = allowed (the path is the only place it can write final artifacts)
 - No shell access for any agent in MVP.
+
+Core platform capabilities (Gateway, Security, Session, events) are shared across all domains.
 
 ## Failure & Escalation
 - Agent produces invalid JSON or fails schema validation → Gateway aborts the session, writes failure log, does not publish.

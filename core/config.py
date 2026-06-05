@@ -17,10 +17,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        env_prefix="RECLAW_",
         extra="ignore",
     )
 
-    # Environment
+    # Environment (RECLAW_ENV=prod from .env/compose/Dockerfile)
     env: str = Field(default="dev", description="dev | staging | prod")
     log_level: str = "INFO"
 
@@ -58,6 +59,12 @@ class Settings(BaseSettings):
     # Obsidian writer
     obsidian_subdir: str = "Rural Data"  # inside the vault root
     write_dry_run: bool = False  # if True, log what would be written but don't touch disk
+
+    # API security (for cron, future Discord bot)
+    reclaw_gateway_token: str = Field(
+        default="supersecretchangemeinproduction1234567890abcdef",
+        description="Bearer token for /trigger endpoints (change in .env)"
+    )
 
     @property
     def effective_obsidian_path(self) -> Path:

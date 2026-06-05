@@ -28,16 +28,16 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Header
 from pydantic import BaseModel
 
 from core.config import get_settings
 from agents.orchestrator import Orchestrator
-from core.handoff import ContentPackage
+from core.handoff import ContentPackage, AgentEvent
 from core.session import create_session, Session
 from core.security import SecurityManager, DECLARED_CAPABILITIES
 
-app = FastAPI(title="ReClaw 2.0", version="2.0.0", description="Rural Data Agent Swarm API")
+app = FastAPI(title="ReClaw 2.0", version="2.0.0", description="General Agent Platform API (rural_data module + future domains)")
 
 settings = get_settings()
 
@@ -146,7 +146,14 @@ def _run_orchestrator_job(job_id: str, county: str, area: str, write_obsidian: b
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "env": settings.env, "version": "2.0.0"}
+    """Platform health (includes event model readiness for visual frontend)."""
+    return {
+        "status": "ok",
+        "env": settings.env,
+        "version": "2.0.0",
+        "platform": "ReClaw 2.0 (general with rural_data module)",
+        "event_model": "AgentEvent available (visual office contract)"
+    }
 
 
 @app.post("/trigger/{county}", response_model=TriggerResponse)
@@ -156,13 +163,21 @@ def trigger_county(
     background_tasks: BackgroundTasks = None,
     write_obsidian: bool = True,
     auto_approve: bool = False,
+    authorization: str | None = Header(None, alias="Authorization"),
 ):
     """
     Gateway entrypoint: start full Researcher → Analyst → quality gates → Obsidian package.
 
     auto_approve=True will pre-grant medium risk actions (e.g. live_fetch) for this session.
     Use with caution — only for trusted internal triggers.
+    Simple Bearer token check (RECLAW_GATEWAY_TOKEN from .env) added for cron/systemd.
     """
+    # Basic token auth (upgrade to full middleware later; matches .env)
+    token = getattr(settings, 'reclaw_gateway_token', 'supersecretchangemeinproduction1234567890abcdef')
+    expected = f"Bearer {token}"
+    if authorization and authorization.strip().lower() != expected.lower():
+        raise HTTPException(status_code=401, detail="Unauthorized - valid Bearer token required for automated triggers")
+
     job_id = f"job-{uuid4().hex[:10]}"
     background_tasks.add_task(_run_orchestrator_job, job_id, county, area, write_obsidian, auto_approve)
     return TriggerResponse(

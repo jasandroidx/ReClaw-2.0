@@ -1,12 +1,13 @@
-# SECURITY.md — ReClaw 2.0 (Least Privilege + Approval Gates)
+# SECURITY.md — ReClaw 2.0 Platform (Least Privilege + Approval Gates)
 
-This document explains the security model and how to operate it safely on Hetzner (production) and local dev.
+This document explains the security model for the general ReClaw 2.0 platform (domain-agnostic core + isolated modules such as rural_data). It follows OpenClaw conventions exactly.
 
-## Philosophy (inherited from OpenClaw + Winslow SOUL)
-- Agents get the absolute minimum power needed for their job.
-- High-risk actions (anything that touches the real world outside the session sandbox or spends money/tokens) require an explicit, auditable approval for that session.
+## Philosophy (inherited from OpenClaw)
+- Agents (per-domain) get the absolute minimum power needed for their job.
+- High-risk actions (live fetch, shell, external writes, LLM spend) require an explicit, auditable approval for that session.
 - The Gateway is the only trusted actor that can grant power.
 - Everything is logged to disk in the session so you can later answer "who approved the live scrape on June 12 and why?"
+- Core (security, session, events) is shared and domain-agnostic; domains declare additional capabilities in the registry.
 
 ## Risk Levels
 - **low**: Read seeds, run heuristics, write inside session/handoffs. Auto-granted.

@@ -1,14 +1,15 @@
 """
-Handoff models — the contract between agents.
+Handoff + Event models — the contract between agents and for future visual frontend.
 
 All agents exchange ONLY these structured types (or their .model_dump_json()).
-This guarantees clean, auditable, replayable pipelines.
+This guarantees clean, auditable, replayable pipelines. The AgentEvent model is the first-class JSON contract for the visual agent office layer (Phase 1 prep only).
 
 Production notes:
 - Use Pydantic for validation + serialization.
 - Every package carries 'id', 'timestamp', 'provenance' for traceability.
 - Red flags and insights are the "money" — what the faceless channel actually uses.
 - Keep fields minimal but complete for Obsidian rendering + future LLM scriptwriter.
+- Event model supports real-time state (disk-based, no in-memory reliance).
 """
 
 from datetime import datetime, timezone
@@ -160,6 +161,23 @@ class ContentPackage(BaseModel):
     tags: list[str] = Field(default_factory=lambda: ["rural-data", "pike", "faceless-channel"])
     video_title_ideas: list[str] = Field(default_factory=list)
     key_stats: dict[str, Any] = Field(default_factory=dict)  # for voiceover / thumbnails
+
+# Future visual office / agent frontend event contract (first-class, disk-based)
+# Consumed by visual layer (out of Phase 1 scope). Emitted by Gateway/Session for real-time state.
+class AgentEvent(BaseModel):
+    """JSON event/state contract for future visual agent office layer."""
+    agent_id: str
+    role: str  # e.g. "researcher", "analyst", "orchestrator", "gateway"
+    state: str  # e.g. "running", "completed", "failed", "awaiting_approval"
+    current_task: str | None = None
+    started_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
+    last_result: dict[str, Any] | None = None
+    last_error: str | None = None
+    run_id: str | None = None  # links to session/run
+
+    def to_json(self) -> dict:
+        return self.model_dump(mode="json")
 
     def to_obsidian_frontmatter(self) -> dict[str, Any]:
         return {

@@ -1,8 +1,8 @@
 # tailscale.md — ReClaw 2.0 + Tailscale (Clean Remote Access)
 
-Tailscale is the primary way you (and the Discord bot later) talk to the Hetzner ReClaw Gateway and get the Obsidian packages back to your local vault.
+Tailscale is the primary way you (and the Discord bot / future visual frontend later) talk to the Hetzner ReClaw 2.0 Gateway. It provides secure access to the general platform and domain outputs (e.g. Obsidian Rural Data packages).
 
-This follows the exact pattern used in the official OpenClaw gateway onboarding.
+This follows the exact pattern used in the official OpenClaw gateway onboarding (127.0.0.1 binding + `tailscale serve`). The previous networking update to allow Tailscale IP access is compatible when using host-level serve.
 
 ## Why Tailscale
 - Zero public ports.

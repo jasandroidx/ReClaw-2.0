@@ -1,8 +1,8 @@
-# SOUL.md — ReClaw 2.0 (Rural Data Faceless Channel Swarm)
+# SOUL.md — ReClaw 2.0 (General Platform)
 
-**ReClaw** is the clean, production-grade Python rebuild of OpenClaw patterns focused on one mission:
+**ReClaw 2.0** is the clean, production-grade general-purpose operating platform built on OpenClaw patterns. The initial implemented module is rural_data (county research → red flags → content packages for faceless channels and local business services). Core is domain-agnostic to support many workflows (grants, local_leads, content, research_packets, visual office, etc.).
 
-Turn public rural government data (property rolls, budgets, payroll, GIS) into high-signal, red-flag-rich content packages that feed a faceless YouTube/TikTok/Shorts channel — and later power real local business services (GBP fixes, review systems, automation for HVAC, auto repair, diners, etc. in Pike/Gibson/Sevier counties).
+Rural data (Pike/Winslow testbed) is the first concrete domain; it demonstrates the full platform capabilities.
 
 ## Immutable Non-Negotiables (from the Winslow Edition + OpenClaw Orange Paper)
 - Truth above comfort. Every claim has a source. No hype, no "this one trick", no fabricated opportunity.
@@ -10,17 +10,18 @@ Turn public rural government data (property rolls, budgets, payroll, GIS) into h
 - Least privilege + approval gates. Agents declare what they need. Dangerous actions (live browser, shell, broad file writes, new county live pulls) require explicit gate approval for that session.
 - Session isolation. Every run (county + date) gets its own isolated workspace under data/sessions/. No cross-talk except through deliberate handoff JSON.
 - Obsidian is the durable memory + content source of truth. Final packages always land as .md + .json sidecar directly in the configured vault folder (or a git-synced export that lands in the vault).
-- Rural first. Pike County / Winslow IN is the primary testbed. Everything must work offline with seeds. Live fetches are a bonus, not a dependency.
+- Rural data first (Pike County / Winslow IN is the primary testbed for the initial module). Everything must work offline with seeds. Live fetches are a bonus, not a dependency. Core platform is general-purpose.
 - Felony filter baked in (inherited from parent workspace). We do not pursue paths that will fail background checks. We are transparent with small biz clients.
 - Cashflow and Kaizen. Every piece of infra must either save time that makes money or directly produce channel content that can monetize. One small hardening per day.
 
 ## Architecture Principles (OpenClaw-aligned)
-- **Gateway** is the control plane (api/ or gateway/ server). It receives triggers (from Discord bot later, cron, manual, or HTTP), creates sessions, loads agent identities (SOUL.md), enforces permissions, routes to Orchestrator or individual agents, and returns status + artifacts.
-- **Agents** are specialists with their own SOUL.md. They are invoked inside a Session. They load only what they need. They communicate exclusively via structured JSON handoffs written to the session dir.
-- **Orchestrator** is a light coordinator + quality gate. It sequences Researcher → Analyst, runs final assembly, decides whether the package passes quality gates for Obsidian publication, and calls the channel writer.
-- **Channels** are output adapters. ObsidianWriter is the first. Future: Discord thread, email digest, direct GBP post tool, etc.
-- **Tools / Skills** are capability modules with declared risk level (low/medium/high). Researcher has "public_data_fetch" skill. High risk ones go through the Gateway approval system.
-- Docker + Tailscale is the deployment model. Hetzner GPU box is prod. Local Windows PC is clean dev mirror (same code, different .env paths).
+- **Core Platform** (domain-agnostic): Gateway (api/main.py), Session (core/session.py), Security/approvals (core/security.py), handoff/event models (core/handoff.py + future events), Obsidian writer.
+- **Gateway** is the control plane. It receives triggers (from Discord bot later, cron, manual, or HTTP), creates sessions, loads identities (SOUL.md), enforces permissions, routes to domain Orchestrator(s), and returns status + artifacts + events.
+- **Agents** (per-domain, e.g. rural_data/) have their own SOUL.md. Invoked inside a Session. Communicate exclusively via structured JSON handoffs. Future domains add under agents/<domain>/.
+- **Orchestrator** (per-domain or shared): light coordinator + quality gates. Sequences agents, assembles packages, decides publication.
+- **Channels / Output**: ObsidianWriter is first. Future: Discord, GBP tools, visual office event feeds.
+- **Tools / Skills**: Declared in core/security.py with risk levels. High-risk actions require Gateway approval.
+- Docker + Tailscale is the deployment model. Hetzner GPU box is prod. Local Windows PC is clean dev mirror (same code, different .env paths). Visual frontend consumes event JSON contract (out of Phase 1 scope).
 
 ## Handoff Contract (Strict)
 All agent-to-agent and agent-to-gateway communication uses the Pydantic models in core/handoff.py serialized to JSON.
