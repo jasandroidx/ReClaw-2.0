@@ -122,3 +122,12 @@ A simple cron or systemd timer on Hetzner calls it daily for the primary countie
 Output always lands in Obsidian so the human (Boyd) sees it on next vault sync without needing to SSH.
 
 This document + SOUL.md + the per-agent SOULs are the contract. Code must implement the spirit, not just the letter.
+
+## Clawsmith / Clawforge (Meta-Compiler for visual_office & project rooms)
+- **Skill:** `/root/.openclaw/workspace/skills/clawsmith/SKILL.md` (trigger: "forge a room", "clawsmith business goal", "create openclaw project room", "bootstrap visual castle office").
+- **Mission:** Clawforge the Blacksmith (*CLANG*) analyzes goal complexity to size rooms (Tier 1=single specialist vs Tier 2+=coordinator + specialists + sub-agents per parallel lanes). Forges full structural configs: AGENTS.md coordinator, specialist SKILL.md (hybrid frontmatter, Context/Operational Steps with exact commands/pending_approval gates/Error Handling), Obsidian vault manifest + castle_map.json (for visual square/pixel "offices" with anvils/forges), deploy.sh.
+- **Key Guarantees:** Sandbox (env vars only, no hardcoded keys/logs), mandatory human approval gates for *any* external write (email, git, API, outreach → pending_approval in vault + notification), ReClaw Pydantic handoffs, tight well-oiled machine (boundaries, heartbeats, escalation). Biases toward rural_data, SEO, marketplace automations.
+- **Integration:** `python3 /opt/reclaw/tools/clawsmith.py --goal "Your goal" [--output-dir ./room]`. Run generated deploy.sh. Reloads into OpenClaw workspace. Directly enables the badass castle/forge visual UI (main orchestrator oversees pixel agents hammering in office squares).
+- **Location in repo:** /opt/reclaw/tools/clawsmith.py + skill in workspace. Part of visual_office future domain.
+
+Add routing in gateway/permission_registry.py if needed for auto-approval levels (low-risk forging).
