@@ -194,3 +194,66 @@ class AgentEvent(BaseModel):
     def to_json(self) -> dict:
         """Serialize for disk handoff / event log."""
         return self.model_dump(mode="json")
+
+
+class ForgePackage(BaseModel):
+    """
+    Output of Clawsmith (Clawforge the Blacksmith) meta-agent.
+    Structured handoff for new project rooms. Includes sizing decision,
+    generated files list, updated castle_map delta, and approval notes.
+    Ensures every forge is solid, standards-compliant, and visual-ready.
+    """
+    id: str = Field(default_factory=lambda: f"forge-{uuid4().hex[:12]}")
+    goal: str
+    generated_at: datetime = Field(default_factory=now_utc)
+    sizing_map: dict = Field(...)  # tier, num_agents, agents list, complexity_analysis, tool_routing
+    generated_files: list[str] = Field(default_factory=list)  # paths to AGENTS.md, SKILLs, castle_map.json, etc.
+    castle_map_delta: dict = Field(default_factory=dict)  # changes to visual castle (new rooms, agent positions, anvil status)
+    approval_gates: list[str] = Field(default_factory=list)  # e.g. ["outreach_crafter requires human sign-off"]
+    summary: str = ""
+    obsidian_path: str | None = None
+
+    def to_obsidian_frontmatter(self) -> dict[str, Any]:
+        """Frontmatter for Obsidian output in /Rooms/ or /Forges/. High standards only."""
+        return {
+            "id": self.id,
+            "type": "forge_package",
+            "goal": self.goal[:80] + "..." if len(self.goal) > 80 else self.goal,
+            "tier": self.sizing_map.get("tier", 1),
+            "agents": len(self.sizing_map.get("agents", [])),
+            "date": self.generated_at.date().isoformat(),
+            "status": "forged",
+            "gates": len(self.approval_gates),
+            "tags": ["clawforge", "meta-agent", "visual-castle"],
+        }
+
+    def save_to_obsidian(self, vault_path: str = "/root/obsidian_vault/Forges") -> str:
+        """Write to Obsidian with proper frontmatter. The anvil doesn't lie."""
+        from pathlib import Path
+        import json
+        vault = Path(vault_path)
+        vault.mkdir(parents=True, exist_ok=True)
+        filename = f"{self.id}.md"
+        path = vault / filename
+        front = self.to_obsidian_frontmatter()
+        content = f"""---
+{json.dumps(front, indent=2)[1:-1].replace('"', '').replace(',', '')}
+---
+# Forge: {self.goal[:60]}...
+
+**Sizing**: Tier {self.sizing_map.get('tier')} with {self.sizing_map.get('num_agents', 0)} agents.
+**Status**: Solid work. No half-measures here.
+
+## Generated Room
+{chr(10).join('- ' + f for f in self.generated_files)}
+
+## Castle Update
+```json
+{json.dumps(self.castle_map_delta, indent=2)}
+```
+
+*CLANG* Forged properly by Clawforge.
+"""
+        path.write_text(content)
+        self.obsidian_path = str(path)
+        return str(path)

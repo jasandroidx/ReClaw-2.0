@@ -1,0 +1,32 @@
+{
+  "theme": "blacksmith_castle",
+  "grid_size": [
+    5,
+    5
+  ],
+  "rooms": [
+    {
+      "id": "12835125",
+      "name": "forge-forge-a-si",
+      "theme": "blacksmith_forge",
+      "agents": [
+        "coordinator"
+      ],
+      "position": [
+        0,
+        0
+      ],
+      "anvil_status": "hammering",
+      "visual": "pixel_anvil_with_sparks",
+      "forged_at": "2026-06-06T12:54:14.459807"
+    }
+  ],
+  "orchestrator": {
+    "position": [
+      0,
+      0
+    ],
+    "status": "overseeing"
+  },
+  "last_updated": "2026-06-06T12:54:14.459814"
+}
