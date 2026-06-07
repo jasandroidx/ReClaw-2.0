@@ -1,0 +1,40 @@
+#!/bin/bash
+set -euo pipefail
+
+# ReClaw Ops — tiny demo workflow path (foundation only)
+# Proves the architecture: workspace can reach the ReClaw companion at /opt/reclaw,
+# see its outputs in the vault, and has a documented/executable path for invocation.
+# Uses existing ReClaw /run-sync (local blocking, no auth) and the already-wired vault path.
+# Safe by default — no new ReClaw execution unless --execute is passed.
+
+echo "=== ReClaw Ops tiny demo (read-only by default) ==="
+echo "Workspace: /root/.openclaw/workspace"
+echo "ReClaw engine: /opt/reclaw"
+echo "Gateway target: http://${RECLAW_GATEWAY_HOST:-host.docker.internal}:8000 (from ReClaw docker-compose publish; override RECLAW_GATEWAY_HOST=127.0.0.1 when running this script directly on the bare host)"
+echo ""
+
+echo "Health check (proves reachability):"
+curl -f -s --max-time 5 http://${RECLAW_GATEWAY_HOST:-host.docker.internal}:8000/health || echo "ReClaw not reachable at ${RECLAW_GATEWAY_HOST:-host.docker.internal}:8000. (cd /opt/reclaw && docker compose up -d)"
+
+echo ""
+echo "Current vault state (proves min output path wiring):"
+ls -l /root/obsidian_vault/Rural\ Data/ 2>/dev/null || echo "Vault subdir not visible (check mount)"
+cat /root/obsidian_vault/Rural\ Data/_latest.md 2>/dev/null || true
+
+echo ""
+if [[ "${1:-}" == "--execute" ]]; then
+  echo "=== EXECUTE: triggering real rural_data run (Pike/Winslow, seeds, will write new vault artifact) ==="
+  curl -s -X POST "http://${RECLAW_GATEWAY_HOST:-host.docker.internal}:8000/run-sync?county=Pike&area=Winslow&write_obsidian=true" | python3 -m json.tool 2>/dev/null || curl -s -X POST "http://${RECLAW_GATEWAY_HOST:-host.docker.internal}:8000/run-sync?county=Pike&area=Winslow&write_obsidian=true"
+  echo ""
+  echo "Re-check vault after completion:"
+  ls -l /root/obsidian_vault/Rural\ Data/
+else
+  echo "DRY RUN (no ReClaw execution). Re-run with --execute to actually call the engine and produce a new package."
+  echo ""
+  echo "Exact command an agent would use for a real seed-based run:"
+  echo "  RECLAW_GATEWAY_HOST=127.0.0.1 curl -s -X POST 'http://127.0.0.1:8000/run-sync?county=Pike&area=Winslow&write_obsidian=true' | python3 -m json.tool"
+  echo ""
+  echo "After a real run, the agent must update memory/ here in the workspace (Text > Brain)."
+fi
+
+echo "=== Demo path complete ==="
