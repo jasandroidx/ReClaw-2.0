@@ -48,3 +48,7 @@ Thumbs.db
 
 # Docker
 *.pid
+
+# Temp from clawsmith/clawforge runs (per plan.md Phase 1)
+generated-*/
+generated-*
