@@ -75,6 +75,50 @@ DECLARED_CAPABILITIES: dict[str, Capability] = {
         description="Run arbitrary shell commands. Almost never granted in this swarm.",
         requires_approval=True,
     ),
+    # New capabilities for Clawsmith visual agent floor (per approved plan)
+    "grant_scan": Capability(
+        name="grant_scan",
+        risk=RiskLevel.MEDIUM,
+        description="Scan grants/RFPs for Grant Hall cell. Gated for write/alert generation.",
+        requires_approval=True,
+    ),
+    "compliance_audit": Capability(
+        name="compliance_audit",
+        risk=RiskLevel.HIGH,
+        description="Deep compliance/red-flag audits for Silent Auditor. High risk for reports.",
+        requires_approval=True,
+    ),
+    "job_match": Capability(
+        name="job_match",
+        risk=RiskLevel.MEDIUM,
+        description="Local job/salary matching for Job Aggregator. Leads to paid lists.",
+    ),
+    "arbitrage_scan": Capability(
+        name="arbitrage_scan",
+        risk=RiskLevel.HIGH,
+        description="Marketplace scraping for Flips cell. Gated for live data.",
+        requires_approval=True,
+    ),
+    "script_generate": Capability(
+        name="script_generate",
+        risk=RiskLevel.LOW,
+        description="Generate faceless content/scripts for Content Studio from packages.",
+    ),
+    "cell_create": Capability(
+        name="cell_create",
+        risk=RiskLevel.MEDIUM,
+        description="Clawforge meta-action to create new room cell + memory + visual desk.",
+    ),
+    "visual_event_emit": Capability(
+        name="visual_event_emit",
+        risk=RiskLevel.LOW,
+        description="Emit WS events for dashboard sprite states and board updates.",
+    ),
+    "memory_consolidate": Capability(
+        name="memory_consolidate",
+        risk=RiskLevel.LOW,
+        description="Background Total-ReClaw consolidation job per cell.",
+    ),
 }
 
 

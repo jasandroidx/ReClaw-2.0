@@ -246,14 +246,12 @@ class ForgePackage(BaseModel):
 
 ## Generated Room
 {chr(10).join('- ' + f for f in self.generated_files)}
-
-## Castle Update
-```json
-{json.dumps(self.castle_map_delta, indent=2)}
-```
-
-*CLANG* Forged properly by Clawforge.
 """
         path.write_text(content)
         self.obsidian_path = str(path)
         return str(path)
+
+
+# CellBlueprint, AgentDesk, and ClawforgeCompiler are defined in core/cell.py (dedicated per plan.md).
+# handoff.py remains focused on ForgePackage + Obsidian patterns for handoffs from rooms.
+# Import from core.cell works cleanly now.

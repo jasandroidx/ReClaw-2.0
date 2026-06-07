@@ -47,6 +47,13 @@ This is the operational routing document for the general ReClaw 2.0 platform (wi
   3. Risk score + manual override logic
 - **Outputs:** ContentPackage + sidecar JSON + Obsidian .md
 
+### clawforge (meta - visual floor compiler)
+- **SOUL:** agents/clawsmith/SOUL.md (updated for CellBlueprint)
+- **Mission:** Top-level meta-agent after Boss. Compiles plain-English rural income goals into persistent themed cells (Grant Hall etc.) under ~/.openclaw/workspace/rooms/. Prunes workers, writes SOUL/AGENTS.md + Total-ReClaw memory, registers gates, emits WS visual events for 2D dashboard. Enforces ReClaw principles on Hetzner (Docker volumes, Tailscale WS, GPU vec).
+- **Capabilities:** cell_create, visual_event_emit, grant_scan, compliance_audit, memory_consolidate (all gated).
+- **Outputs:** CellBlueprint + ForgePackage to Obsidian/Rooms + room folder with memory.db.
+- **Visual:** Updates static pixel sprites on dashboard (Grant Hall FUNDING TRACKER etc.).
+
 ## Routing Rules (Gateway decides)
 - "Run Pike Winslow research package" (or any domain trigger) → full pipeline via Orchestrator (default happy path for rural_data module)
 - "Just harvest data for Pike" → researcher only (rural_data), return ResearchPackage JSON, no Obsidian write
