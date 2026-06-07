@@ -91,6 +91,17 @@ Full details: [docs/SECURITY.md](docs/SECURITY.md)
 
 When we add the business services side (GBP for auto shops etc.), they will live in a parallel tree but use the exact same Gateway, session, security, and handoff patterns.
 
+## Visual Agent Floor (Clawsmith Phase 1 - Committed to ravenstack)
+Persistent multi-room "operating floor" per spec. Core compiler in `core/cell.py` (plain goal → CellBlueprint with prune for rural income, creates ~/.openclaw/workspace/rooms/<id>/ with SOUL.md/AGENTS.md/memory.db, Obsidian ForgePackage, visual WS events). 
+
+- Rooms: Grant Hall Dungeon (purple_grant_watcher, funding tracker), Audit Chamber (red_auditor, compliance), Job Den, Research Lab, Content Studio, Marketplace Forge.
+- Dashboard: `dashboard/index.html` (2D pixel grid, static desk-anchored hooded sprites with states idle/typing/glowing/success/error, neon CSS, WS to gateway:18789, Tailscale accessible on 8080 via new docker service). Click sprites to simulate.
+- Revenue loops wired: grant alerts ($49/mo), compliance reports ($199), job leads ($29/mo), arbitrage feed ($19/mo), faceless YT content (ads/affiliates), dashboard as SaaS.
+- Test: `python3 -m core.cell "Activate Grant Hall..."` (creates room, inits Total-ReClaw, emits event). `docker-compose up reclaw-dashboard` for visual.
+- Sprite states and themes match pixel RPG reference (cozy, no pathfinding).
+
+See AGENTS.md for Clawforge routing, core/cell.py for lifecycle, plan.md for full architecture.
+
 ## Status
 
 MVP complete:

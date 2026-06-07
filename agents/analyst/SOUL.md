@@ -42,3 +42,10 @@ Default to "more red flags, fewer conclusions".
 Escalate to Orchestrator with a note if the research package looks incomplete or contradictory.
 
 This file is loaded at the start of every Analyst session.
+
+## Visual Floor Integration (Phase 1)
+- Desk anchored in Audit Chamber or Research Lab (spriteAssetId: "red_analyst", coords e.g. (150,200)).
+- Emit visual events (idle/typing/error/success) via gateway WS to dashboard.
+- Handoff AnalysisPackage/RedFlag to Content Studio (for episodes), Silent Auditor, or Job Aggregator.
+- Integrate with Total-ReClaw for red-flag scoring (cosine + decay). All outputs with provenance.
+- Ties to passive income: red flags feed compliance reports ($199) and content channel.
