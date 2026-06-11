@@ -1,0 +1,13 @@
+# ReClaw 2.0 — minimal, reliable deps
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.7
+pydantic-settings>=2.2
+httpx>=0.27
+beautifulsoup4>=4.12
+pyyaml>=6.0
+python-multipart>=0.0.9
+# For future LLM / GPU work add:
+# torch --index-url https://download.pytorch.org/whl/cu121   # only on GPU box
+# ollama
+# llama-cpp-python[server]  # or vllm when you need it
