@@ -3,313 +3,365 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ReClaw 2.0 Agent Floor - Hetzner/Tailscale</title>
+    <title>ReClaw 2.0 Agent Floor</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); /* pixel feel */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --green: #00ff41;
+            --cyan: #00ffff;
+            --magenta: #ff00ff;
+            --gold: #ffd700;
+            --red: #ff3333;
+            --yellow: #ffff00;
+            --bg: #0a0a0a;
+            --surface: #111;
+            --muted: #555;
+        }
         body {
-            background: #0a0a0a;
-            color: #0f0;
+            background: var(--bg);
+            color: var(--green);
             font-family: 'Press Start 2P', monospace;
             margin: 0;
-            padding: 20px;
+            padding: 16px;
             image-rendering: pixelated;
+            min-height: 100vh;
         }
+        h1 {
+            text-align: center;
+            color: var(--magenta);
+            text-shadow: 0 0 10px var(--magenta);
+            font-size: 13px;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+        /* OLLAMA STATUS BAR */
+        #ollama-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--surface);
+            border: 2px solid var(--muted);
+            padding: 10px 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        #ollama-bar .label { color: var(--cyan); font-size: 9px; white-space: nowrap; }
+        #ollama-status {
+            font-size: 9px;
+            padding: 4px 10px;
+            border: 2px solid var(--muted);
+            background: #000;
+            white-space: nowrap;
+        }
+        #ollama-status.on      { color: var(--green);   border-color: var(--green);   text-shadow: 0 0 6px var(--green);   }
+        #ollama-status.off     { color: var(--red);     border-color: var(--red);     text-shadow: 0 0 6px var(--red);     }
+        #ollama-status.checking{ color: var(--yellow);  border-color: var(--yellow); }
+        #ollama-models  { font-size: 8px; color: #aaa; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #ollama-version { font-size: 8px; color: var(--muted); white-space: nowrap; }
+        #ollama-refresh {
+            background: none;
+            border: 2px solid var(--cyan);
+            color: var(--cyan);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            padding: 4px 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #ollama-refresh:hover { background: var(--cyan); color: #000; }
+        /* FIX HINT */
+        #fix-hint {
+            display: none;
+            background: #1a0000;
+            border: 2px solid var(--red);
+            color: var(--red);
+            font-size: 8px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            line-height: 1.9;
+        }
+        /* FLOOR */
         .floor {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            gap: 16px;
             max-width: 1200px;
             margin: 0 auto;
         }
+        @media (max-width: 900px) { .floor { grid-template-columns: repeat(2,1fr); } }
+        @media (max-width: 560px) { .floor { grid-template-columns: 1fr; } }
         .room {
-            border: 4px solid #00ffff;
-            background: #111;
-            padding: 15px;
+            border: 4px solid var(--cyan);
+            background: var(--surface);
+            padding: 14px;
             position: relative;
-            min-height: 300px;
-            box-shadow: 0 0 20px #00ffff;
+            min-height: 280px;
+            box-shadow: 0 0 18px var(--cyan);
         }
-        .room.grant-hall {
-            border-color: #ff00ff;
-            background: linear-gradient(#222, #441133);
+        .room.grant-hall { border-color: var(--magenta); background: linear-gradient(#222,#441133); box-shadow: 0 0 18px var(--magenta); }
+        .room.forge-room  { border-color: var(--gold);    background: linear-gradient(#222,#443311); box-shadow: 0 0 18px var(--gold);    }
+        .room h2 { font-size: 9px; margin-bottom: 12px; }
+        .tracker {
+            position: absolute; top: 8px; right: 8px;
+            background: #000; padding: 4px 8px;
+            border: 2px solid var(--cyan);
+            font-size: 8px; color: var(--cyan);
         }
         .desk {
             position: absolute;
-            width: 80px;
-            height: 80px;
+            width: 72px; height: 72px;
             background: #333;
-            border: 3px solid #ffd700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
+            border: 3px solid var(--gold);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 0 15px currentColor;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 0 12px currentColor;
         }
         .desk:hover { transform: scale(1.1); }
-        .desk.idle { color: #0f0; }
-        .desk.typing { color: #ff0; animation: pulse 1s infinite; }
-        .desk.glowing { color: #f0f; animation: neon 0.5s infinite alternate; box-shadow: 0 0 30px #f0f; }
-        .desk.success { color: #0ff; }
-        .desk.error { color: #f00; animation: flash 0.2s 3; }
-        @keyframes pulse { 50% { opacity: 0.6; } }
-        @keyframes neon { from { text-shadow: 0 0 10px #f0f; } to { text-shadow: 0 0 30px #f0f, 0 0 40px #f0f; } }
+        .desk.idle    { color: var(--green); }
+        .desk.typing  { color: var(--yellow); animation: pulse 1s infinite; }
+        .desk.glowing { color: var(--magenta); animation: neon 0.5s infinite alternate; box-shadow: 0 0 28px var(--magenta); }
+        .desk.success { color: var(--cyan); }
+        .desk.error   { color: var(--red); animation: flash 0.2s 3; }
+        .desk-label   { position: absolute; font-size: 8px; color: #aaa; }
+        @keyframes pulse { 50% { opacity: 0.5; } }
+        @keyframes neon  { from { text-shadow: 0 0 8px var(--magenta); } to { text-shadow: 0 0 28px var(--magenta), 0 0 40px var(--magenta); } }
         @keyframes flash { 50% { opacity: 0.2; } }
-        .tracker {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #000;
-            padding: 5px 10px;
-            border: 2px solid #0ff;
-            font-size: 10px;
-            color: #0ff;
+        .subtext { font-size: 8px; color: var(--muted); }
+        /* LOG */
+        #log {
+            position: fixed; bottom: 8px; left: 8px;
+            background: #000; border: 2px solid var(--green);
+            padding: 8px 10px;
+            width: min(440px, calc(100vw - 16px));
+            height: 140px; overflow-y: auto;
+            font-size: 9px; line-height: 1.7;
+            z-index: 100;
         }
-        .log {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: #000;
-            border: 2px solid #0f0;
-            padding: 10px;
-            width: 400px;
-            height: 150px;
-            overflow-y: auto;
-            font-size: 11px;
-        }
-        h1 { text-align: center; color: #ff00ff; text-shadow: 0 0 10px #ff00ff; }
-        .status { color: #0f0; font-size: 12px; }
     </style>
 </head>
 <body>
-    <h1>RECLAW 2.0 AGENT FLOOR — CLAWSMITH FORGE</h1>
-    <p class="status">Hetzner Production • Tailscale • GPU • Clawsmith Planner Room Active • Canvas 2.5D Isometric Foundation • WS:18789</p>
-    
-    <div class="floor">
-        <!-- Grant Hall (priority room) -->
-        <div class="room grant-hall" id="grant-hall">
-            <h2 style="color:#ff00ff;margin:0 0 15px 0;">GRANT HALL DUNGEON</h2>
-            <div class="tracker" id="tracker">FUNDING: $0 • 3 ALERTS</div>
-            
-            <!-- Static anchored desks/sprites (pixel style via emoji + CSS; transitioning to Canvas isometric) -->
-            <div class="desk idle" id="grant-desk" style="left: 40%; top: 45%;" 
-                 title="purple_grant_watcher - Central Desk (220,180)"
-                 onclick="simulateEvent('grant-desk', 'glowing')">🧙</div>
-            <div style="position:absolute; left:20%; top:65%; font-size:10px; color:#aaa;">Grant Watcher</div>
-            
-            <div class="desk idle" id="analyst-desk" style="left: 65%; top: 65%;" 
-                 onclick="simulateEvent('analyst-desk', 'typing')">📊</div>
-            <div style="position:absolute; left:65%; top:85%; font-size:10px; color:#aaa;">Analyst</div>
-        </div>
-        
-        <!-- Clawsmith Room - Planner/Architect (human review gate before any forge) - Priority for this pass -->
-        <div class="room" id="clawsmith-forge" style="border-color: #ffd700; background: linear-gradient(#222, #443311);">
-            <h2 style="color:#ffd700;margin:0 0 15px 0;">CLAWSMITH FORGE (PLANNER)</h2>
-            <div class="tracker" style="background:#330; color:#ff0; border-color:#ffd700;">BLUEPRINTS: 0 • AWAITING REVIEW</div>
-            
-            <div class="desk idle" id="clawsmith-desk" style="left: 35%; top: 40%; background:#551; border-color:#ffd700;" 
-                 title="Clawforge the Blacksmith - Architect Desk. Click to generate room blueprint for human review."
-                 onclick="simulateClawsmithPlan()">⚒️</div>
-            <div style="position:absolute; left:25%; top:65%; font-size:10px; color:#ff0;">Clawsmith Planner</div>
-            <div style="position:absolute; left:55%; top:55%; font-size:9px; color:#aaa; max-width:120px;">Outputs blueprint → Human approval gate → Forge room. Moody pixel architect first.</div>
-            
-            <!-- Canvas foundation for 2.5D isometric (expand here) -->
-            <canvas id="clawsmith-canvas" width="280" height="160" style="position:absolute; left:10px; top:100px; border:1px solid #ffd700; image-rendering:pixelated; background:#111;"></canvas>
-        </div>
-        
-        <!-- Placeholder other rooms -->
-        <div class="room" id="audit-chamber">
-            <h2 style="color:#ff0000;margin:0 0 15px 0;">AUDIT CHAMBER</h2>
-            <div class="desk idle" style="left: 30%; top: 50%;" onclick="simulateEvent(this, 'error')">🔴</div>
-            <div style="position:absolute; left:25%; top:75%; font-size:10px; color:#aaa;">Silent Auditor</div>
-        </div>
-        
-        <div class="room" id="content-studio">
-            <h2 style="color:#ffff00;margin:0 0 15px 0;">CONTENT STUDIO</h2>
-            <div class="desk idle" style="left: 50%; top: 40%;" onclick="simulateEvent(this, 'success')">🎥</div>
-            <div style="position:absolute; left:45%; top:65%; font-size:10px; color:#aaa;">Scriptwriter</div>
-        </div>
+
+<h1>⚙ RECLAW 2.0 — AGENT FLOOR</h1>
+
+<!-- OLLAMA STATUS BAR -->
+<div id="ollama-bar">
+    <span class="label">OLLAMA:</span>
+    <span id="ollama-status" class="checking">CHECKING…</span>
+    <span id="ollama-version"></span>
+    <span id="ollama-models">models: —</span>
+    <button id="ollama-refresh" onclick="checkOllama()">↺ REFRESH</button>
+</div>
+
+<!-- FIX HINT (only visible when Ollama is off) -->
+<div id="fix-hint">
+    ⚠ OLLAMA UNREACHABLE — Ollama is probably bound to 127.0.0.1 on the host, not 0.0.0.0.<br>
+    FIX 1: sudo systemctl edit ollama → add: Environment=OLLAMA_HOST=0.0.0.0:11434<br>
+    FIX 2: sudo systemctl daemon-reload &amp;&amp; sudo systemctl restart ollama<br>
+    FIX 3: confirm docker-compose has extra_hosts: ["host.docker.internal:host-gateway"] ✓ (already applied)
+</div>
+
+<!-- AGENT FLOOR -->
+<div class="floor">
+
+    <!-- GRANT HALL -->
+    <div class="room grant-hall" id="grant-hall">
+        <h2 style="color:var(--magenta)">GRANT HALL DUNGEON</h2>
+        <div class="tracker" id="tracker">FUNDING: $0 • 3 ALERTS</div>
+        <div class="desk idle" id="grant-desk" style="left:38%;top:42%"
+             title="purple_grant_watcher"
+             onclick="simulateEvent('grant-desk','glowing')">🧙</div>
+        <div class="desk-label" style="left:28%;top:68%">Grant Watcher</div>
+        <div class="desk idle" id="analyst-desk" style="left:62%;top:62%"
+             onclick="simulateEvent('analyst-desk','typing')">📊</div>
+        <div class="desk-label" style="left:62%;top:83%">Analyst</div>
     </div>
-    
-    <div class="log" id="log">WS Log (Tailscale connected):<br>Connected to gateway ws://127.0.0.1:18789<br>Waiting for cell.update events...</div>
-    
-    <script>
-        // Minimal 2D dashboard per plan (static pixel sprites, Grant Hall first, WS for live updates)
-        let ws = null;
-        const logEl = document.getElementById('log');
-        const trackerEl = document.getElementById('tracker');
-        
-        function log(msg) {
-            const time = new Date().toLocaleTimeString();
-            logEl.innerHTML += `<br>[${time}] ${msg}`;
-            logEl.scrollTop = logEl.scrollHeight;
-            if (logEl.children.length > 20) logEl.removeChild(logEl.children[1]);
-        }
-        
-        function connectWS() {
-            // Prod: ws://127.0.0.1:18789 or Tailscale hostname:18789 (proxy handles)
-            const url = 'ws://127.0.0.1:18789';  // loopback in container; Tailscale serve proxies externally
-            ws = new WebSocket(url);
-            ws.onopen = () => log('✅ WS connected to OpenClaw gateway (Hetzner/Tailscale ready)');
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'cell.update' || data.room) {
-                        log(`📡 Event: ${data.room || 'grant-hall'} - ${data.state || 'glowing'} (${data.revenue_potential || ''})`);
-                        if (data.sprites && data.sprites['grant_scanner']) {
-                            updateSprite('grant-desk', data.state || 'glowing');
-                        }
-                        if (data.tracker_count) {
-                            trackerEl.textContent = `FUNDING: $${Math.floor(Math.random()*5000)} • ${data.tracker_count} ALERTS`;
-                        }
-                    }
-                } catch (e) {
-                    log('Event: ' + event.data);
-                }
-            };
-            ws.onclose = () => {
-                log('⚠️ WS closed. Reconnecting in 3s (Tailscale stable)...');
-                setTimeout(connectWS, 3000);
-            };
-            ws.onerror = (err) => log('WS Error (check Tailscale/gateway status): ' + err);
-        }
-        
-        function updateSprite(deskId, state) {
-            const desk = document.getElementById(deskId) || document.querySelector('.desk');
-            if (desk) {
-                desk.className = `desk ${state}`;
-                log(`Sprite updated: ${deskId} → ${state}`);
-                // Neon glow for glowing/success
-                if (state === 'glowing' || state === 'success') {
-                    setTimeout(() => desk.classList.add('glowing'), 100);
-                }
-            }
-        }
-        
-        function simulateEvent(deskElOrId, state = 'glowing') {
-            // Test button for local dev / Hetzner without full WS
-            const id = typeof deskElOrId === 'string' ? deskElOrId : deskElOrId.id;
-            updateSprite(id, state);
-            const mockEvent = {
-                type: "cell.update",
-                room: "grant_hall_dungeon",
-                state: state,
-                sprites: {"grant_scanner": "purple_grant_watcher"},
-                tracker_count: Math.floor(Math.random() * 5) + 1,
-                revenue_potential: "$49/mo sub triggered"
-            };
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify(mockEvent));
-            }
-            log(`Simulated event for ${id}: ${state} (revenue trigger fired)`);
-            if (state === 'glowing') trackerEl.style.color = '#ff0';
-        }
 
-        function simulateClawsmithPlan() {
-            // Clawsmith planner: generates blueprint for human review (core requirement)
-            const desk = document.getElementById('clawsmith-desk');
-            updateSprite('clawsmith-desk', 'glowing');
-            log('🛠️ CLAWSMITH PLANNER ACTIVATED: Analyzing request and generating room blueprint...');
-            
-            // Simulate blueprint output (in prod would call backend planner via WS/API)
-            const blueprint = {
-                room_id: "example_forge_" + Date.now().toString(36),
-                theme: "blacksmith_forge",
-                chief_agent: "clawforge_planner",
-                workers: [
-                    {id: "coordinator", role: "Room Architect", sprite: "hooded_blacksmith", tools: ["analyze_goal", "output_blueprint"]},
-                    {id: "review_gate", role: "Approval Enforcer", sprite: "gatekeeper", tools: ["human_review"]}
-                ],
-                approval_gates: ["human_review_mandatory_before_forge", "no_direct_file_writes"],
-                summary: "Blueprint ready for human review. Approve to trigger cell.py forge. *CLANG* Solid architecture only.",
-                visual_layout: "Isometric 2.5D canvas positions: anvil at (120,80), hooded agent at (60,100)"
-            };
-            
-            log('📋 BLUEPRINT GENERATED (for review): ' + JSON.stringify(blueprint, null, 2).substring(0, 180) + '...');
-            log('✅ Human review gate enforced. Use approve_blueprint() in console or dashboard button to forge.');
-            
-            // Draw basic isometric foundation on canvas (moody pixel-art placeholder)
-            drawIsometricClawsmith();
-            
-            const mockEvent = {
-                type: "cell.update",
-                room: "clawsmith_forge",
-                state: "planning",
-                sprites: {"clawsmith": "hooded_blacksmith"},
-                blueprint: blueprint,
-                status: "awaiting_human_review"
-            };
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify(mockEvent));
-            }
-            // Update tracker
-            const clawTracker = document.querySelector('#clawsmith-forge .tracker');
-            if (clawTracker) clawTracker.textContent = 'BLUEPRINTS: 1 • REVIEW PENDING';
-        }
+    <!-- CLAWSMITH FORGE -->
+    <div class="room forge-room" id="clawsmith-forge">
+        <h2 style="color:var(--gold)">CLAWSMITH FORGE</h2>
+        <div class="tracker" style="border-color:var(--gold);color:var(--gold)" id="clawsmith-tracker">BLUEPRINTS: 0 • IDLE</div>
+        <div class="desk idle" id="clawsmith-desk"
+             style="left:32%;top:38%;background:#551;border-color:var(--gold);"
+             title="Clawforge — click to plan"
+             onclick="simulateClawsmithPlan()">⚒️</div>
+        <div class="desk-label" style="left:22%;top:63%;color:var(--gold)">Planner</div>
+        <div class="subtext" style="position:absolute;left:52%;top:55%;max-width:110px;">Blueprint → Human gate → Forge</div>
+        <canvas id="clawsmith-canvas" width="260" height="140"
+                style="position:absolute;left:8px;top:105px;border:1px solid var(--gold);background:#111;"
+                ></canvas>
+    </div>
 
-        function drawIsometricClawsmith() {
-            const canvas = document.getElementById('clawsmith-canvas');
-            if (!canvas.getContext) return;
-            const ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = false; // pixel-art
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Moody isometric floor (simple 2.5D projection)
+    <!-- AUDIT CHAMBER -->
+    <div class="room" id="audit-chamber">
+        <h2 style="color:var(--red)">AUDIT CHAMBER</h2>
+        <div class="desk idle" style="left:28%;top:46%"
+             onclick="simulateEvent(this,'error')">🔴</div>
+        <div class="desk-label" style="left:22%;top:72%">Silent Auditor</div>
+    </div>
+
+    <!-- CONTENT STUDIO -->
+    <div class="room" id="content-studio">
+        <h2 style="color:var(--yellow)">CONTENT STUDIO</h2>
+        <div class="desk idle" style="left:48%;top:38%"
+             onclick="simulateEvent(this,'success')">🎥</div>
+        <div class="desk-label" style="left:42%;top:62%">Scriptwriter</div>
+    </div>
+
+</div>
+
+<!-- LOG -->
+<div id="log">WS Log:<br>Connecting to gateway ws://127.0.0.1:18789…</div>
+
+<script>
+// ————————————————————————————————————————
+// OLLAMA STATUS CHECK
+// host.docker.internal resolves to host gateway via extra_hosts in docker-compose.
+// ————————————————————————————————————————
+const OLLAMA_BASE = 'http://host.docker.internal:11434';
+
+async function checkOllama() {
+    const statusEl  = document.getElementById('ollama-status');
+    const modelsEl  = document.getElementById('ollama-models');
+    const versionEl = document.getElementById('ollama-version');
+    const hintEl    = document.getElementById('fix-hint');
+    statusEl.textContent = 'CHECKING…';
+    statusEl.className   = 'checking';
+    try {
+        const vRes = await fetch(OLLAMA_BASE + '/api/version', { signal: AbortSignal.timeout(4000) });
+        if (!vRes.ok) throw new Error('non-200');
+        const vJson = await vRes.json();
+        statusEl.textContent = '● ON';
+        statusEl.className   = 'on';
+        versionEl.textContent = 'v' + (vJson.version || '?');
+        hintEl.style.display  = 'none';
+        log('✅ Ollama online — v' + (vJson.version || '?'));
+        try {
+            const mRes   = await fetch(OLLAMA_BASE + '/api/tags', { signal: AbortSignal.timeout(4000) });
+            const mJson  = await mRes.json();
+            const names  = (mJson.models || []).map(m => m.name).join('  |  ');
+            modelsEl.textContent = names ? 'models: ' + names : 'models: (none pulled yet — run: ollama pull <model>)';
+            log('📦 Models: ' + (names || '(none)'));
+        } catch { modelsEl.textContent = 'models: (could not fetch tags)'; }
+    } catch (e) {
+        statusEl.textContent  = '✖ OFF';
+        statusEl.className    = 'off';
+        versionEl.textContent = '';
+        modelsEl.textContent  = 'models: —';
+        hintEl.style.display  = 'block';
+        log('⚠ Ollama unreachable at ' + OLLAMA_BASE + ' — see fix hint above');
+    }
+}
+
+checkOllama();
+setInterval(checkOllama, 30000);
+
+// ————————————————————————————————————————
+// WS + LOG
+// ————————————————————————————————————————
+let ws = null;
+const logEl     = document.getElementById('log');
+const trackerEl = document.getElementById('tracker');
+
+function log(msg) {
+    const time = new Date().toLocaleTimeString();
+    logEl.innerHTML += '<br>[' + time + '] ' + msg;
+    logEl.scrollTop  = logEl.scrollHeight;
+    const lines = logEl.querySelectorAll('br');
+    if (lines.length > 22) lines[0].remove();
+}
+
+function connectWS() {
+    ws = new WebSocket('ws://127.0.0.1:18789');
+    ws.onopen    = () => log('✅ WS connected — gateway ready');
+    ws.onmessage = (e) => {
+        try {
+            const d = JSON.parse(e.data);
+            if (d.type === 'cell.update' || d.room) {
+                log('📡 ' + (d.room||'?') + ' → ' + (d.state||'?'));
+                if (d.sprites && d.sprites['grant_scanner']) updateSprite('grant-desk', d.state||'glowing');
+                if (d.tracker_count) trackerEl.textContent = 'FUNDING: $' + Math.floor(Math.random()*5000) + ' • ' + d.tracker_count + ' ALERTS';
+            }
+        } catch { log('msg: ' + e.data); }
+    };
+    ws.onclose = () => { log('⚠ WS closed — retry in 3s'); setTimeout(connectWS, 3000); };
+    ws.onerror = () => log('WS error — check gateway/Tailscale');
+}
+
+function updateSprite(deskId, state) {
+    const el = typeof deskId === 'string' ? document.getElementById(deskId) : deskId;
+    if (!el) return;
+    el.className = 'desk ' + state;
+    log('Sprite: ' + (el.id||'?') + ' → ' + state);
+}
+
+function simulateEvent(deskElOrId, state='glowing') {
+    const id = typeof deskElOrId === 'string' ? deskElOrId : deskElOrId.id;
+    updateSprite(id, state);
+    const ev = { type:'cell.update', room:'grant_hall_dungeon', state, sprites:{'grant_scanner':'purple_grant_watcher'}, tracker_count: Math.floor(Math.random()*5)+1, revenue_potential:'$49/mo' };
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(ev));
+    log('Sim ' + id + ': ' + state);
+    if (state === 'glowing') trackerEl.style.color = 'var(--yellow)';
+}
+
+function simulateClawsmithPlan() {
+    updateSprite('clawsmith-desk', 'glowing');
+    log('🛠 CLAWSMITH: generating blueprint…');
+    const bp = { room_id:'forge_'+Date.now().toString(36), theme:'blacksmith_forge', approval_gates:['human_review_mandatory'], summary:'Blueprint ready — approve to forge.' };
+    log('📋 Blueprint: ' + JSON.stringify(bp).substring(0,120) + '…');
+    log('✅ Human review gate enforced. Call window.approveBlueprint() to proceed.');
+    drawIsometricClawsmith();
+    const t = document.getElementById('clawsmith-tracker');
+    if (t) t.textContent = 'BLUEPRINTS: 1 • REVIEW PENDING';
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type:'cell.update', room:'clawsmith_forge', state:'planning', blueprint:bp }));
+}
+
+function drawIsometricClawsmith() {
+    const canvas = document.getElementById('clawsmith-canvas');
+    if (!canvas || !canvas.getContext) return;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.lineWidth = 2;
+    for (let x = 0; x < 5; x++) {
+        for (let y = 0; y < 3; y++) {
+            const ix = 38 + x*32 - y*16;
+            const iy = 28 + x*11 + y*20;
+            ctx.fillStyle   = (x+y) % 2 === 0 ? '#332211' : '#221100';
             ctx.strokeStyle = '#555';
-            ctx.lineWidth = 2;
-            // Isometric tiles
-            for (let x = 0; x < 5; x++) {
-                for (let y = 0; y < 3; y++) {
-                    const isoX = 40 + x*35 - y*18;
-                    const isoY = 30 + x*12 + y*22;
-                    ctx.fillStyle = (x+y) % 2 === 0 ? '#332211' : '#221100';
-                    ctx.beginPath();
-                    ctx.moveTo(isoX, isoY);
-                    ctx.lineTo(isoX+35, isoY+12);
-                    ctx.lineTo(isoX+17, isoY+30);
-                    ctx.lineTo(isoX-18, isoY+18);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.stroke();
-                }
-            }
-            
-            // Hooded blacksmith sprite (pixel approx with emoji fallback + shapes)
-            ctx.fillStyle = '#ffd700';
-            ctx.fillRect(80, 60, 18, 25); // cloak
-            ctx.fillStyle = '#333';
-            ctx.fillRect(85, 55, 8, 8); // hood
-            ctx.fillStyle = '#ff0';
-            ctx.fillRect(92, 75, 4, 4); // anvil spark
-            ctx.fillStyle = '#aaa';
-            ctx.fillRect(110, 80, 25, 8); // anvil base
-            ctx.fillStyle = '#ddd';
-            ctx.fillRect(115, 72, 15, 8); // anvil top
-            
-            log('🖼️ Isometric 2.5D pixel-art canvas rendered for Clawsmith room (moody forge theme). Cached bg ready for sprites.');
+            ctx.beginPath();
+            ctx.moveTo(ix,    iy);
+            ctx.lineTo(ix+32, iy+11);
+            ctx.lineTo(ix+16, iy+27);
+            ctx.lineTo(ix-16, iy+16);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
         }
+    }
+    ctx.fillStyle='#ffd700'; ctx.fillRect(76,56,16,22);
+    ctx.fillStyle='#333';    ctx.fillRect(80,52,8,8);
+    ctx.fillStyle='#ff0';    ctx.fillRect(88,70,4,4);
+    ctx.fillStyle='#aaa';    ctx.fillRect(106,76,22,7);
+    ctx.fillStyle='#ddd';    ctx.fillRect(110,69,14,7);
+    log('🖼 Isometric canvas rendered');
+}
 
-        // Init
-        window.onload = () => {
-            connectWS();
-            log('ReClaw 2.0 Visual Floor + Clawsmith Planner loaded. Canvas isometric foundation with human review gate. Click blacksmith ⚒️ to plan.');
-            // Auto demo
-            setTimeout(() => simulateEvent('grant-desk', 'typing'), 800);
-            setTimeout(() => simulateEvent('grant-desk', 'glowing'), 2000);
-            setTimeout(() => {
-                const canvas = document.getElementById('clawsmith-canvas');
-                if (canvas) drawIsometricClawsmith();
-            }, 1500);
-            // Production note: serve with `python -m http.server 8080` from dashboard/ or via docker. Tailscale accessible.
-        };
-        
-        // Expose for console testing on Tailscale/Hetzner
-        window.simulateEvent = simulateEvent;
-        window.simulateClawsmithPlan = simulateClawsmithPlan;
-        window.drawIsometricClawsmith = drawIsometricClawsmith;
-        window.approveBlueprint = () => log('✅ Blueprint approved! Would now call core.cell.py or tools/clawsmith.py to forge room (gated).');
-    </script>
+window.onload = () => {
+    connectWS();
+    log('ReClaw 2.0 floor loaded. Ollama status bar active (auto-polls every 30s).');
+    setTimeout(() => simulateEvent('grant-desk','typing'),  800);
+    setTimeout(() => simulateEvent('grant-desk','glowing'), 2200);
+    setTimeout(drawIsometricClawsmith, 1500);
+};
+
+window.simulateEvent        = simulateEvent;
+window.simulateClawsmithPlan= simulateClawsmithPlan;
+window.drawIsometricClawsmith = drawIsometricClawsmith;
+window.checkOllama          = checkOllama;
+window.approveBlueprint     = () => log('✅ Approved — would now call core.cell.py to forge room.');
+</script>
 </body>
 </html>

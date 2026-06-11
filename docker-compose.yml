@@ -17,6 +17,16 @@
 # - Keeps Tailscale on host (systemd serve to 127.0.0.1:8000 inside container)
 # - Non-root (uid 1000), resource limits, env_file from .env (Pydantic respected)
 #
+# OLLAMA FIX (2026-06-11):
+# - extra_hosts: host.docker.internal:host-gateway added to all services that need Ollama.
+# - OLLAMA_BASE_URL env var set to http://host.docker.internal:11434 so OpenClaw/ReClaw
+#   always finds Ollama on the host rather than looping back to the container itself.
+# - Requires Ollama on host to be bound to 0.0.0.0:11434, not just 127.0.0.1.
+#   To fix on host:  sudo systemctl edit ollama
+#   Add:  [Service]
+#         Environment=OLLAMA_HOST=0.0.0.0:11434
+#   Then: sudo systemctl daemon-reload && sudo systemctl restart ollama
+#
 # This remains simple, cheap, 24/7 reliable. Logs go to Docker json + session.log inside data/sessions/.
 # Obsidian vault at /root/obsidian_vault is the durable source of truth.
 
@@ -30,18 +40,23 @@ services:
     container_name: reclaw-api
     user: "1000:1000"  # Matches Dockerfile reclaw uid/gid + host chown for vault/data
     restart: unless-stopped
+    # === OLLAMA FIX: route host.docker.internal to host gateway so Ollama is reachable ===
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - .env
     environment:
       - RECLAW_ENV=prod
-      - OBSIDIAN_VAULT_PATH=/vault  # Persistent host mount; writer uses /vault/Rural Data
+      - OBSIDIAN_VAULT_PATH=/vault
+      # Ollama lives on HOST, not inside this container. Use this URL everywhere in ReClaw.
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_HOST=http://host.docker.internal:11434
     volumes:
       - ./data:/data:rw
       - ./outputs:/app/outputs:rw
-      - /root/obsidian_vault:/vault:rw   # Primary persistent writable vault (Obsidian source of truth)
-      # Future: add :ro to code if splitting agents into read-only workers
+      - /root/obsidian_vault:/vault:rw
     ports:
-      - "8000:8000"  # 0.0.0.0 on host (allows Tailscale IP 100.119.160.116 access); no public exposure via firewall/Tailscale-only serve
+      - "8000:8000"
     logging:
       driver: json-file
       options:
@@ -72,8 +87,7 @@ services:
     #           capabilities: [gpu]
 
   # Future "claws" (specialized agents for grant hunting, GBP scanning, video script gen, business automation).
-  # Add as separate services with volume mounts limited to their session dirs for stronger isolation.
-  # Example GPU service for local LLMs:
+  # Example GPU service for local Ollama (uncomment when GPU available):
   # ollama:
   #   image: ollama/ollama:latest
   #   container_name: reclaw-ollama
@@ -88,26 +102,26 @@ services:
   #             count: 1
   #             capabilities: [gpu]
 
-  # Visual dashboard MVP (Phase 2): static serve of dashboard/index.html (2D pixel floor, WS to gateway, Tailscale access on 8080)
+  # Visual dashboard — static serve of dashboard/index.html
+  # Includes live Ollama health panel polling http://host.docker.internal:11434
   reclaw-dashboard:
     image: python:3.12-slim
     container_name: reclaw-dashboard
     restart: unless-stopped
     working_dir: /app
     command: python3 -m http.server 8080 --directory dashboard
+    # === OLLAMA FIX: dashboard JS can check Ollama status via same host gateway ===
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - .:/app:ro
     ports:
-      - "8080:8080"  # Tailscale serve --bg --tcp 8080 tcp://127.0.0.1:8080 (or proxy via gateway)
+      - "8080:8080"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080"]
       interval: 30s
       timeout: 5s
       retries: 3
-    # Non-root, low resources; GPU not needed for static 2D Canvas
-  #   ports:
-  #     - "127.0.0.1:11434:11434"
 
 volumes:
-  # Named volume for future Ollama (persistent models)
   ollama_data:
