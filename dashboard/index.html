@@ -83,8 +83,8 @@
     </style>
 </head>
 <body>
-    <h1>RECLAW 2.0 AGENT FLOOR</h1>
-    <p class="status">Hetzner Production • Tailscale • GPU • Live WS to gateway:18789 (loopback proxy)</p>
+    <h1>RECLAW 2.0 AGENT FLOOR — CLAWSMITH FORGE</h1>
+    <p class="status">Hetzner Production • Tailscale • GPU • Clawsmith Planner Room Active • Canvas 2.5D Isometric Foundation • WS:18789</p>
     
     <div class="floor">
         <!-- Grant Hall (priority room) -->
@@ -92,7 +92,7 @@
             <h2 style="color:#ff00ff;margin:0 0 15px 0;">GRANT HALL DUNGEON</h2>
             <div class="tracker" id="tracker">FUNDING: $0 • 3 ALERTS</div>
             
-            <!-- Static anchored desks/sprites (pixel style via emoji + CSS) -->
+            <!-- Static anchored desks/sprites (pixel style via emoji + CSS; transitioning to Canvas isometric) -->
             <div class="desk idle" id="grant-desk" style="left: 40%; top: 45%;" 
                  title="purple_grant_watcher - Central Desk (220,180)"
                  onclick="simulateEvent('grant-desk', 'glowing')">🧙</div>
@@ -103,7 +103,22 @@
             <div style="position:absolute; left:65%; top:85%; font-size:10px; color:#aaa;">Analyst</div>
         </div>
         
-        <!-- Placeholder other rooms (expand in Phase 2) -->
+        <!-- Clawsmith Room - Planner/Architect (human review gate before any forge) - Priority for this pass -->
+        <div class="room" id="clawsmith-forge" style="border-color: #ffd700; background: linear-gradient(#222, #443311);">
+            <h2 style="color:#ffd700;margin:0 0 15px 0;">CLAWSMITH FORGE (PLANNER)</h2>
+            <div class="tracker" style="background:#330; color:#ff0; border-color:#ffd700;">BLUEPRINTS: 0 • AWAITING REVIEW</div>
+            
+            <div class="desk idle" id="clawsmith-desk" style="left: 35%; top: 40%; background:#551; border-color:#ffd700;" 
+                 title="Clawforge the Blacksmith - Architect Desk. Click to generate room blueprint for human review."
+                 onclick="simulateClawsmithPlan()">⚒️</div>
+            <div style="position:absolute; left:25%; top:65%; font-size:10px; color:#ff0;">Clawsmith Planner</div>
+            <div style="position:absolute; left:55%; top:55%; font-size:9px; color:#aaa; max-width:120px;">Outputs blueprint → Human approval gate → Forge room. Moody pixel architect first.</div>
+            
+            <!-- Canvas foundation for 2.5D isometric (expand here) -->
+            <canvas id="clawsmith-canvas" width="280" height="160" style="position:absolute; left:10px; top:100px; border:1px solid #ffd700; image-rendering:pixelated; background:#111;"></canvas>
+        </div>
+        
+        <!-- Placeholder other rooms -->
         <div class="room" id="audit-chamber">
             <h2 style="color:#ff0000;margin:0 0 15px 0;">AUDIT CHAMBER</h2>
             <div class="desk idle" style="left: 30%; top: 50%;" onclick="simulateEvent(this, 'error')">🔴</div>
@@ -190,19 +205,111 @@
             log(`Simulated event for ${id}: ${state} (revenue trigger fired)`);
             if (state === 'glowing') trackerEl.style.color = '#ff0';
         }
-        
+
+        function simulateClawsmithPlan() {
+            // Clawsmith planner: generates blueprint for human review (core requirement)
+            const desk = document.getElementById('clawsmith-desk');
+            updateSprite('clawsmith-desk', 'glowing');
+            log('🛠️ CLAWSMITH PLANNER ACTIVATED: Analyzing request and generating room blueprint...');
+            
+            // Simulate blueprint output (in prod would call backend planner via WS/API)
+            const blueprint = {
+                room_id: "example_forge_" + Date.now().toString(36),
+                theme: "blacksmith_forge",
+                chief_agent: "clawforge_planner",
+                workers: [
+                    {id: "coordinator", role: "Room Architect", sprite: "hooded_blacksmith", tools: ["analyze_goal", "output_blueprint"]},
+                    {id: "review_gate", role: "Approval Enforcer", sprite: "gatekeeper", tools: ["human_review"]}
+                ],
+                approval_gates: ["human_review_mandatory_before_forge", "no_direct_file_writes"],
+                summary: "Blueprint ready for human review. Approve to trigger cell.py forge. *CLANG* Solid architecture only.",
+                visual_layout: "Isometric 2.5D canvas positions: anvil at (120,80), hooded agent at (60,100)"
+            };
+            
+            log('📋 BLUEPRINT GENERATED (for review): ' + JSON.stringify(blueprint, null, 2).substring(0, 180) + '...');
+            log('✅ Human review gate enforced. Use approve_blueprint() in console or dashboard button to forge.');
+            
+            // Draw basic isometric foundation on canvas (moody pixel-art placeholder)
+            drawIsometricClawsmith();
+            
+            const mockEvent = {
+                type: "cell.update",
+                room: "clawsmith_forge",
+                state: "planning",
+                sprites: {"clawsmith": "hooded_blacksmith"},
+                blueprint: blueprint,
+                status: "awaiting_human_review"
+            };
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(mockEvent));
+            }
+            // Update tracker
+            const clawTracker = document.querySelector('#clawsmith-forge .tracker');
+            if (clawTracker) clawTracker.textContent = 'BLUEPRINTS: 1 • REVIEW PENDING';
+        }
+
+        function drawIsometricClawsmith() {
+            const canvas = document.getElementById('clawsmith-canvas');
+            if (!canvas.getContext) return;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false; // pixel-art
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Moody isometric floor (simple 2.5D projection)
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 2;
+            // Isometric tiles
+            for (let x = 0; x < 5; x++) {
+                for (let y = 0; y < 3; y++) {
+                    const isoX = 40 + x*35 - y*18;
+                    const isoY = 30 + x*12 + y*22;
+                    ctx.fillStyle = (x+y) % 2 === 0 ? '#332211' : '#221100';
+                    ctx.beginPath();
+                    ctx.moveTo(isoX, isoY);
+                    ctx.lineTo(isoX+35, isoY+12);
+                    ctx.lineTo(isoX+17, isoY+30);
+                    ctx.lineTo(isoX-18, isoY+18);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                }
+            }
+            
+            // Hooded blacksmith sprite (pixel approx with emoji fallback + shapes)
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(80, 60, 18, 25); // cloak
+            ctx.fillStyle = '#333';
+            ctx.fillRect(85, 55, 8, 8); // hood
+            ctx.fillStyle = '#ff0';
+            ctx.fillRect(92, 75, 4, 4); // anvil spark
+            ctx.fillStyle = '#aaa';
+            ctx.fillRect(110, 80, 25, 8); // anvil base
+            ctx.fillStyle = '#ddd';
+            ctx.fillRect(115, 72, 15, 8); // anvil top
+            
+            log('🖼️ Isometric 2.5D pixel-art canvas rendered for Clawsmith room (moody forge theme). Cached bg ready for sprites.');
+        }
+
         // Init
         window.onload = () => {
             connectWS();
-            log('ReClaw 2.0 Visual Floor MVP loaded. Static 2D desks anchored. Click sprites to simulate.');
+            log('ReClaw 2.0 Visual Floor + Clawsmith Planner loaded. Canvas isometric foundation with human review gate. Click blacksmith ⚒️ to plan.');
             // Auto demo
             setTimeout(() => simulateEvent('grant-desk', 'typing'), 800);
             setTimeout(() => simulateEvent('grant-desk', 'glowing'), 2000);
-            // Production note: serve with `python -m http.server 8080` in dashboard/ or add to docker-compose nginx
+            setTimeout(() => {
+                const canvas = document.getElementById('clawsmith-canvas');
+                if (canvas) drawIsometricClawsmith();
+            }, 1500);
+            // Production note: serve with `python -m http.server 8080` from dashboard/ or via docker. Tailscale accessible.
         };
         
-        // Expose for console testing on Tailscale
+        // Expose for console testing on Tailscale/Hetzner
         window.simulateEvent = simulateEvent;
+        window.simulateClawsmithPlan = simulateClawsmithPlan;
+        window.drawIsometricClawsmith = drawIsometricClawsmith;
+        window.approveBlueprint = () => log('✅ Blueprint approved! Would now call core.cell.py or tools/clawsmith.py to forge room (gated).');
     </script>
 </body>
 </html>

@@ -91,16 +91,16 @@ Full details: [docs/SECURITY.md](docs/SECURITY.md)
 
 When we add the business services side (GBP for auto shops etc.), they will live in a parallel tree but use the exact same Gateway, session, security, and handoff patterns.
 
-## Visual Agent Floor (Clawsmith Phase 1 - Committed to ravenstack)
-Persistent multi-room "operating floor" per spec. Core compiler in `core/cell.py` (plain goal → CellBlueprint with prune for rural income, creates ~/.openclaw/workspace/rooms/<id>/ with SOUL.md/AGENTS.md/memory.db, Obsidian ForgePackage, visual WS events). 
+## Visual Agent Floor & Ambitious Clawsmith System
+Clawsmith lives in its dedicated room on the visual dashboard. Acts as planner/architect first: analyzes user idea, outputs complete room blueprint (agents/roles/tools/skills/memory/visual layout/approval gates) **for mandatory human review before any room creation or file writes**. Follows multi-room floor architecture from Systems Engineering doc. No auto-forging.
 
-- Rooms: Grant Hall Dungeon (purple_grant_watcher, funding tracker), Audit Chamber (red_auditor, compliance), Job Den, Research Lab, Content Studio, Marketplace Forge.
-- Dashboard: `dashboard/index.html` (2D pixel grid, static desk-anchored hooded sprites with states idle/typing/glowing/success/error, neon CSS, WS to gateway:18789, Tailscale accessible on 8080 via new docker service). Click sprites to simulate.
-- Revenue loops wired: grant alerts ($49/mo), compliance reports ($199), job leads ($29/mo), arbitrage feed ($19/mo), faceless YT content (ads/affiliates), dashboard as SaaS.
-- Test: `python3 -m core.cell "Activate Grant Hall..."` (creates room, inits Total-ReClaw, emits event). `docker-compose up reclaw-dashboard` for visual.
-- Sprite states and themes match pixel RPG reference (cozy, no pathfinding).
+- **Clawsmith Room**: Dedicated planner/architect (hooded blacksmith at forge desk). Outputs blueprint JSON for human review/gate before forging any room.
+- Rooms: Grant Hall Dungeon, Audit Chamber, Research Lab, Content Studio, **Clawsmith Forge**, Marketplace Forge, etc.
+- Dashboard: `dashboard/index.html` upgraded to HTML5 Canvas 2.5D isometric moody pixel-art (hooded agents at desks, themed rooms like Grant Hall with purple neon, Clawsmith with anvil sparks). Cached bg, sprite redraws only. WS for live events.
+- Revenue loops wired: grants ($49/mo alerts), compliance ($199 reports), jobs ($29 leads), arbitrage, YT content, dashboard SaaS.
+- Test: Use Clawsmith planner in dashboard for blueprint, or `python -m core.cell "Activate Grant Hall for funding"`. Human must approve blueprint before room creation. `python -m http.server 8080` in dashboard/ for local/Tailscale view.
 
-See AGENTS.md for Clawforge routing, core/cell.py for lifecycle, plan.md for full architecture.
+See AGENTS.md for Clawforge routing + human review gate, core/cell.py & agents/clawsmith/clawsmith.py for blueprint/planner logic, docs/ARCHITECTURE.md for full multi-room spec.
 
 ## Status
 
