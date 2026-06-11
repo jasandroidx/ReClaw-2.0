@@ -56,7 +56,7 @@ services:
       - ./outputs:/app/outputs:rw
       - /root/obsidian_vault:/vault:rw
     ports:
-      - "8000:8000"
+      - "8001:8000"
     logging:
       driver: json-file
       options:
