@@ -48,59 +48,17 @@
         }
         h1 {
             text-align: center;
-            color: var(--magenta);
-            text-shadow: 0 0 10px var(--magenta);
-            font-size: 13px;
-            margin-bottom: 8px;
-            letter-spacing: 2px;
-        }
-        /* OLLAMA STATUS BAR */
-        #ollama-bar {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: var(--surface);
-            border: 2px solid var(--muted);
-            padding: 10px 16px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
-        #ollama-bar .label { color: var(--cyan); font-size: 9px; white-space: nowrap; }
-        #ollama-status {
-            font-size: 9px;
-            padding: 4px 10px;
-            border: 2px solid var(--muted);
-            background: #000;
-            white-space: nowrap;
-        }
-        #ollama-status.on      { color: var(--green);   border-color: var(--green);   text-shadow: 0 0 6px var(--green);   }
-        #ollama-status.off     { color: var(--red);     border-color: var(--red);     text-shadow: 0 0 6px var(--red);     }
-        #ollama-status.checking{ color: var(--yellow);  border-color: var(--yellow); }
-        #ollama-models  { font-size: 8px; color: #aaa; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        #ollama-version { font-size: 8px; color: var(--muted); white-space: nowrap; }
-        #ollama-refresh {
-            background: none;
-            border: 2px solid var(--cyan);
-            color: var(--cyan);
-            font-family: 'Press Start 2P', monospace;
-            font-size: 8px;
-            padding: 4px 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        #ollama-refresh:hover { background: var(--cyan); color: #000; }
-        /* FIX HINT */
-        #fix-hint {
-            display: none;
-            background: #1a0000;
-            border: 2px solid var(--red);
-            color: var(--red);
-            font-size: 8px;
-            padding: 8px 12px;
+            color: #bb99ff;
+            text-shadow: 0 0 12px var(--hood-purple), 0 0 4px #000;
+            font-size: 14px;
             margin-bottom: 12px;
-            line-height: 1.9;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            border-bottom: 3px solid var(--lamp);
+            padding-bottom: 8px;
+            /* RPG title style like old FF/Chrono Trigger menus */
         }
-        /* FLOOR */
+        /* FLOOR - enhanced for RPG cell-like rooms with scanlines for retro game feel */
         .floor {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -113,17 +71,34 @@
             border-image: linear-gradient(var(--gold), var(--muted)) 1;
             box-shadow: 0 0 30px rgba(102,51,153,0.4);
             position: relative;
-            /* cohesive ops floor with stone tile feel and space for future zones */
+            /* cohesive RPG-like ops floor with cell zones + space; scanlines for Chrono Trigger/FF retro feel */
+            overflow: hidden;
         }
+        .floor::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                transparent 0px,
+                rgba(0, 255, 80, 0.07) 1px,
+                transparent 3px
+            );
+            pointer-events: none;
+            z-index: 5;
+            animation: scanline 4s linear infinite;
+            mix-blend-mode: overlay;
+        }
+        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
         @media (max-width: 1100px) { .floor { grid-template-columns: repeat(2,1fr); } }
         .room {
-            border: 4px solid var(--hood-purple);
+            border: 6px double var(--hood-purple);
             background: linear-gradient(var(--surface), #221a12);
             padding: 14px;
             position: relative;
             min-height: 260px;
             box-shadow: 0 0 20px var(--lamp), inset 0 0 40px rgba(40,25,10,0.7);
             overflow: hidden;
+            /* RPG cell border like old game map rooms */
         }
         .room.grant-hall { border-color: var(--magenta); box-shadow: 0 0 20px var(--magenta), inset 0 0 30px rgba(60,0,40,0.6); }
         .room.forge-room  { border-color: var(--gold); background: linear-gradient(#332211, #1a140c); box-shadow: 0 0 25px var(--lamp), 0 0 15px var(--gold); }
@@ -135,16 +110,19 @@
             letter-spacing: 1px;
             border-bottom: 2px dotted var(--muted);
             padding-bottom: 6px;
+            text-transform: uppercase;
         }
-        /* Lamp lighting effect for hooded agents at desks per refs */
+        /* Lamp for each cell */
         .room::before {
-            content: '🔦';
+            content: '';
             position: absolute;
-            top: 12px; right: 18px;
-            font-size: 14px;
-            filter: drop-shadow(0 0 12px var(--lamp));
-            opacity: 0.7;
-            z-index: 1;
+            top: 18px; right: 22px;
+            width: 10px; height: 18px;
+            background: radial-gradient(var(--lamp) 20%, transparent 70%);
+            border-radius: 50% 50% 20% 20%;
+            box-shadow: 0 0 18px 6px var(--lamp);
+            opacity: 0.75;
+            z-index: 2;
         }
         .tracker, .room-status {
             position: absolute; top: 8px; right: 8px;
@@ -152,50 +130,67 @@
             border: 2px solid var(--hood-purple);
             font-size: 8px; color: var(--yellow);
             text-shadow: 0 0 4px var(--lamp);
-            z-index: 2;
+            z-index: 4;
         }
-        .room-status { top: auto; bottom: 8px; right: auto; left: 12px; font-size: 7px; color: var(--green); border-color: var(--green); }
+        .room-status { top: auto; bottom: 12px; left: 14px; font-size: 7px; color: var(--green); border-color: var(--green); z-index: 4; }
         .desk {
             position: absolute;
-            width: 68px; height: 68px;
-            background: var(--surface);
-            border: 4px solid var(--hood-purple);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 32px;
+            width: 56px; height: 64px;
+            background: transparent;
+            border: 2px solid #332211;
             cursor: pointer;
             transition: all 0.2s;
-            box-shadow: 0 4px 0 #111, 0 0 15px var(--lamp);
+            box-shadow: 0 0 12px var(--lamp);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            z-index: 3;
             image-rendering: pixelated;
         }
-        .desk:hover { transform: scale(1.15) rotate(2deg); box-shadow: 0 6px 0 #111, 0 0 25px var(--torch-glow); }
-        .desk.idle    { color: var(--hood-purple); border-color: #8866aa; }
-        .desk.typing  { color: var(--yellow); animation: pulse 0.8s infinite; border-color: var(--lamp); }
-        .desk.glowing { color: #bb99ff; animation: neon 0.6s infinite alternate; box-shadow: 0 4px 0 #111, 0 0 30px var(--magenta), 0 0 12px var(--hood-purple); }
-        .desk.success { color: var(--green); animation: neon 1.2s infinite; }
-        .desk.error   { color: var(--red); animation: flash 0.3s 4; }
+        .desk img.pixel-sprite {
+            width: 48px;
+            height: 48px;
+            image-rendering: pixelated;
+            filter: contrast(1.1) brightness(1.05);
+        }
+        .desk:hover { transform: scale(1.25); box-shadow: 0 0 22px var(--torch-glow); filter: brightness(1.3); }
+        .desk.idle    { border-color: #665588; }
+        .desk.typing  { animation: pulse 0.8s infinite; border-color: var(--lamp); }
+        .desk.glowing { animation: neon 0.6s infinite alternate; box-shadow: 0 0 28px var(--magenta); }
+        .desk.success { animation: neon 1s infinite; border-color: var(--green); }
+        .desk.error   { animation: flash 0.4s 3; border-color: var(--red); }
         .desk-label   { 
             position: absolute; 
             font-size: 8px; 
             color: var(--muted); 
             text-shadow: 1px 1px 0 #000;
-            background: rgba(0,0,0,0.6);
-            padding: 1px 4px;
-            z-index: 3;
+            background: rgba(10,8,20,0.85);
+            padding: 1px 5px;
+            z-index: 5;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
         }
-        @keyframes pulse { 50% { opacity: 0.6; transform: scale(0.95); } }
-        @keyframes neon  { from { text-shadow: 0 0 6px var(--magenta); } to { text-shadow: 0 0 20px var(--magenta), 0 0 35px var(--hood-purple); } }
-        @keyframes flash { 50% { opacity: 0.3; } }
+        @keyframes pulse { 50% { filter: brightness(1.4); } }
+        @keyframes neon  { from { filter: brightness(1); } to { filter: brightness(1.8) drop-shadow(0 0 8px var(--magenta)); } }
+        @keyframes flash { 50% { opacity: 0.4; } }
         .subtext { font-size: 8px; color: var(--muted); opacity: 0.8; }
-        /* LOG */
+        /* LOG - RPG event scroll like old game text boxes */
         #log {
             position: fixed; bottom: 8px; left: 8px;
-            background: #000; border: 2px solid var(--green);
-            padding: 8px 10px;
-            width: min(440px, calc(100vw - 16px));
-            height: 140px; overflow-y: auto;
-            font-size: 9px; line-height: 1.7;
-            z-index: 100;
+            background: rgba(10,8,20,0.95);
+            border: 4px double var(--hood-purple);
+            padding: 10px 12px;
+            width: min(420px, calc(100vw - 20px));
+            height: 122px; overflow-y: auto;
+            font-size: 8.5px; line-height: 1.55;
+            color: var(--green);
+            box-shadow: 0 0 20px var(--lamp);
+            z-index: 10;
+            image-rendering: pixelated;
         }
+        #log::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
@@ -218,10 +213,14 @@
         <div class="room-status" id="grant-status">HOODED AGENT: WATCHING</div>
         <div class="desk idle" id="grant-desk" style="left:35%;top:35%"
              title="Hooded Grant Watcher"
-             onclick="simulateEvent('grant-desk','glowing')">🧙</div>
+             onclick="simulateEvent('grant-desk','glowing')">
+            <img src="assets/sprites/2.jpg" class="pixel-sprite" alt="Hooded Agent">
+        </div>
         <div class="desk-label" style="left:25%;top:72%">Watcher</div>
         <div class="desk idle" id="analyst-desk" style="left:65%;top:55%"
-             onclick="simulateEvent('analyst-desk','typing')">📊</div>
+             onclick="simulateEvent('analyst-desk','typing')">
+            <img src="assets/sprites/2.jpg" class="pixel-sprite" alt="Hooded Agent">
+        </div>
         <div class="desk-label" style="left:58%;top:82%">Analyst</div>
     </div>
 
@@ -233,7 +232,9 @@
         <div class="desk glowing" id="clawsmith-desk"
              style="left:28%;top:32%;width:78px;height:78px;"
              title="Clawsmith Hooded Builder — click to plan"
-             onclick="simulateClawsmithPlan()">⚒️</div>
+             onclick="simulateClawsmithPlan()">
+            <img src="assets/sprites/3.jpg" class="pixel-sprite" alt="Forge Agent" style="width:56px;height:56px;">
+        </div>
         <div class="desk-label" style="left:18%;top:68%;color:var(--gold)">Clawsmith</div>
         <div class="subtext" style="position:absolute;left:48%;top:52%;max-width:120px;color:var(--lamp);">HUMAN GATE → FORGE</div>
         <canvas id="clawsmith-canvas" width="240" height="130"
@@ -246,8 +247,10 @@
         <h2 style="color:#dd9966">AUDIT CHAMBER</h2>
         <div class="tracker" style="border-color:#aa6644;color:#ffcc88">AUDITS: 7 • SILENT</div>
         <div class="room-status" id="audit-status">HOODED AUDITOR: SCANNING</div>
-        <div class="desk idle" id="auditor-desk" style="left:32%;top:38%;font-size:36px"
-             onclick="simulateEvent('auditor-desk','glowing')">🔎</div>
+        <div class="desk idle" id="auditor-desk" style="left:32%;top:38%"
+             onclick="simulateEvent('auditor-desk','glowing')">
+            <img src="assets/sprites/4.jpg" class="pixel-sprite" alt="Auditor">
+        </div>
         <div class="desk-label" style="left:20%;top:74%;color:#cc9966">Silent Auditor</div>
     </div>
 
@@ -257,16 +260,20 @@
         <div class="tracker">SCRIPTS: 4 • LIVE</div>
         <div class="room-status">HOODED CREATOR: EDITING</div>
         <div class="desk idle" style="left:45%;top:40%"
-             onclick="simulateEvent(this,'success')">🎬</div>
+             onclick="simulateEvent(this,'success')">
+            <img src="assets/sprites/2.jpg" class="pixel-sprite" alt="Creator">
+        </div>
         <div class="desk-label" style="left:38%;top:68%">Creator</div>
     </div>
 
-    <!-- FUTURE ZONE (intentional empty space for expansion per spec) -->
+    <!-- FUTURE ZONE (intentional empty space for expansion per spec - RPG cell style) -->
     <div class="room" id="future-zone" style="opacity:0.65;border-style:dashed;border-color:var(--muted);background:linear-gradient(#1a1a1a,#111);">
         <h2 style="color:var(--muted)">RESEARCH LAB<br><span style="font-size:7px">(EXPANSION)</span></h2>
         <div class="room-status" style="color:var(--muted)">VACANT • READY FOR VIDEO GEN / STUDIO</div>
-        <div style="position:absolute;top:45%;left:40%;font-size:42px;opacity:0.3;">🪑</div>
-        <div class="desk-label" style="left:35%;top:78%;color:var(--muted)">Future Zone</div>
+        <div class="desk" style="left:40%;top:45%;width:52px;height:52px;opacity:0.5;border-color:#444;">
+            <img src="assets/sprites/4.jpg" class="pixel-sprite" alt="Future Agent" style="width:36px;height:36px;opacity:0.6;">
+        </div>
+        <div class="desk-label" style="left:35%;top:78%;color:var(--muted)">Future Cell</div>
     </div>
 
 </div>
