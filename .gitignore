@@ -52,3 +52,12 @@ Thumbs.db
 # Temp from clawsmith/clawforge runs (per plan.md Phase 1)
 generated-*/
 generated-*
+
+# Backup safety net (NEVER delete on disk; exclude from git per mission rules)
+openclaw-workspace-backup/
+
+# Large data files and junk (>10MB raw data, session notes, images - stay out of git per rules)
+gateway_disbursements_2023.txt
+openclaw-workspace-backup/**/*.txt
+image*.jpg
+session-notes-*.md
