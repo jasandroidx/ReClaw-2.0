@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReClaw Pixel Sim — RPG Ops Floor</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        body {
+            background: #0c0a1f; color: #22ff66; font-family: 'Press Start 2P', monospace;
+            margin: 0; padding: 16px; image-rendering: pixelated; min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        h1 { color: #bb99ff; text-shadow: 0 0 12px #663399; font-size: 14px; margin: 0 0 12px; text-transform: uppercase; }
+        #controls { margin-bottom: 12px; display: flex; gap: 12px; }
+        button {
+            background: #1a1814; border: 3px solid #663399; color: #ffee77; padding: 8px 16px;
+            font-family: 'Press Start 2P', monospace; font-size: 10px; cursor: pointer;
+            box-shadow: 0 0 12px #ffaa33;
+        }
+        button:hover { background: #663399; color: #0c0a1f; }
+        canvas {
+            border: 6px double #332211; background: #1a140c; image-rendering: pixelated;
+            box-shadow: 0 0 30px rgba(102,51,153,0.6);
+        }
+        #modal {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #1a140c; border: 6px double #bb99ff; padding: 20px; width: 420px; z-index: 100;
+            box-shadow: 0 0 40px #ffaa33; color: #ffee77; font-size: 10px; text-align: center;
+        }
+        #modal button { margin: 8px; width: 40%; }
+        #log {
+            margin-top: 16px; background: rgba(10,8,20,0.95); border: 4px double #663399;
+            padding: 12px; width: 780px; height: 110px; overflow-y: auto; font-size: 9px;
+            color: #22ff66; box-shadow: 0 0 15px #ffaa33;
+        }
+        .scanline {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
+            background: repeating-linear-gradient(transparent 0px, rgba(0,255,80,0.08) 1px, transparent 4px);
+            animation: scan 3s linear infinite; z-index: 10; mix-blend-mode: overlay;
+        }
+        @keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(400%); } }
+    </style>
+</head>
+<body>
+    <h1>🧥 RECLAW PIXEL SIM — RPG OPS FLOOR</h1>
+    <div id="controls">
+        <button onclick="updateBridge()">🔄 UPDATE BRIDGE</button>
+        <button onclick="window.location.href='index.html'">← BACK TO DASHBOARD</button>
+    </div>
+    <div style="position:relative;">
+        <canvas id="sim-canvas" width="800" height="520"></canvas>
+        <div class="scanline"></div>
+    </div>
+    <div id="log">RPG OPS FLOOR INITIALIZED — hooded agents await your command. Click cells/agents. Use UPDATE BRIDGE for new outputs.</div>
+
+    <!-- RPG Approval Modal -->
+    <div id="modal">
+        <h2 id="modal-title" style="color:#ffcc44;margin-bottom:16px;">AGENT CELL</h2>
+        <div id="modal-content" style="margin-bottom:20px;line-height:1.6;font-size:9px;color:#aaa;text-align:left;"></div>
+        <button onclick="handleApproval('accept')">✅ ACCEPT</button>
+        <button onclick="handleApproval('reject')">❌ REJECT</button>
+        <button onclick="handleApproval('edit')">✏️ EDIT PROMPT</button>
+        <button onclick="closeModal()" style="background:#442233;">CLOSE</button>
+    </div>
+
+    <script>
+        // Reused from index.html + enhanced for RPG sim (vanilla canvas, no heavy systems)
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        let ws = null;
+        const logEl = document.getElementById('log');
+        let agents = []; // {id, x, y, sprite, state: 'idle', frame: 0, room}
+        let tiles = []; // from castle_map or hardcoded
+        const sprites = {};
+        const TILE_SIZE = 80;
+        const SPRITE_SIZE = 48;
+
+        // Hardcoded initial map based on castle_map.json + current rooms (5x5 grid simplified)
+        function initMap() {
+            tiles = [
+                {x:0, y:0, name:'CLAWSMITH FORGE', color:'#443311', spriteKey:3},
+                {x:1, y:0, name:'GRANT HALL', color:'#441133', spriteKey:2},
+                {x:2, y:1, name:'AUDIT CHAMBER', color:'#2a1f18', spriteKey:4},
+                {x:3, y:1, name:'CONTENT STUDIO', color:'#223311', spriteKey:2},
+                {x:1, y:3, name:'RESEARCH LAB (EXP)', color:'#1a1814', spriteKey:4}
+            ];
+            agents = [
+                {id:'clawsmith', x:80, y:60, spriteKey:3, state:'glowing', frame:0, room:'CLAWSMITH FORGE'},
+                {id:'grant-watcher', x:220, y:60, spriteKey:2, state:'idle', frame:0, room:'GRANT HALL'},
+                {id:'auditor', x:340, y:180, spriteKey:4, state:'scanning', frame:0, room:'AUDIT CHAMBER'},
+                {id:'creator', x:500, y:180, spriteKey:2, state:'editing', frame:0, room:'CONTENT STUDIO'}
+            ];
+        }
+
+        // Preload sprites (from Imagine-generated pixel RPG ones)
+        function preloadSprites() {
+            const keys = [2,3,4];
+            let loaded = 0;
+            keys.forEach(k => {
+                sprites[k] = new Image();
+                sprites[k].src = `assets/sprites/${k}.jpg`;
+                sprites[k].onload = () => { loaded++; if (loaded === keys.length) gameLoop(); };
+            });
+        }
+
+        function log(msg) {
+            const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            logEl.innerHTML += `<br>[${time}] ${msg}`;
+            logEl.scrollTop = logEl.scrollHeight;
+            if (logEl.children.length > 12) logEl.removeChild(logEl.children[0]);
+        }
+
+        function connectWS() {
+            ws = new WebSocket('ws://127.0.0.1:18789');
+            ws.onopen = () => log('✅ WS CONNECTED — RPG floor alive');
+            ws.onmessage = (e) => {
+                try {
+                    const d = JSON.parse(e.data);
+                    if (d.type === 'cell.update' || d.room) {
+                        log(`📡 ${d.room || 'cell'} update: ${d.state || 'activity'}`);
+                        // Update agents from real events (spriteAssetId mapping)
+                        const agent = agents.find(a => a.room.toLowerCase().includes((d.room || '').toLowerCase()));
+                        if (agent) {
+                            agent.state = d.state || agent.state;
+                            if (d.blueprint) agent.state = 'forging';
+                        }
+                    }
+                } catch (err) { log('EVENT: ' + e.data); }
+            };
+            ws.onclose = () => { log('⚠ WS closed — refresh bridge'); setTimeout(connectWS, 4000); };
+            ws.onerror = () => log('WS error — check gateway');
+        }
+
+        function draw() {
+            // Clear with stone bg
+            ctx.fillStyle = '#1a140c';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw tiles/rooms (RPG map style)
+            tiles.forEach((tile, i) => {
+                const px = tile.x * TILE_SIZE + 40;
+                const py = tile.y * TILE_SIZE + 40;
+                ctx.fillStyle = tile.color;
+                ctx.fillRect(px, py, TILE_SIZE-8, TILE_SIZE-8);
+                ctx.strokeStyle = '#665533';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(px, py, TILE_SIZE-8, TILE_SIZE-8);
+                // Label
+                ctx.fillStyle = '#ffee77';
+                ctx.font = '10px "Press Start 2P"';
+                ctx.fillText(tile.name.substring(0,8), px+8, py + TILE_SIZE - 12);
+            });
+
+            // Draw agents (hooded pixel sprites with state-based "animation")
+            agents.forEach(agent => {
+                const img = sprites[agent.spriteKey];
+                if (!img) return;
+                let sx = 0; // simple frame offset for animation
+                if (agent.state === 'glowing' || agent.state === 'forging') sx = (Math.floor(Date.now()/200) % 2) * 32;
+                ctx.drawImage(img, sx, 0, 32, 32, agent.x, agent.y, SPRITE_SIZE, SPRITE_SIZE);
+                // State glow
+                if (agent.state === 'glowing') {
+                    ctx.shadowColor = '#bb99ff';
+                    ctx.shadowBlur = 12;
+                    ctx.fillStyle = 'rgba(187,153,255,0.3)';
+                    ctx.fillRect(agent.x+4, agent.y+4, SPRITE_SIZE-8, SPRITE_SIZE-8);
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        let lastTime = 0;
+        function gameLoop(time = 0) {
+            if (time - lastTime > 16) {
+                draw();
+                lastTime = time;
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Click handler for interactive RPG feel (cell/agent selection)
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            // Simple hit detection on agents/tiles
+            const hit = agents.find(a => mx > a.x && mx < a.x+SPRITE_SIZE && my > a.y && my < a.y+SPRITE_SIZE);
+            if (hit) {
+                showModal(hit);
+            } else {
+                // Tile hit for room info
+                log('🗺️ Clicked empty tile — explore the castle map');
+            }
+        });
+
+        function showModal(agent) {
+            const modal = document.getElementById('modal');
+            document.getElementById('modal-title').textContent = `${agent.room} — ${agent.id.toUpperCase()}`;
+            document.getElementById('modal-content').innerHTML = `
+                State: <span style="color:#ffcc44">${agent.state}</span><br>
+                Hooded agent ready for command.<br><br>
+                Approve next handoff? (ties to security gates)
+            `;
+            modal.style.display = 'block';
+            window.currentAgent = agent; // for handleApproval
+        }
+
+        function handleApproval(action) {
+            const agent = window.currentAgent;
+            if (!agent) return;
+            log(`🛡️ ${action.toUpperCase()} for ${agent.id} — sent across bridge (handoff JSON emitted)`);
+            // Simulate send to gateway/agents (in real: WS send with approval)
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({type: 'approval', agent: agent.id, action, prompt: 'user_edited_if_any'}));
+            }
+            closeModal();
+            // Trigger visual feedback
+            agent.state = action === 'accept' ? 'success' : 'idle';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // Manual bridge update (per user revision: poll for outputs on click)
+        function updateBridge() {
+            log('🔄 BRIDGE UPDATE — pulling pending handoffs/outputs from agents (auditor research, forges, etc.)');
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({type: 'bridge_poll', request: 'all_pending'}));
+            }
+            // Simulate new output
+            if (agents[2]) agents[2].state = 'verified'; // auditor example
+            log('📥 Received: Silent Auditor completed scan — ready for approval in modal.');
+        }
+
+        // Init
+        window.onload = () => {
+            initMap();
+            preloadSprites();
+            connectWS();
+            log('🌟 PIXEL SIM LOADED — click agents for RPG modal approvals. UPDATE BRIDGE for real outputs.');
+            // Initial sim activity
+            setTimeout(() => { if (agents[0]) agents[0].state = 'forging'; }, 1200);
+            setTimeout(() => { if (agents[3]) agents[3].state = 'editing'; log('Agent movement simulated — bridge ready for your inputs!'); }, 2800);
+        };
+
+        // Expose for modal
+        window.handleApproval = handleApproval;
+        window.closeModal = closeModal;
+        window.updateBridge = updateBridge;
+    </script>
+</body>
+</html>
