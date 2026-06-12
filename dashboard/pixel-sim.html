@@ -43,7 +43,7 @@
     </style>
 </head>
 <body>
-    <h1>🧥 RECLAW PIXEL SIM — RPG OPS FLOOR</h1>
+    <h1>RECLAW PIXEL SIM — AGENT CELLS RPG FLOOR</h1>
     <div id="controls">
         <button onclick="updateBridge()">🔄 UPDATE BRIDGE</button>
         <button onclick="window.location.href='index.html'">← BACK TO DASHBOARD</button>
@@ -52,7 +52,7 @@
         <canvas id="sim-canvas" width="800" height="520"></canvas>
         <div class="scanline"></div>
     </div>
-    <div id="log">RPG OPS FLOOR INITIALIZED — hooded agents await your command. Click cells/agents. Use UPDATE BRIDGE for new outputs.</div>
+    <div id="log">AGENT CELLS INITIALIZED (TikTok RPG style) — click any bordered cell for modal. Bridge pulls live handoffs from gateway.</div>
 
     <!-- RPG Approval Modal -->
     <div id="modal">
@@ -75,23 +75,25 @@
         let agents = []; // {id, x, y, sprite, state: 'idle', frame: 0, room}
         let tiles = []; // from castle_map or hardcoded
         const sprites = {};
-        const TILE_SIZE = 80;
-        const SPRITE_SIZE = 48;
+        const TILE_SIZE = 155;
+        const SPRITE_SIZE = 118;
+        const GRID_OFFSET_X = 35;
+        const GRID_OFFSET_Y = 35;
 
-        // Hardcoded initial map based on castle_map.json + current rooms (5x5 grid simplified)
+        // Hardcoded initial map based on castle_map.json (clear distinct "cells" like TikTok ref)
         function initMap() {
             tiles = [
-                {x:0, y:0, name:'CLAWSMITH FORGE', color:'#443311', spriteKey:3},
-                {x:1, y:0, name:'GRANT HALL', color:'#441133', spriteKey:2},
-                {x:2, y:1, name:'AUDIT CHAMBER', color:'#2a1f18', spriteKey:4},
-                {x:3, y:1, name:'CONTENT STUDIO', color:'#223311', spriteKey:2},
-                {x:1, y:3, name:'RESEARCH LAB (EXP)', color:'#1a1814', spriteKey:4}
+                {x:0, y:0, name:'CLAWSMITH FORGE', color:'#443311', spriteKey:3, status: 'HAMMERING'},
+                {x:1, y:0, name:'GRANT HALL', color:'#441133', spriteKey:2, status: 'WATCHING'},
+                {x:0, y:1, name:'AUDIT CHAMBER', color:'#2a1f18', spriteKey:4, status: 'SCANNING'},
+                {x:2, y:1, name:'CONTENT STUDIO', color:'#223311', spriteKey:2, status: 'EDITING'},
+                {x:1, y:2, name:'RESEARCH LAB', color:'#1a1814', spriteKey:4, status: 'EXPANDING'}
             ];
             agents = [
-                {id:'clawsmith', x:80, y:60, spriteKey:3, state:'glowing', frame:0, room:'CLAWSMITH FORGE'},
-                {id:'grant-watcher', x:220, y:60, spriteKey:2, state:'idle', frame:0, room:'GRANT HALL'},
-                {id:'auditor', x:340, y:180, spriteKey:4, state:'scanning', frame:0, room:'AUDIT CHAMBER'},
-                {id:'creator', x:500, y:180, spriteKey:2, state:'editing', frame:0, room:'CONTENT STUDIO'}
+                {id:'clawsmith', x: GRID_OFFSET_X + 0*TILE_SIZE + 20, y: GRID_OFFSET_Y + 0*TILE_SIZE + 18, spriteKey:3, state:'glowing', frame:0, room:'CLAWSMITH FORGE', cellIndex:0},
+                {id:'grant-watcher', x: GRID_OFFSET_X + 1*TILE_SIZE + 20, y: GRID_OFFSET_Y + 0*TILE_SIZE + 18, spriteKey:2, state:'idle', frame:0, room:'GRANT HALL', cellIndex:1},
+                {id:'auditor', x: GRID_OFFSET_X + 0*TILE_SIZE + 20, y: GRID_OFFSET_Y + 1*TILE_SIZE + 18, spriteKey:4, state:'scanning', frame:0, room:'AUDIT CHAMBER', cellIndex:2},
+                {id:'creator', x: GRID_OFFSET_X + 2*TILE_SIZE + 20, y: GRID_OFFSET_Y + 1*TILE_SIZE + 18, spriteKey:2, state:'editing', frame:0, room:'CONTENT STUDIO', cellIndex:3}
             ];
         }
 
@@ -135,40 +137,58 @@
         }
 
         function draw() {
-            // Clear with stone bg
+            // Clear with stone bg (retro RPG floor)
             ctx.fillStyle = '#1a140c';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw tiles/rooms (RPG map style)
+            // Draw distinct agent CELLS (grid of bounded rooms per TikTok ref - each agent in its own cell)
             tiles.forEach((tile, i) => {
-                const px = tile.x * TILE_SIZE + 40;
-                const py = tile.y * TILE_SIZE + 40;
+                const px = GRID_OFFSET_X + tile.x * TILE_SIZE;
+                const py = GRID_OFFSET_Y + tile.y * TILE_SIZE;
+                // Cell background + thick RPG border
                 ctx.fillStyle = tile.color;
-                ctx.fillRect(px, py, TILE_SIZE-8, TILE_SIZE-8);
+                ctx.fillRect(px, py, TILE_SIZE-4, TILE_SIZE-4);
                 ctx.strokeStyle = '#665533';
-                ctx.lineWidth = 4;
-                ctx.strokeRect(px, py, TILE_SIZE-8, TILE_SIZE-8);
-                // Label
+                ctx.lineWidth = 6;
+                ctx.strokeRect(px, py, TILE_SIZE-4, TILE_SIZE-4);
+                ctx.strokeStyle = '#bb99ff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(px+6, py+6, TILE_SIZE-16, TILE_SIZE-16);
+                // Cell label (room name)
                 ctx.fillStyle = '#ffee77';
-                ctx.font = '10px "Press Start 2P"';
-                ctx.fillText(tile.name.substring(0,8), px+8, py + TILE_SIZE - 12);
+                ctx.font = '9px "Press Start 2P"';
+                ctx.shadowColor = '#000';
+                ctx.shadowBlur = 4;
+                ctx.fillText(tile.name.substring(0,11), px+12, py + 18);
+                ctx.shadowBlur = 0;
+                // Status per cell (like live agent cells)
+                ctx.fillStyle = '#22ff99';
+                ctx.font = '8px "Press Start 2P"';
+                ctx.fillText(tile.status || 'ACTIVE', px+14, py + TILE_SIZE - 12);
             });
 
-            // Draw agents (hooded pixel sprites with state-based "animation")
-            agents.forEach(agent => {
+            // Draw hooded agents filling their cells (expanded per dashboard fix + TikTok cell style)
+            agents.forEach((agent, i) => {
                 const img = sprites[agent.spriteKey];
                 if (!img) return;
-                let sx = 0; // simple frame offset for animation
-                if (agent.state === 'glowing' || agent.state === 'forging') sx = (Math.floor(Date.now()/200) % 2) * 32;
-                ctx.drawImage(img, sx, 0, 32, 32, agent.x, agent.y, SPRITE_SIZE, SPRITE_SIZE);
-                // State glow
-                if (agent.state === 'glowing') {
+                const cell = tiles[agent.cellIndex || i] || {x:0,y:0};
+                const px = GRID_OFFSET_X + cell.x * TILE_SIZE + 18;
+                const py = GRID_OFFSET_Y + cell.y * TILE_SIZE + 38;
+                agent.x = px; agent.y = py; // sync position to cell
+                // Full sprite (no crop - jpgs are full hooded scenes; scale to fill cell)
+                ctx.drawImage(img, px, py, SPRITE_SIZE, SPRITE_SIZE);
+                // State-based glow + simple animation bob
+                const bob = (agent.state === 'glowing' || agent.state === 'forging') ? Math.sin(Date.now()/180)*3 : 0;
+                if (agent.state === 'glowing' || agent.state === 'forging' || agent.state === 'scanning') {
                     ctx.shadowColor = '#bb99ff';
-                    ctx.shadowBlur = 12;
-                    ctx.fillStyle = 'rgba(187,153,255,0.3)';
-                    ctx.fillRect(agent.x+4, agent.y+4, SPRITE_SIZE-8, SPRITE_SIZE-8);
+                    ctx.shadowBlur = 18;
+                    ctx.fillStyle = 'rgba(187,153,255,0.35)';
+                    ctx.fillRect(px+8, py+8 + bob, SPRITE_SIZE-16, SPRITE_SIZE-22);
                     ctx.shadowBlur = 0;
                 }
+                // Mini status indicator dot
+                ctx.fillStyle = agent.state.includes('success') || agent.state === 'verified' ? '#22ff66' : '#ffcc44';
+                ctx.fillRect(px + SPRITE_SIZE - 14, py + 12, 6, 6);
             });
         }
 
@@ -181,18 +201,25 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Click handler for interactive RPG feel (cell/agent selection)
+        // Click handler for interactive RPG feel (cell/agent selection - distinct cells like TikTok)
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
             const my = e.clientY - rect.top;
-            // Simple hit detection on agents/tiles
-            const hit = agents.find(a => mx > a.x && mx < a.x+SPRITE_SIZE && my > a.y && my < a.y+SPRITE_SIZE);
-            if (hit) {
-                showModal(hit);
+            // Grid-based cell hit detection (agents fill their cell)
+            let hitCell = null;
+            tiles.forEach((tile, i) => {
+                const px = GRID_OFFSET_X + tile.x * TILE_SIZE;
+                const py = GRID_OFFSET_Y + tile.y * TILE_SIZE;
+                if (mx > px && mx < px + TILE_SIZE && my > py && my < py + TILE_SIZE) {
+                    hitCell = i;
+                }
+            });
+            if (hitCell !== null) {
+                const agent = agents.find(a => a.cellIndex === hitCell) || agents[hitCell % agents.length];
+                if (agent) showModal(agent);
             } else {
-                // Tile hit for room info
-                log('🗺️ Clicked empty tile — explore the castle map');
+                log('🗺️ Clicked map edge — select an agent cell for approval modal');
             }
         });
 
@@ -241,10 +268,11 @@
             initMap();
             preloadSprites();
             connectWS();
-            log('🌟 PIXEL SIM LOADED — click agents for RPG modal approvals. UPDATE BRIDGE for real outputs.');
-            // Initial sim activity
-            setTimeout(() => { if (agents[0]) agents[0].state = 'forging'; }, 1200);
-            setTimeout(() => { if (agents[3]) agents[3].state = 'editing'; log('Agent movement simulated — bridge ready for your inputs!'); }, 2800);
+            log('🌟 PIXEL SIM LOADED — distinct AGENT CELLS (TikTok-style grid). Click any cell for RPG approval modal. UPDATE BRIDGE pulls real outputs.');
+            // Initial sim activity (states update live per cell)
+            setTimeout(() => { if (agents[0]) agents[0].state = 'forging'; }, 800);
+            setTimeout(() => { if (agents[2]) agents[2].state = 'scanning'; log('📍 Auditor cell active — bridge ready for your inputs!'); }, 1800);
+            setTimeout(() => { tiles.forEach(t => { if (t.status) t.status = t.status.includes('SCAN') ? 'VERIFIED' : t.status; }); }, 3500);
         };
 
         // Expose for modal
