@@ -93,12 +93,12 @@
         .room {
             border: 6px double var(--hood-purple);
             background: linear-gradient(var(--surface), #221a12);
-            padding: 14px;
+            padding: 10px;
             position: relative;
-            min-height: 260px;
+            min-height: 240px;
             box-shadow: 0 0 20px var(--lamp), inset 0 0 40px rgba(40,25,10,0.7);
             overflow: hidden;
-            /* RPG cell border like old game map rooms */
+            /* RPG cell border like old game map rooms - reduced padding for less empty space */
         }
         .room.grant-hall { border-color: var(--magenta); box-shadow: 0 0 20px var(--magenta), inset 0 0 30px rgba(60,0,40,0.6); }
         .room.forge-room  { border-color: var(--gold); background: linear-gradient(#332211, #1a140c); box-shadow: 0 0 25px var(--lamp), 0 0 15px var(--gold); }
@@ -135,27 +135,30 @@
         .room-status { top: auto; bottom: 12px; left: 14px; font-size: 7px; color: var(--green); border-color: var(--green); z-index: 4; }
         .desk {
             position: absolute;
-            width: 64px; height: 72px;
+            width: 42%; height: 58%;
             background: transparent;
-            border: 2px solid #332211;
+            border: 3px solid #332211;
             cursor: pointer;
             transition: all 0.2s;
-            box-shadow: 0 0 12px var(--lamp);
+            box-shadow: 0 0 18px var(--lamp);
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
             z-index: 3;
             image-rendering: pixelated;
+            max-width: 210px;
+            max-height: 190px;
         }
         .desk img.pixel-sprite {
-            width: 58px;
-            height: 58px;
+            width: 96%;
+            height: 96%;
             image-rendering: pixelated;
             filter: contrast(1.15) brightness(1.1);
-            object-fit: contain;
+            object-fit: cover;
+            border-radius: 2px;
         }
-        .desk:hover { transform: scale(1.18); box-shadow: 0 0 22px var(--torch-glow); filter: brightness(1.3); }
+        .desk:hover { transform: scale(1.06); box-shadow: 0 0 28px var(--torch-glow); filter: brightness(1.25); }
         .desk.idle    { border-color: #665588; }
         .desk.typing  { animation: pulse 0.8s infinite; border-color: var(--lamp); }
         .desk.glowing { animation: neon 0.6s infinite alternate; box-shadow: 0 0 28px var(--magenta); }
@@ -215,17 +218,17 @@
         <h2 style="color:var(--magenta)">GRANT HALL</h2>
         <div class="tracker" id="tracker">FUNDS: $1240 • 2 ALERTS</div>
         <div class="room-status" id="grant-status">HOODED AGENT: WATCHING</div>
-        <div class="desk idle" id="grant-desk" style="left:35%;top:35%"
+        <div class="desk idle" id="grant-desk" style="left:12%;top:26%;width:48%;height:55%"
              title="Hooded Grant Watcher"
              onclick="simulateEvent('grant-desk','glowing')">
             <img src="assets/sprites/2.jpg" class="pixel-sprite" alt="Hooded Agent">
         </div>
-        <div class="desk-label" style="left:25%;top:72%">Watcher</div>
-        <div class="desk idle" id="analyst-desk" style="left:65%;top:55%"
+        <div class="desk-label" style="left:18%;top:78%">Watcher</div>
+        <div class="desk idle" id="analyst-desk" style="left:58%;top:48%;width:38%;height:42%"
              onclick="simulateEvent('analyst-desk','typing')">
             <img src="assets/sprites/2.jpg" class="pixel-sprite" alt="Hooded Agent">
         </div>
-        <div class="desk-label" style="left:58%;top:82%">Analyst</div>
+        <div class="desk-label" style="left:62%;top:85%">Analyst</div>
     </div>
 
     <!-- CLAWSMITH FORGE (builder area per priority) -->
@@ -234,10 +237,10 @@
         <div class="tracker" style="border-color:var(--gold);color:var(--gold)" id="clawsmith-tracker">BLUEPRINTS: 3 • FORGING</div>
         <div class="room-status" id="clawsmith-status" style="color:var(--gold)">HOODED FORGE AGENT: ACTIVE</div>
         <div class="desk glowing" id="clawsmith-desk"
-             style="left:26%;top:28%;width:78px;height:82px;"
+             style="left:18%;top:22%;width:58%;height:62%;"
              title="Clawsmith Hooded Builder — click to plan"
              onclick="simulateClawsmithPlan()">
-            <img src="assets/sprites/3.jpg" class="pixel-sprite" alt="Forge Agent" style="width:68px;height:68px;">
+            <img src="assets/sprites/3.jpg" class="pixel-sprite" alt="Forge Agent">
         </div>
         <div class="desk-label" style="left:18%;top:68%;color:var(--gold)">Clawsmith</div>
         <div class="subtext" style="position:absolute;left:48%;top:52%;max-width:120px;color:var(--lamp);">HUMAN GATE → FORGE</div>
@@ -251,11 +254,11 @@
         <h2 style="color:#dd9966">AUDIT CHAMBER</h2>
         <div class="tracker" style="border-color:#aa6644;color:#ffcc88">AUDITS: 7 • SILENT</div>
         <div class="room-status" id="audit-status">HOODED AUDITOR: SCANNING</div>
-        <div class="desk idle" id="auditor-desk" style="left:32%;top:38%"
+        <div class="desk idle" id="auditor-desk" style="left:22%;top:26%;width:52%;height:58%"
              onclick="simulateEvent('auditor-desk','glowing')">
             <img src="assets/sprites/4.jpg" class="pixel-sprite" alt="Auditor">
         </div>
-        <div class="desk-label" style="left:20%;top:74%;color:#cc9966">Silent Auditor</div>
+        <div class="desk-label" style="left:26%;top:80%;color:#cc9966">Silent Auditor</div>
     </div>
 
     <!-- CONTENT STUDIO -->
@@ -263,19 +266,19 @@
         <h2 style="color:var(--yellow)">CONTENT STUDIO</h2>
         <div class="tracker">SCRIPTS: 4 • LIVE</div>
         <div class="room-status">HOODED CREATOR: EDITING</div>
-        <div class="desk idle" style="left:45%;top:40%"
+        <div class="desk idle" style="left:24%;top:28%;width:48%;height:56%"
              onclick="simulateEvent(this,'success')">
             <img src="assets/sprites/2.jpg" class="pixel-sprite" alt="Creator">
         </div>
-        <div class="desk-label" style="left:38%;top:68%">Creator</div>
+        <div class="desk-label" style="left:29%;top:79%">Creator</div>
     </div>
 
     <!-- FUTURE ZONE (intentional empty space for expansion per spec - RPG cell style) -->
     <div class="room" id="future-zone" style="opacity:0.65;border-style:dashed;border-color:var(--muted);background:linear-gradient(#1a1a1a,#111);">
         <h2 style="color:var(--muted)">RESEARCH LAB<br><span style="font-size:7px">(EXPANSION)</span></h2>
         <div class="room-status" style="color:var(--muted)">VACANT • READY FOR VIDEO GEN / STUDIO</div>
-        <div class="desk" style="left:40%;top:42%;width:62px;height:66px;opacity:0.5;border-color:#444;">
-            <img src="assets/sprites/4.jpg" class="pixel-sprite" alt="Future Agent" style="width:52px;height:52px;opacity:0.6;">
+        <div class="desk" style="left:28%;top:28%;width:52%;height:55%;opacity:0.5;border-color:#444;">
+            <img src="assets/sprites/4.jpg" class="pixel-sprite" alt="Future Agent" style="opacity:0.6;">
         </div>
         <div class="desk-label" style="left:35%;top:78%;color:var(--muted)">Future Cell</div>
     </div>
