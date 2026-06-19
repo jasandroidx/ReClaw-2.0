@@ -48,3 +48,17 @@ No free text instructions between agents. The package is the contract.
 If any code or behavior violates this SOUL, stop and escalate (write to session log + alert).
 
 This file + the per-agent SOUL.md files are read at the beginning of every Gateway session and every agent invocation.
+
+## Ravenstack Ingestion Rule (for Discord Bot + Any File/PDF/Book Extraction)
+When Discord bot or user shares material (PDFs, books like "Using AI Agents to Make Money", research files):
+
+- Consult `[[RAVENSTACK-ARCHITECTURE.md#Ingestion-Workflow]]` first (or local copy).
+- **Distill only** (high-value principles/frameworks/red-flags/tactics/ReClaw-examples; no raw/copyright bloat; <200 words near-verbatim).
+- **Automatically** (no asking user): Use `KnowledgeManager` from `core/knowledge.py`.
+  - `km = get_knowledge_manager()`
+  - `km.ingest_document(...)` or `km.save_to_backlog(source="book-name", distilled=content, potential_for="clawsmith/visual/dashboard/revenue-loops")`.
+- Save to `Ravenstack/backlog/[kebab-slug].md` (YAML frontmatter with status, potential_for, tags). Update `knowledge_index.md`. Move to main topics when implemented.
+- For Discord-triggered extractions, route through orchestrator or Clawsmith room. Log + git commit.
+- This is now part of every room SOUL and skill. Reload workspace after edits.
+
+See RAVENSTACK-ARCHITECTURE.md (pause note confirms structure soundness), core/knowledge.py (tested RAG), and skills/clawsmith. Bot will now know exactly where to put extracted data.
