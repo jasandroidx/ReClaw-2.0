@@ -187,6 +187,35 @@ class KnowledgeManager:
         """List all available knowledge files."""
         return [f.name for f in self.knowledge_path.glob("*.md") if f.name != "knowledge_index.md"]
 
+    def save_to_backlog(self, source_name: str, distilled_content: str, potential_for: str = "clawsmith-visual-agents, revenue-loops, automation") -> Path:
+        """OpenClaw/Open extraction entrypoint. Saves distilled book/PDF info to backlog/ for later implementation.
+        Creates MD with frontmatter so it can be queried/moved easily. Prevents loss of good ideas."""
+        slug = source_name.lower().replace(" ", "-").replace("'", "").replace(".", "")
+        filename = f"{slug}.md"
+        backlog_dir = self.knowledge_path / "backlog"
+        backlog_dir.mkdir(exist_ok=True)
+        path = backlog_dir / filename
+
+        frontmatter = f"""---
+title: {source_name}
+status: backlog
+source: {source_name}
+extracted_date: {self._get_timestamp()}
+potential_for: {potential_for}
+relevance_score: high
+tags: [ai-agents, monetization, backlog, clawsmith, visual-dashboard]
+---
+
+"""
+        full_content = frontmatter + distilled_content + f"""
+
+**Cross-References**: [[RAVENSTACK-ARCHITECTURE#Memory Maintenance System]], [[knowledge_index#backlog]], [[principles.md]]
+*Saved via KnowledgeManager.save_to_backlog(). Review during reload ritual. Move to main topics once implemented (e.g. enhance Clawsmith or pixel dashboard).*
+"""
+        path.write_text(full_content, encoding="utf-8")
+        self._update_index(f"backlog/{filename}", f"Extracted from {source_name} (backlog for later implementation)")
+        return path
+
 
 def get_knowledge_manager() -> KnowledgeManager:
     """Singleton-style accessor."""
