@@ -3,12 +3,12 @@
 This is the operational routing document for the general ReClaw 2.0 platform (with initial rural-data workflow package). It follows the same patterns as the parent winslow-core AGENTS.md in ~/clawd. Core is domain-agnostic; rural_data, grants, local_leads, content and future modules are isolated under agents/.
 
 ## Primary Entry Point: Gateway (Control Plane)
-- The Gateway (FastAPI in api/main.py or future dedicated gateway/server.py) is the only thing that creates sessions, loads SOUL files, and dispatches work.
+- The Gateway (FastAPI in api/main.py or future dedicated gateway/server.py) is the only thing that creates sessions, loads SOUL files + relevant Ravenstack knowledge, and dispatches work.
 - All external triggers (Discord bot, cron, manual `python -m reclaw.cli run`, HTTP) go through the Gateway.
 - Gateway owns:
   - Session creation + isolation (data/sessions/<id>/)
-  - Loading the system SOUL.md + the relevant agent SOUL.md(s)
-  - Permission registry + approval gate enforcement
+  - Loading the system SOUL.md + the relevant agent SOUL.md(s) + targeted knowledge from `core/knowledge.py` (e.g. principles + domain files)
+  - Permission registry + approval gate enforcement (add `knowledge_read` as low-risk capability)
   - Status tracking and artifact collection
   - Calling the Orchestrator for full pipeline runs
 

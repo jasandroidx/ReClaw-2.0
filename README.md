@@ -80,9 +80,11 @@ See AGENTS.md for routing and core/platform capabilities. Future domains live in
 
 ## Key Folders
 
-- `agents/<name>/SOUL.md` — identity loaded by every run of that agent (OpenClaw style)
+- `knowledge/` — **Ravenstack**: The durable, distilled knowledge base (principles.md, agent-architecture.md, income-streams.md, etc.). Topic-based MD files. Central to all agents. See `knowledge/knowledge_index.md`.
+- `agents/<name>/SOUL.md` — identity loaded by every run of that agent (OpenClaw style). Now references Ravenstack sections.
+- `core/knowledge.py` — KnowledgeManager for targeted loading of Ravenstack files (prevents bloat).
 - `core/handoff.py` — the strict JSON contract between agents (ResearchPackage, AnalysisPackage, ContentPackage)
-- `core/security.py` — capability registry + approval gate implementation
+- `core/security.py` — capability registry + approval gate implementation (extend for knowledge_read if needed)
 - `core/session.py` — isolation: every run gets `data/sessions/<id>/` with souls, handoffs, approvals, logs
 - `data/seeds/` — deterministic test data for Pike/Winslow (and future counties)
 - `data/runs/` + `data/sessions/` — the full audit history

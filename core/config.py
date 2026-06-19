@@ -45,14 +45,10 @@ class Settings(BaseSettings):
     fetch_timeout: int = 12  # seconds
     max_properties_per_county: int = 50
 
-    # Analyst + Marketplace/ingest sources
+    # Analyst
     enable_llm_analysis: bool = Field(
         default=False,
         description="Future: when True, Analyst will call local LLM (Ollama / vLLM on GPU) for deeper synthesis. Currently heuristic only."
-    )
-    ingest_sources: list = Field(
-        default=["marketplace_flips", "kimi_claw", "rural_data", "documents", "obsidian_vault"],
-        description="Authorized sources for ingest_document, marketplace scans, Kimi distillation, and Oracle pipeline. Used by validate_oracle() and KnowledgeManager."
     )
     llm_model: str = "llama3.1:8b"  # or whatever is on the Hetzner box
 
@@ -60,14 +56,16 @@ class Settings(BaseSettings):
     job_timeout_seconds: int = 300
     max_concurrent_jobs: int = 2
 
-    # Obsidian writer + Knowledge Vault (RAG SOT per task)
-    obsidian_subdir: str = "Knowledge Vault"  # inside the vault root (configurable for RAG/ingest; was Rural Data)
+    # Obsidian writer
+    obsidian_subdir: str = "Rural Data"  # inside the vault root
     write_dry_run: bool = False  # if True, log what would be written but don't touch disk
 
-    # Kimi (Moonshot/Kimi K) for ingestion/distillation (preferred, wired in kimi-claw)
-    kimi_model: str = "moonshot-v1-8k"
-    kimi_api_base: str = "https://api.moonshot.cn/v1"
-    # Token pulled from env (XAI_API_KEY or KIMI_TOKEN) or openclaw kimi-claw config
+    # Ravenstack Knowledge Base (core of durable memory)
+    knowledge_subdir: str = "Knowledge"  # Creates outputs/obsidian/Knowledge or links to project/knowledge/
+    knowledge_path: Path = Field(
+        default=Path("knowledge"),
+        description="Path to Ravenstack knowledge base. Defaults to project/knowledge/ for git tracking."
+    )
 
     # API security (for cron, future Discord bot)
     reclaw_gateway_token: str = Field(
@@ -80,14 +78,24 @@ class Settings(BaseSettings):
         """Full path to the target subfolder in vault."""
         return self.obsidian_vault_path / self.obsidian_subdir
 
+    @property
+    def effective_knowledge_path(self) -> Path:
+        """Returns the Ravenstack path. Prefers project root for git, falls back to vault."""
+        kp = self.knowledge_path
+        if kp.is_absolute() or str(kp).startswith("knowledge"):
+            return kp
+        return self.obsidian_vault_path / self.knowledge_subdir
+
     def ensure_dirs(self) -> None:
-        """Create expected runtime directories."""
+        """Create expected runtime directories. Includes Ravenstack knowledge base."""
         for p in [
             self.data_dir,
             self.runs_dir,
             self.seeds_dir,
             self.effective_obsidian_path,
+            self.effective_knowledge_path,
             Path("outputs"),
+            Path("knowledge"),  # Project-level for git tracking and agent access
         ]:
             p.mkdir(parents=True, exist_ok=True)
 

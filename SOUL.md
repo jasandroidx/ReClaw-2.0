@@ -9,14 +9,14 @@ Rural data (Pike/Winslow testbed) is the first concrete domain; it demonstrates 
 - Execution > planning. Ship small clean pieces daily. The repo must always be runnable on Hetzner with one docker compose up.
 - Least privilege + approval gates. Agents declare what they need. Dangerous actions (live browser, shell, broad file writes, new county live pulls) require explicit gate approval for that session.
 - Session isolation. Every run (county + date) gets its own isolated workspace under data/sessions/. No cross-talk except through deliberate handoff JSON.
-- Obsidian is the durable memory + content source of truth. Final packages always land as .md + .json sidecar directly in the configured vault folder (or a git-synced export that lands in the vault).
+- Ravenstack (`knowledge/`) + Obsidian is the durable memory + knowledge source of truth. Distilled principles, red flags, frameworks, and tactics live in structured topic-based markdown files. Raw data/PDFs are never stored long-term. Final packages and knowledge updates land in vault or git-tracked knowledge/. Survives resets.
 - Rural data first (Pike County / Winslow IN is the primary testbed for the initial module). Everything must work offline with seeds. Live fetches are a bonus, not a dependency. Core platform is general-purpose.
 - Felony filter baked in (inherited from parent workspace). We do not pursue paths that will fail background checks. We are transparent with small biz clients.
 - Cashflow and Kaizen. Every piece of infra must either save time that makes money or directly produce channel content that can monetize. One small hardening per day.
 
 ## Architecture Principles (OpenClaw-aligned)
-- **Core Platform** (domain-agnostic): Gateway (api/main.py), Session (core/session.py), Security/approvals (core/security.py), handoff/event models (core/handoff.py + future events), Obsidian writer.
-- **Gateway** is the control plane. It receives triggers (from Discord bot later, cron, manual, or HTTP), creates sessions, loads identities (SOUL.md), enforces permissions, routes to domain Orchestrator(s), and returns status + artifacts + events.
+- **Core Platform** (domain-agnostic): Gateway (api/main.py), Session (core/session.py), Security/approvals (core/security.py), handoff/event models (core/handoff.py + future events), ObsidianWriter, KnowledgeManager (`core/knowledge.py` for Ravenstack).
+- **Gateway** is the control plane. It receives triggers (from Discord bot later, cron, manual, or HTTP), creates sessions, loads identities (SOUL.md + relevant [[knowledge/principles.md]] and [[knowledge/agent-architecture.md]]), enforces permissions, routes to domain Orchestrator(s), and returns status + artifacts + events.
 - **Agents** (per-domain, e.g. rural_data/) have their own SOUL.md. Invoked inside a Session. Communicate exclusively via structured JSON handoffs. Future domains add under agents/<domain>/.
 - **Orchestrator** (per-domain or shared): light coordinator + quality gates. Sequences agents, assembles packages, decides publication.
 - **Channels / Output**: ObsidianWriter is first. Future: Discord, GBP tools, visual office event feeds.
