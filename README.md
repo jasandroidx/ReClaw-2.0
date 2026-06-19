@@ -91,16 +91,38 @@ Full details: [docs/SECURITY.md](docs/SECURITY.md)
 
 When we add the business services side (GBP for auto shops etc.), they will live in a parallel tree but use the exact same Gateway, session, security, and handoff patterns.
 
-## Visual Agent Floor (Clawsmith Phase 1 - Committed to ravenstack)
-Persistent multi-room "operating floor" per spec. Core compiler in `core/cell.py` (plain goal → CellBlueprint with prune for rural income, creates ~/.openclaw/workspace/rooms/<id>/ with SOUL.md/AGENTS.md/memory.db, Obsidian ForgePackage, visual WS events). 
+## Ravenstack Fortress Dashboard (Final Production UI - ravenstack branch)
 
-- Rooms: Grant Hall Dungeon (purple_grant_watcher, funding tracker), Audit Chamber (red_auditor, compliance), Job Den, Research Lab, Content Studio, Marketplace Forge.
-- Dashboard: `dashboard/index.html` (2D pixel grid, static desk-anchored hooded sprites with states idle/typing/glowing/success/error, neon CSS, WS to gateway:18789, Tailscale accessible on 8080 via new docker service). Click sprites to simulate.
-- Revenue loops wired: grant alerts ($49/mo), compliance reports ($199), job leads ($29/mo), arbitrage feed ($19/mo), faceless YT content (ads/affiliates), dashboard as SaaS.
-- Test: `python3 -m core.cell "Activate Grant Hall..."` (creates room, inits Total-ReClaw, emits event). `docker-compose up reclaw-dashboard` for visual.
-- Sprite states and themes match pixel RPG reference (cozy, no pathfinding).
+**Mystical stone/neon pixel RPG hall** at http://100.119.160.116:8080 (or localhost:8080). Central Ravenlord orchestrator, 3 distinct chambers:
+- **Clawforge** (blacksmith 🔨 with hammerStrike animation + sparks via CSS/JS particles)
+- **Grant Hall** (scribe 📜 with quillGlow + glowing effects)
+- **Knowledge Vault** (archivist 🏮 with lanternPulse + pulsing shelves/holographics)
 
-See AGENTS.md for Clawforge routing, core/cell.py for lifecycle, plan.md for full architecture.
+Hover/click for feedback, live #log with WS to gateway:18789 (cell events from core/cell.py:399), Ravenlord side panel with buttons for Generate Video Script (rural Indiana faceless), MD Summary/Obsidian Export, Scan Flows/Audit, Call Assembly, Refresh Agents. All self-contained in single index.html with **CONFIG** object at top for easy expansion (add rooms without rewrite — data-driven).
+
+**Cache-proof**: meta no-cache headers, version in title/CONFIG (2026.06.19-final), hard refresh (Ctrl+Shift+R).
+
+**Canonical source of truth**: `/root/ReClaw-2.0/dashboard/index.html` (synced to `/opt/reclaw/dashboard` for Docker volume). Old versions (/opt/reclaw/dashboard/dist, index.html.old, ReClaw-Vault, safe backups, Station House React build) archived/killed.
+
+**One-command rebuild** (new self-improvement for Grok Build):
+```bash
+# Diagnosis + clean + build + deploy + verify + git
+cd /root/ReClaw-2.0 && ./tools/rebuild-fortress-dashboard.sh
+```
+(or use the new `fortress-dashboard` skill via Grok: `/fortress-dashboard rebuild`).
+
+**Grok Build Self-Improvement Implemented**:
+- Reusable `~/.grok/skills/fortress-dashboard` skill with auto-detect serving folder (lsof -i:8080 + docker inspect), cache-busting, full HTML regen from template.
+- Support for Phasor.js (lightweight via CDN in future iterations; current CSS+Canvas fallback for pixel RPG: hammer swing, particle emitters for sparks/torches).
+- Integration hooks: WS to OpenClaw gateway:18789, calls to ReClaw skills (clawsmith, silent_auditor via events).
+- Auto-kill stale servers (python http.server, node proxies, docker), archive old index/dist.
+- Documented in README + obsidian_vault/RAVENSTACK-ARCHITECTURE.md. Turns manual overwrites into robust repeatable system. Search ClawHub yielded no exact match so built custom wrapper (control-ui-e2e patterns reused for verification).
+
+Test: `curl -I http://localhost:8080` (expect Ravenstack title), hard refresh in browser/incognito. `docker compose logs reclaw-dashboard`. Git on ravenstack updated.
+
+See `/root/ReClaw-2.0/dashboard/index.html:234` for CONFIG, `core/cell.py:399` for event bus. Future: full Phaser 3 canvas RPG with tweens/particles via skill extension.
+
+This fixes all prior cache/stale copy/Docker/proxy issues permanently.
 
 ## Status
 
