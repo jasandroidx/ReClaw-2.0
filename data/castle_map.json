@@ -21,6 +21,7 @@
       "forged_at": "2026-06-06T12:54:14.459807"
     },
     {
+<<<<<<< HEAD
       "id": "knowledge-vault-001",
       "name": "knowledge-vault",
       "theme": "archivist_glow",
@@ -37,6 +38,50 @@
       "ingest_upload": true,
       "mcp_buttons": ["ingest_document", "query_rag", "reload_ritual"],
       "forged_at": "2026-06-22"
+=======
+      "id": "grant_hall",
+      "name": "Grant Hall",
+      "theme": "official",
+      "color": "#aa00ff",
+      "icon": "📜",
+      "position": [1, 0],
+      "description": "Scrolls, seals, official documents — funding and compliance.",
+      "agent": {
+        "name": "Scribe Warden",
+        "type": "scribe",
+        "status": "WORKING",
+        "personality": "tall robed quill-master"
+      },
+      "metrics": {
+        "grants_tracked": 12,
+        "funding_secured": "$8500"
+      },
+      "buttons": ["Re-run Audit", "Apply for Grant", "Review Scrolls"],
+      "visual": "scroll_desk",
+      "last_event": "2026-06-19T09:45:00Z"
+    },
+    {
+      "id": "oracle_chamber",
+      "name": "Oracle Chamber",
+      "theme": "oracle",
+      "color": "#00ffaa",
+      "icon": "👁️",
+      "position": [3, 2],
+      "description": "Glowing green chained all-seeing eye — the Oracle bible (RAVENSTACK-ORACLE.md). Query MCP for rules, validation, canonical paths, ingest. Central SOT for empire consistency.",
+      "agent": {
+        "name": "The Oracle",
+        "type": "seer",
+        "status": "ALL_SEEING",
+        "personality": "ethereal chained eye with neon glow"
+      },
+      "metrics": {
+        "bible_queries": 67,
+        "validations_passed": "98%"
+      },
+      "buttons": ["Consult Oracle (MCP Query)", "Validate Plan", "Ingest Document", "Reload Ritual"],
+      "visual": "oracle_eye_48x48",
+      "last_event": "2026-06-20T03:00:00Z"
+>>>>>>> f87812ab (ravenstack fortress dashboard with oracle chamber, MCP buttons, sparks, ingest pipeline, verify, oracle bible, audit MD, SOT enforcement (local changes for ReClaw 2.0))
     }
   ],
   "orchestrator": {

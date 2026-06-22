@@ -4,6 +4,8 @@
 
 **Repo**: https://github.com/jasandroidx/ReClaw-2.0
 
+**Current State (Cleanup Complete)**: Oracle (RAVENSTACK-ORACLE.md) is the single source of truth and queryable bible. MCP server (`core/oracle_mcp.py` + oracle skill) + ingestion pipeline (`scripts/ingest.py` with Groq distill per Oracle rules, canonical writes to /root/obsidian_vault/Ravenstack/, auto-git/reload). Dashboard (Ravenstack Fortress at :8080) has Oracle chamber (green chained eye sprite, MCP query buttons). All SOT enforced, stale cleaned, scripts reliable. Run `./scripts/verify.sh` for full check. Next phases: income (ClawHub cells, YT from rural data), full e2e, swarm agents.
+
 ReClaw 2.0 provides domain-agnostic core (Gateway, Session isolation, Security/approval gates, Obsidian durable memory, event model for future visual frontend). The current repo implements rural_data (county research, red-flag analysis, content packages) as the first concrete module. Future domains (grants, local_leads, content, research_packets, visual office) add cleanly under agents/<domain>/ without changing core.
 
 Later phases add Scriptwriter, Visuals, business automation services, and the visual agent office layer. Phase 1 = clean foundation only.
@@ -78,6 +80,39 @@ Core platform is domain-agnostic. This module demonstrates the patterns:
 
 See AGENTS.md for routing and core/platform capabilities. Future domains live in parallel under `agents/`.
 
+<<<<<<< HEAD
+=======
+## Quick Start (Local)
+
+```bash
+cp .env.example .env
+# edit OBSIDIAN_VAULT_PATH to point at your vault (/root/obsidian_vault/Ravenstack is canonical SOT per RAVENSTACK-ORACLE.md; outputs/obsidian for testing only)
+
+pip install -r requirements.txt
+
+# Full end-to-end with seeds (safest)
+python -m reclaw.cli run --county Pike --area Winslow
+
+# Via the Gateway (also creates full session + approval records)
+python -c "
+from api.main import run_sync
+print(run_sync('Pike', 'Winslow'))
+"
+```
+
+The markdown package will be written directly into your configured Obsidian folder under the "Rural Data" subdir (or whatever you set in .env).
+
+## Production on Hetzner
+
+See [docs/SETUP.md](docs/SETUP.md) and [docs/tailscale.md](docs/tailscale.md).
+
+```bash
+docker compose up -d
+# Then hit the Gateway over Tailscale
+curl -X POST "https://your-reclaw-box.ts.net/trigger/Pike?auto_approve=true"
+```
+
+>>>>>>> f87812ab (ravenstack fortress dashboard with oracle chamber, MCP buttons, sparks, ingest pipeline, verify, oracle bible, audit MD, SOT enforcement (local changes for ReClaw 2.0))
 ## Key Folders
 
 - `knowledge/` — **Ravenstack**: The durable, distilled knowledge base (principles.md, agent-architecture.md, income-streams.md, etc.). Topic-based MD files. Central to all agents. See `knowledge/knowledge_index.md`.
