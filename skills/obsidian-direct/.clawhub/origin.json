@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "registry": "https://clawhub.ai",
+  "slug": "obsidian-direct",
+  "installedVersion": "1.0.0",
+  "installedAt": 1782166497297,
+  "artifact": {
+    "kind": "archive",
+    "sha256": "3c87cd1a2715d579def05525be601d87bc8e546a6f1ca20fc2f75f69bbe17687",
+    "integrity": "sha256-PIfNGicV1Xne8FUlvmAdh7yOVGpvHKIPwvdfabvhdoc="
+  },
+  "skillFile": {
+    "path": "SKILL.md",
+    "sha256": "2ad18a71252d114c58094a4c8ded4441c889184749264ea2888cfecb2c1e1d04"
+  }
+}

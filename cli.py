@@ -34,10 +34,32 @@ def main():
     run_p.add_argument("--dry", action="store_true", help="Do not actually write to Obsidian (log only)")
     run_p.add_argument("--no-obsidian", action="store_true", help="Skip Obsidian channel write entirely")
 
+    ingest_p = sub.add_parser("ingest", help="Ingest PDF/book/note/folder to Knowledge Vault/RAG with Kimi-claw (upload zone equivalent)")
+    ingest_p.add_argument("--file", help="Single file path")
+    ingest_p.add_argument("--batch", help="Folder for batch ingest")
+    ingest_p.add_argument("--model", default="kimi_claw", help="Model for distillation (kimi_claw preferred)")
+    ingest_p.add_argument("--vault", action="store_true", help="Force to Knowledge Vault subdir")
+
     args = parser.parse_args()
 
     settings = get_settings()
 
+    if args.cmd == "ingest":
+        from core.obsidian_writer import ObsidianWriter
+        from pathlib import Path
+        writer = ObsidianWriter(settings)
+        if args.batch:
+            batch_path = Path(args.batch)
+            for f in batch_path.rglob("*.*"):
+                if f.suffix.lower() in (".pdf", ".md", ".txt", ".docx"):
+                    writer.ingest_document(str(f), source_name="batch-upload", model=args.model)
+                    print(f"Processed batch file: {f.name}")
+        elif args.file:
+            writer.ingest_document(args.file, source_name="cli-upload", model=args.model)
+        print("✅ Ingest complete via Kimi-claw. Notes in Knowledge Vault, RAG updated, visible in Fortress chamber. Run reload ritual.")
+        return
+
+    # Run command logic (county/area pipeline)
     if args.live:
         # Temporary override for this process
         settings.use_live_fetch = True

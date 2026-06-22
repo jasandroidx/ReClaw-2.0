@@ -91,38 +91,25 @@ Full details: [docs/SECURITY.md](docs/SECURITY.md)
 
 When we add the business services side (GBP for auto shops etc.), they will live in a parallel tree but use the exact same Gateway, session, security, and handoff patterns.
 
-## Ravenstack Fortress Dashboard (Final Production UI - ravenstack branch)
+## Ravenstack Fortress Dashboard (pixel office RPG from agent-town repo)
 
-**Mystical stone/neon pixel RPG hall** at http://100.119.160.116:8080 (or localhost:8080). Central Ravenlord orchestrator, 3 distinct chambers:
-- **Clawforge** (blacksmith 🔨 with hammerStrike animation + sparks via CSS/JS particles)
-- **Grant Hall** (scribe 📜 with quillGlow + glowing effects)
-- **Knowledge Vault** (archivist 🏮 with lanternPulse + pulsing shelves/holographics)
+**Full interactive pixel RPG office/hall** (adapted from https://github.com/geezerrrr/agent-town) running at http://localhost:8080. You play as the Ravenlord walking the mystical stone/neon fortress. Assign tasks face-to-face to pixel agents in the 3 chambers (Clawforge blacksmith with hammer animations/sparks, Grant Hall scribe, Knowledge Vault archivist with lantern/glow). Real-time status, emotes, pathfinding, interaction menus (press E), HUD panels for workers/tasks/chat. Perfect OpenClaw integration via WS gateway on 18789. Our 3 skills (obsidian-ravenstack-ingest, clawhub-publish-cell for income bundles/video scripts, visual-fortress-e2e) are tied in via task assignment and docs.
 
-Hover/click for feedback, live #log with WS to gateway:18789 (cell events from core/cell.py:399), Ravenlord side panel with buttons for Generate Video Script (rural Indiana faceless), MD Summary/Obsidian Export, Scan Flows/Audit, Call Assembly, Refresh Agents. All self-contained in single index.html with **CONFIG** object at top for easy expansion (add rooms without rewrite — data-driven).
+**How to open it:**
+- Navigate to **http://localhost:8080** (or Tailscale IP:8080)
+- **Hard refresh (Ctrl+Shift+R)** or use incognito to load latest.
+- Controls: Arrow keys/WASD to walk, E to interact near agents or Ravenlord spots. Use HUD for quick tasks, skills, logs.
+- Live with our ReClaw cell.py event bus.
 
-**Cache-proof**: meta no-cache headers, version in title/CONFIG (2026.06.19-final), hard refresh (Ctrl+Shift+R).
-
-**Canonical source of truth**: `/root/ReClaw-2.0/dashboard/index.html` (synced to `/opt/reclaw/dashboard` for Docker volume). Old versions (/opt/reclaw/dashboard/dist, index.html.old, ReClaw-Vault, safe backups, Station House React build) archived/killed.
-
-**One-command rebuild** (new self-improvement for Grok Build):
+**One-command rebuild** (now uses the mature pixel office repo):
 ```bash
-# Diagnosis + clean + build + deploy + verify + git
 cd /root/ReClaw-2.0 && ./tools/rebuild-fortress-dashboard.sh
 ```
-(or use the new `fortress-dashboard` skill via Grok: `/fortress-dashboard rebuild`).
+(or `/fortress-dashboard rebuild` skill). It kills old servers, starts npx @geezerrrr/agent-town tuned to our gateway/port, updates PID/log/docs.
 
-**Grok Build Self-Improvement Implemented**:
-- Reusable `~/.grok/skills/fortress-dashboard` skill with auto-detect serving folder (lsof -i:8080 + docker inspect), cache-busting, full HTML regen from template.
-- Support for Phasor.js (lightweight via CDN in future iterations; current CSS+Canvas fallback for pixel RPG: hammer swing, particle emitters for sparks/torches).
-- Integration hooks: WS to OpenClaw gateway:18789, calls to ReClaw skills (clawsmith, silent_auditor via events).
-- Auto-kill stale servers (python http.server, node proxies, docker), archive old index/dist.
-- Documented in README + obsidian_vault/RAVENSTACK-ARCHITECTURE.md. Turns manual overwrites into robust repeatable system. Search ClawHub yielded no exact match so built custom wrapper (control-ui-e2e patterns reused for verification).
+Old Canvas/HTML and React Station House versions archived. This is production-grade, expandable (add rooms via map/tile edits), and directly supports income loops via ClawHub publish and Obsidian sync. Updated RAVENSTACK-ARCHITECTURE.md, skills, and rebuild script. Verified running with WS connected (see /tmp/dashboard_server.log and PID 2620445).
 
-Test: `curl -I http://localhost:8080` (expect Ravenstack title), hard refresh in browser/incognito. `docker compose logs reclaw-dashboard`. Git on ravenstack updated.
-
-See `/root/ReClaw-2.0/dashboard/index.html:234` for CONFIG, `core/cell.py:399` for event bus. Future: full Phaser 3 canvas RPG with tweens/particles via skill extension.
-
-This fixes all prior cache/stale copy/Docker/proxy issues permanently.
+See agent-town components/game/scenes/OfficeScene.ts for core logic, our tweaks in globals.css (neon-purple/glow theme), README here, and vault for reload ritual. This resolves prior visual concerns by using a complete existing implementation tailored to OpenClaw/ReClaw.
 
 ## Status
 

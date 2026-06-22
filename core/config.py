@@ -45,10 +45,14 @@ class Settings(BaseSettings):
     fetch_timeout: int = 12  # seconds
     max_properties_per_county: int = 50
 
-    # Analyst
+    # Analyst + Marketplace/ingest sources
     enable_llm_analysis: bool = Field(
         default=False,
         description="Future: when True, Analyst will call local LLM (Ollama / vLLM on GPU) for deeper synthesis. Currently heuristic only."
+    )
+    ingest_sources: list = Field(
+        default=["marketplace_flips", "kimi_claw", "rural_data", "documents", "obsidian_vault"],
+        description="Authorized sources for ingest_document, marketplace scans, Kimi distillation, and Oracle pipeline. Used by validate_oracle() and KnowledgeManager."
     )
     llm_model: str = "llama3.1:8b"  # or whatever is on the Hetzner box
 
@@ -56,9 +60,14 @@ class Settings(BaseSettings):
     job_timeout_seconds: int = 300
     max_concurrent_jobs: int = 2
 
-    # Obsidian writer
-    obsidian_subdir: str = "Rural Data"  # inside the vault root
+    # Obsidian writer + Knowledge Vault (RAG SOT per task)
+    obsidian_subdir: str = "Knowledge Vault"  # inside the vault root (configurable for RAG/ingest; was Rural Data)
     write_dry_run: bool = False  # if True, log what would be written but don't touch disk
+
+    # Kimi (Moonshot/Kimi K) for ingestion/distillation (preferred, wired in kimi-claw)
+    kimi_model: str = "moonshot-v1-8k"
+    kimi_api_base: str = "https://api.moonshot.cn/v1"
+    # Token pulled from env (XAI_API_KEY or KIMI_TOKEN) or openclaw kimi-claw config
 
     # API security (for cron, future Discord bot)
     reclaw_gateway_token: str = Field(

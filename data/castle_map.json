@@ -19,6 +19,24 @@
       "anvil_status": "hammering",
       "visual": "pixel_anvil_with_sparks",
       "forged_at": "2026-06-06T12:54:14.459807"
+    },
+    {
+      "id": "knowledge-vault-001",
+      "name": "knowledge-vault",
+      "theme": "archivist_glow",
+      "agents": [
+        "archivist",
+        "oracle"
+      ],
+      "position": [
+        2,
+        2
+      ],
+      "lantern_status": "glowing",
+      "visual": "pixel_shelves_with_glow_and_mcp_buttons",
+      "ingest_upload": true,
+      "mcp_buttons": ["ingest_document", "query_rag", "reload_ritual"],
+      "forged_at": "2026-06-22"
     }
   ],
   "orchestrator": {

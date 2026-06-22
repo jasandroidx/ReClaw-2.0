@@ -1,7 +1,7 @@
 ---
 name: marketplace_flips
 description: Scans FB Marketplace, eBay, Amazon for rural IN arbitrage opportunities with provenance. Prepares ArbitrageFeed for premium alerts. Anchored in Marketplace Forge (spriteAssetId: orange_flipper with chart icons). Revenue trigger for $19/mo premium feed.
-requires_env: ["OPENAI_API_KEY"]
+requires_env: ["XAI_API_KEY", "OPENAI_API_KEY"]  # XAI primary; OPENAI for compatibility with marketplace scrapers
 requires_bins: ["curl", "openclaw", "sqlite3"]
 user-invocable: true
 ---

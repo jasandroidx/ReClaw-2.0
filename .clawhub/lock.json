@@ -1,0 +1,328 @@
+{
+  "version": 1,
+  "skills": {
+    "github": {
+      "version": "1.0.0",
+      "installedAt": 1782166478986,
+      "registry": "https://clawhub.ai",
+      "artifact": {
+        "kind": "archive",
+        "sha256": "759cba44d65e7f32a3073f5f5ac18a1f5d4cc96e63e1b813cdff509da309e265",
+        "integrity": "sha256-dZy6RNZefzKjBz9fWsGKH11MyW5j4bgTzf9QnaMJ4mU="
+      },
+      "skillFile": {
+        "path": "SKILL.md",
+        "sha256": "51b28818a6f0359287d5c8244a6fdc59a4ac5504596deb193b28b81832221c86"
+      },
+      "verification": {
+        "schema": "clawhub.skill.verify.v1",
+        "ok": true,
+        "decision": "pass",
+        "reasons": [],
+        "card": {
+          "available": true,
+          "path": "skill-card.md",
+          "url": "https://wry-manatee-359.convex.site/api/v1/skills/github/card?ownerHandle=steipete&version=1.0.0",
+          "sha256": "fbbdbff8d34216be15c09a56f553b7691d282583a119d04b4861507f218be9d7",
+          "size": 1977,
+          "contentType": "text/markdown; charset=utf-8"
+        },
+        "artifact": {
+          "sourceFingerprint": null,
+          "bundleFingerprints": [
+            "f71f5d6f5c7e5f0e85abc4c5cf2a9b4e6af431108f3c5cfe8cec05e2bf98e650"
+          ],
+          "files": [
+            {
+              "path": "SKILL.md",
+              "size": 1113,
+              "sha256": "51b28818a6f0359287d5c8244a6fdc59a4ac5504596deb193b28b81832221c86",
+              "contentType": "text/markdown"
+            }
+          ]
+        },
+        "provenance": {
+          "source": "unavailable",
+          "reason": "No server-resolved GitHub import provenance is stored for this version."
+        },
+        "security": {
+          "status": "clean",
+          "passed": true,
+          "rawStatus": "clean",
+          "verdict": "benign",
+          "confidence": "high",
+          "summary": "This is an instruction-only GitHub CLI helper with no hidden code, but it can use whatever GitHub permissions your local `gh` login already has.",
+          "model": "gpt-5.5",
+          "checkedAt": 1779909611616,
+          "signals": {
+            "staticScan": {
+              "status": "clean",
+              "rawStatus": "clean",
+              "reasonCodes": [],
+              "summary": "No suspicious patterns detected.",
+              "engineVersion": "v2.4.5",
+              "checkedAt": 1777524882956
+            },
+            "virusTotal": {
+              "status": "clean",
+              "rawStatus": "clean",
+              "verdict": "benign",
+              "analysis": "Type: OpenClaw Skill\nName: github\nVersion: 1.0.0\n\nThe skill bundle provides instructions for interacting with GitHub using the `gh` CLI. All examples provided in `SKILL.md` demonstrate read-only operations (e.g., checking PR status, listing runs, viewing API data). While the `gh api` command itself offers broad capabilities that could be misused if the agent's GitHub token has extensive permissions, the skill's instructions and examples do not show any intent for malicious behavior, data exfiltration, prompt injection, or other high-risk actions. The content is clearly aligned with its stated purpose.",
+              "source": "palm",
+              "scanner": "code_insight",
+              "engineStats": {
+                "harmless": 0,
+                "malicious": 0,
+                "suspicious": 0,
+                "undetected": 64
+              },
+              "checkedAt": 1779159612649
+            },
+            "skillSpector": {
+              "status": "clean",
+              "rawStatus": "clean",
+              "score": 0,
+              "severity": "LOW",
+              "recommendation": "SAFE",
+              "issueCount": 0,
+              "scannerVersion": "2.0.0",
+              "summary": null,
+              "error": null,
+              "checkedAt": 1779909577347
+            },
+            "dependencyRegistry": null
+          }
+        },
+        "signature": {
+          "status": "unsigned"
+        }
+      }
+    },
+    "playwright-mcp": {
+      "version": "1.0.0",
+      "installedAt": 1782166485478,
+      "registry": "https://clawhub.ai",
+      "artifact": {
+        "kind": "archive",
+        "sha256": "fb4c7ab6e2da7e3f0d35775d5bff94f004bd1c9013dd4cf291929b0346154406",
+        "integrity": "sha256-+0x6tuLafj8NNXddW/+U8AS9HJAT3UzykZKbA0YVRAY="
+      },
+      "skillFile": {
+        "path": "SKILL.md",
+        "sha256": "179b2b6335aa2e3c1ba5a7796a44e648655161a40ee17cc8c5d3ac0411ea20e2"
+      },
+      "verification": {
+        "schema": "clawhub.skill.verify.v1",
+        "ok": true,
+        "decision": "pass",
+        "reasons": [],
+        "card": {
+          "available": true,
+          "path": "skill-card.md",
+          "url": "https://wry-manatee-359.convex.site/api/v1/skills/playwright-mcp/card?ownerHandle=spiceman161&version=1.0.0",
+          "sha256": "cc79af6fff099d2f8e965ebb695b4c6fd4174159ac23a65affb82fc0e53d670d",
+          "size": 2463,
+          "contentType": "text/markdown; charset=utf-8"
+        },
+        "artifact": {
+          "sourceFingerprint": "2ad40cdce44366ea13fc1c7e3a335642b58421164fa7895c17a61be4195637a5",
+          "bundleFingerprints": [
+            "81ea210a1c575d54df0077fd470647f41df8b26f401ea81868be7a5115eebab7"
+          ],
+          "files": [
+            {
+              "path": "SKILL.md",
+              "size": 4113,
+              "sha256": "179b2b6335aa2e3c1ba5a7796a44e648655161a40ee17cc8c5d3ac0411ea20e2",
+              "contentType": "text/markdown"
+            },
+            {
+              "path": "examples.py",
+              "size": 3179,
+              "sha256": "a3cf829604177ba8958ca1b520a857e5ef4809092db1e2395c2638e836925e5e",
+              "contentType": "text/plain"
+            }
+          ]
+        },
+        "provenance": {
+          "source": "unavailable",
+          "reason": "No server-resolved GitHub import provenance is stored for this version."
+        },
+        "security": {
+          "status": "clean",
+          "passed": true,
+          "rawStatus": "clean",
+          "verdict": "benign",
+          "confidence": "high",
+          "summary": "This skill is a disclosed Playwright browser-automation helper with no artifact evidence of hidden persistence, credential theft, exfiltration, or destructive behavior.",
+          "model": "gpt-5.5",
+          "checkedAt": 1779961010527,
+          "signals": {
+            "staticScan": {
+              "status": "clean",
+              "rawStatus": "clean",
+              "reasonCodes": [],
+              "summary": "No suspicious patterns detected.",
+              "engineVersion": "v2.4.5",
+              "checkedAt": 1777525045537
+            },
+            "virusTotal": {
+              "status": "clean",
+              "rawStatus": "clean",
+              "verdict": "benign",
+              "analysis": "Type: OpenClaw Skill\nName: playwright-mcp\nVersion: 1.0.0\n\nThe OpenClaw AgentSkills skill bundle for 'playwright-mcp' is classified as benign. The `SKILL.md` file provides clear documentation for browser automation using Playwright MCP, including installation instructions and usage examples, without any evidence of prompt injection attempts or instructions for malicious actions. It even highlights built-in security features like host validation and restricted file system access. The `examples.py` script is a conceptual demonstration of the skill's usage and does not perform any actual harmful operations, using `example.com` as a placeholder and explicitly stating its conceptual nature. There is no indication of data exfiltration, persistence, or other malicious intent across any of the files.",
+              "source": "palm",
+              "scanner": "code_insight",
+              "engineStats": {
+                "harmless": 0,
+                "malicious": 0,
+                "suspicious": 0,
+                "undetected": 66
+              },
+              "checkedAt": 1779162257284
+            },
+            "skillSpector": {
+              "status": "clean",
+              "rawStatus": "clean",
+              "score": 0,
+              "severity": "LOW",
+              "recommendation": "SAFE",
+              "issueCount": 0,
+              "scannerVersion": "2.0.0",
+              "summary": null,
+              "error": null,
+              "checkedAt": 1779960986859
+            },
+            "dependencyRegistry": null
+          }
+        },
+        "signature": {
+          "status": "unsigned"
+        }
+      }
+    },
+    "obsidian-direct": {
+      "version": "1.0.0",
+      "installedAt": 1782166497297,
+      "registry": "https://clawhub.ai",
+      "artifact": {
+        "kind": "archive",
+        "sha256": "3c87cd1a2715d579def05525be601d87bc8e546a6f1ca20fc2f75f69bbe17687",
+        "integrity": "sha256-PIfNGicV1Xne8FUlvmAdh7yOVGpvHKIPwvdfabvhdoc="
+      },
+      "skillFile": {
+        "path": "SKILL.md",
+        "sha256": "2ad18a71252d114c58094a4c8ded4441c889184749264ea2888cfecb2c1e1d04"
+      },
+      "verification": {
+        "schema": "clawhub.skill.verify.v1",
+        "ok": false,
+        "decision": "fail",
+        "reasons": [
+          "security.status_not_clean"
+        ],
+        "card": {
+          "available": true,
+          "path": "skill-card.md",
+          "url": "https://wry-manatee-359.convex.site/api/v1/skills/obsidian-direct/card?ownerHandle=ruslanlanket&version=1.0.0",
+          "sha256": "9b2db8a3ea298205449e97e185accc8dea8dbeeed5cd4434804c4293dd32aa35",
+          "size": 2169,
+          "contentType": "text/markdown; charset=utf-8"
+        },
+        "artifact": {
+          "sourceFingerprint": "8986d884b1a78584bf614f532bcc8ca2c6cdc60e46e3ccd0ba4018b4974781da",
+          "bundleFingerprints": [
+            "f572a61a7dfb727cc129f529ff94f92ff3858f8b32ab2f05767d8ab56eb570c3"
+          ],
+          "files": [
+            {
+              "path": "SKILL.md",
+              "size": 3548,
+              "sha256": "2ad18a71252d114c58094a4c8ded4441c889184749264ea2888cfecb2c1e1d04",
+              "contentType": "text/markdown"
+            },
+            {
+              "path": "_meta.json",
+              "size": 127,
+              "sha256": "097709ff9fc7c56a4645ec8544be578ca7c23a086fe2c1ae2b6a5add670c43d7",
+              "contentType": "application/json"
+            },
+            {
+              "path": "scripts/obsidian_cli.py",
+              "size": 13649,
+              "sha256": "f1d548880fcf392bed34597dbb055ce5f5bea62e7ba0b5ba46b437063b39be66",
+              "contentType": "text/x-python"
+            },
+            {
+              "path": "scripts/obsidian_search.py",
+              "size": 8329,
+              "sha256": "11fe1482630a351ef90c4bd485a5a338838fa2abd4b843e8f96c96319099e6f0",
+              "contentType": "text/x-python"
+            },
+            {
+              "path": ".clawhub/origin.json",
+              "size": 140,
+              "sha256": "796fe42e30e5b25b7a7b37ece705f00f08ba304a12a3fa25f1657df91902cd98",
+              "contentType": "application/json"
+            }
+          ]
+        },
+        "provenance": {
+          "source": "unavailable",
+          "reason": "No server-resolved GitHub import provenance is stored for this version."
+        },
+        "security": {
+          "status": "suspicious",
+          "passed": false,
+          "rawStatus": "suspicious",
+          "verdict": "suspicious",
+          "confidence": "high",
+          "summary": "This Obsidian skill matches its note-management purpose, but it can read and overwrite local notes with weak safety boundaries, so users should review it before installing.",
+          "model": "gpt-5.5",
+          "checkedAt": 1779950926777,
+          "signals": {
+            "staticScan": {
+              "status": "clean",
+              "rawStatus": "clean",
+              "reasonCodes": [],
+              "summary": "No suspicious patterns detected.",
+              "engineVersion": "v2.4.5",
+              "checkedAt": 1777525011141
+            },
+            "virusTotal": {
+              "status": "clean",
+              "rawStatus": "clean",
+              "verdict": "benign",
+              "analysis": "Type: OpenClaw Skill\nName: obsidian-direct\nVersion: 1.0.0\n\nThe OpenClaw AgentSkills skill bundle for Obsidian is classified as benign. The `SKILL.md` provides clear, task-oriented instructions for the agent to manage Obsidian notes, without any evidence of prompt injection attempts to deviate from its purpose or perform malicious actions. The Python scripts (`obsidian_cli.py`, `obsidian_search.py`) legitimately interact with the file system to read and write markdown files within the specified vault. Crucially, external command execution via `subprocess.run` (for `ripgrep` and `grep`) properly sanitizes user input using `re.escape()`, mitigating command injection risks. There is no evidence of data exfiltration, persistence mechanisms, or other malicious behaviors.",
+              "source": "palm",
+              "scanner": "code_insight",
+              "engineStats": {
+                "harmless": 0,
+                "malicious": 0,
+                "suspicious": 0,
+                "undetected": 66
+              },
+              "checkedAt": 1779077869411
+            },
+            "skillSpector": {
+              "status": "suspicious",
+              "rawStatus": "suspicious",
+              "score": 26,
+              "severity": "MEDIUM",
+              "recommendation": "CAUTION",
+              "issueCount": 2,
+              "scannerVersion": "2.0.0",
+              "summary": null,
+              "error": null,
+              "checkedAt": 1779950876564
+            },
+            "dependencyRegistry": null
+          }
+        },
+        "signature": {
+          "status": "unsigned"
+        }
+      }
+    }
+  }
+}
