@@ -16,6 +16,59 @@ Later phases add Scriptwriter, Visuals, business automation services, and the vi
 - Docker + Tailscale on Hetzner GPU box = prod. Local PC = identical dev mirror.
 - Small, readable, extendable Python. No bloat.
 
+## Knowledge Vault & Daily Document Ingest (Phase C)
+
+**New in this update**: Dead-simple way to drop local PDFs, books, research papers, and knowledge files from your computer. kimi-claw extracts the best stuff, organizes it cleanly, and writes it to your Obsidian vault with frontmatter/tags. Instantly searchable in RAG + Fortress.
+
+See the full guide: **[KNOWLEDGE_VAULT.md](KNOWLEDGE_VAULT.md)**
+
+### Quickest Ways to Ingest Right Now
+
+**RAG Dashboard** (easiest for most people)
+- https://vb2sxll3shzgg.kimi.page
+- Use **Import File** button or drag & drop
+
+**Fortress Dashboard** (visual chambers)
+- http://localhost:8080 (after rebuild)
+- Knowledge Vault chamber → MCP ingest button
+
+**CLI (batch/folder)**
+```bash
+cd /opt/reclaw
+PYTHONPATH=. python3 -m core.cli ingest --file book.pdf --model kimi_claw
+```
+
+After uploading, run the reload ritual:
+```bash
+cd /opt/reclaw
+PYTHONPATH=. python3 -m core.cell "Reload ritual"
+```
+
+## Quick Start (Local Python - Recommended for Testing)
+
+This is the fastest way to test everything without Docker.
+
+```bash
+cp .env.example .env
+# edit OBSIDIAN_VAULT_PATH to point at your vault
+
+pip install -r requirements.txt
+
+# Full end-to-end with seeds (safest)
+python -m reclaw.cli run --county Pike --area Winslow
+```
+
+## Production on Hetzner (Docker + Tailscale)
+
+See [docs/SETUP.md](docs/SETUP.md) and [docs/tailscale.md](docs/tailscale.md).
+
+```bash
+docker compose up -d
+# Then hit the Gateway over Tailscale
+```
+
+**Note on Docker vs Local**: For daily document dropping and testing the Knowledge Vault, you can stay in local Python mode on the server. Docker is mainly for keeping the full system running 24/7 headless. Tailscale gives you easy remote access to the dashboards without opening public ports.
+
 ## Current Implementation (MVP rural_data module)
 Core platform is domain-agnostic. This module demonstrates the patterns:
 - **Researcher** (`agents/researcher/`) — pulls or loads seed data → ResearchPackage (JSON)
@@ -24,36 +77,6 @@ Core platform is domain-agnostic. This module demonstrates the patterns:
 - **Gateway** (`api/main.py`) — the control plane. Creates sessions, loads identities, manages permissions/approvals, exposes HTTP for triggers + status + future event feed.
 
 See AGENTS.md for routing and core/platform capabilities. Future domains live in parallel under `agents/`.
-
-## Quick Start (Local)
-
-```bash
-cp .env.example .env
-# edit OBSIDIAN_VAULT_PATH to point at your vault (or leave as outputs/obsidian for testing)
-
-pip install -r requirements.txt
-
-# Full end-to-end with seeds (safest)
-python -m reclaw.cli run --county Pike --area Winslow
-
-# Via the Gateway (also creates full session + approval records)
-python -c "
-from api.main import run_sync
-print(run_sync('Pike', 'Winslow'))
-"
-```
-
-The markdown package will be written directly into your configured Obsidian folder under the "Rural Data" subdir (or whatever you set in .env).
-
-## Production on Hetzner
-
-See [docs/SETUP.md](docs/SETUP.md) and [docs/tailscale.md](docs/tailscale.md).
-
-```bash
-docker compose up -d
-# Then hit the Gateway over Tailscale
-curl -X POST "https://your-reclaw-box.ts.net/trigger/Pike?auto_approve=true"
-```
 
 ## Key Folders
 
@@ -66,63 +89,21 @@ curl -X POST "https://your-reclaw-box.ts.net/trigger/Pike?auto_approve=true"
 - `docs/SECURITY.md` — how the gates and Docker sandboxing work
 - `docker-compose.yml` + `docker/Dockerfile` — GPU-ready, non-root, volume layout for Hetzner
 
-## Handoff Example
+## Ravenstack Fortress Dashboard (pixel office RPG)
 
-All agents talk only via the Pydantic models serialized to JSON files inside the session `handoffs/` dir (or returned directly).
+**Full interactive pixel RPG office/hall** running at http://localhost:8080. You play as the Ravenlord walking the mystical stone/neon fortress. Assign tasks face-to-face to pixel agents in the 3 chambers (Clawforge, Grant Hall, Knowledge Vault). Real-time status via WS to gateway on 18789.
 
-See `examples/sample_research_output.json` and the generated packages in your vault.
-
-## Security Highlights
-
-- Live fetches are medium risk and go through the gate (see `SecurityManager.request_approval`).
-- No agent can write outside its session or the approved obsidian path.
-- Every grant and every capability use is logged.
-- `POST /sessions/<id>/approve` is the human/bot approval endpoint on the Gateway.
-
-Full details: [docs/SECURITY.md](docs/SECURITY.md)
-
-## Extending
-
-1. Add a new agent dir with its own `SOUL.md`
-2. Declare its capabilities in `core/security.py`
-3. Update `AGENTS.md` routing
-4. Wire it in the Orchestrator or a future richer pipeline
-5. Add to docker-compose if it needs extra resources
-
-When we add the business services side (GBP for auto shops etc.), they will live in a parallel tree but use the exact same Gateway, session, security, and handoff patterns.
-
-## Ravenstack Fortress Dashboard (pixel office RPG from agent-town repo)
-
-**Full interactive pixel RPG office/hall** (adapted from https://github.com/geezerrrr/agent-town) running at http://localhost:8080. You play as the Ravenlord walking the mystical stone/neon fortress. Assign tasks face-to-face to pixel agents in the 3 chambers (Clawforge blacksmith with hammer animations/sparks, Grant Hall scribe, Knowledge Vault archivist with lantern/glow). Real-time status, emotes, pathfinding, interaction menus (press E), HUD panels for workers/tasks/chat. Perfect OpenClaw integration via WS gateway on 18789. Our 3 skills (obsidian-ravenstack-ingest, clawhub-publish-cell for income bundles/video scripts, visual-fortress-e2e) are tied in via task assignment and docs.
-
-**How to open it:**
-- Navigate to **http://localhost:8080** (or Tailscale IP:8080)
-- **Hard refresh (Ctrl+Shift+R)** or use incognito to load latest.
-- Controls: Arrow keys/WASD to walk, E to interact near agents or Ravenlord spots. Use HUD for quick tasks, skills, logs.
-- Live with our ReClaw cell.py event bus.
-
-**One-command rebuild** (now uses the mature pixel office repo):
+**One-command rebuild:**
 ```bash
-cd /root/ReClaw-2.0 && ./tools/rebuild-fortress-dashboard.sh
+cd /opt/reclaw/tools && bash rebuild-fortress-dashboard.sh
 ```
-(or `/fortress-dashboard rebuild` skill). It kills old servers, starts npx @geezerrrr/agent-town tuned to our gateway/port, updates PID/log/docs.
 
-Old Canvas/HTML and React Station House versions archived. This is production-grade, expandable (add rooms via map/tile edits), and directly supports income loops via ClawHub publish and Obsidian sync. Updated RAVENSTACK-ARCHITECTURE.md, skills, and rebuild script. Verified running with WS connected (see /tmp/dashboard_server.log and PID 2620445).
-
-See agent-town components/game/scenes/OfficeScene.ts for core logic, our tweaks in globals.css (neon-purple/glow theme), README here, and vault for reload ritual. This resolves prior visual concerns by using a complete existing implementation tailored to OpenClaw/ReClaw.
+Hard refresh after rebuild. Controls: Arrow keys/WASD to walk, E to interact. HUD panels for tasks/logs.
 
 ## Status
 
-MVP complete:
-- Folder structure + identities
-- Two core agents + light orchestrator with quality gates
-- Clean JSON handoffs
-- Obsidian writer
-- Gateway with approval endpoints
-- Docker + GPU compose
-- Tailscale + security docs
-- Pike/Winslow seed data + runnable examples
+MVP complete + Phase C Knowledge Vault ingest live.
 
-Next: real live county fetchers (one source at a time), Scriptwriter agent, first faceless channel episodes from the packages, and the business automation agents.
+Next: real live county fetchers, Scriptwriter agent, faceless channel episodes, business automation agents, and deeper integration of the visual dashboards.
 
 Run it. Read the SOUL files. Respect the gates. Ship small.
