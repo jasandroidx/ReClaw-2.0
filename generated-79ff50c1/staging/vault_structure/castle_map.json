@@ -1,0 +1,16 @@
+{
+  "theme": "blacksmith_forge",
+  "rooms": [
+    {
+      "name": "rural-data-forge",
+      "position": [
+        1,
+        1
+      ],
+      "agents": 1,
+      "anvil_status": "active",
+      "visual": "pixel_anvil_with_sparks"
+    }
+  ],
+  "orchestrator": "Main OpenClaw agent oversees all forges as the Big Boss"
+}

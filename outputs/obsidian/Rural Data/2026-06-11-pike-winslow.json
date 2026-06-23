@@ -1,0 +1,284 @@
+{
+  "id": "pkg-28303f7c8762",
+  "county": "Pike",
+  "primary_area": "Winslow",
+  "generated_at": "2026-06-11T07:03:07.070217Z",
+  "research": {
+    "id": "research-9f5b96abff8a",
+    "county": "Pike",
+    "primary_area": "Winslow",
+    "state": "IN",
+    "fetched_at": "2026-06-11T07:03:07.069332Z",
+    "sources": [
+      {
+        "kind": "seed",
+        "url": null,
+        "note": "Pike County IN rural data seed v1 — 2025 snapshot for ReClaw dev & testing",
+        "fetched_at": "2026-06-04T12:00:00Z"
+      },
+      {
+        "kind": "seed",
+        "url": null,
+        "note": "Simulated public records from county auditor / GIS style exports",
+        "fetched_at": "2026-06-11T07:03:07.069244Z"
+      }
+    ],
+    "property_records": [
+      {
+        "parcel_id": "63-07-14-100-001.000-001",
+        "address": "1234 S County Road 50 W",
+        "city": "Winslow",
+        "county": "Pike",
+        "state": "IN",
+        "zip_code": "47598",
+        "land_acres": 12.4,
+        "assessed_value": 48500,
+        "land_value": 31200,
+        "improvement_value": 17300,
+        "property_class": "agricultural",
+        "year_built": 1978,
+        "owner_name": null,
+        "last_sale_date": "2019-03-12",
+        "last_sale_price": 42000,
+        "notes": "Mostly tillable, small barn, no well currently active"
+      },
+      {
+        "parcel_id": "63-07-22-300-005.000-001",
+        "address": "487 E Main St",
+        "city": "Winslow",
+        "county": "Pike",
+        "state": "IN",
+        "zip_code": "47598",
+        "land_acres": 0.6,
+        "assessed_value": 28500,
+        "land_value": 8500,
+        "improvement_value": 20000,
+        "property_class": "residential",
+        "year_built": 1945,
+        "owner_name": null,
+        "last_sale_date": "2023-08-05",
+        "last_sale_price": 26500,
+        "notes": "Town lot, needs roof work. Good candidate for 'fixer rural starter'"
+      },
+      {
+        "parcel_id": "63-08-05-200-012.000-002",
+        "address": "8900 N State Road 61",
+        "city": "Winslow",
+        "county": "Pike",
+        "state": "IN",
+        "zip_code": "47598",
+        "land_acres": 47.0,
+        "assessed_value": 124000,
+        "land_value": 98500,
+        "improvement_value": 25500,
+        "property_class": "agricultural",
+        "year_built": 1962,
+        "owner_name": null,
+        "last_sale_date": null,
+        "last_sale_price": null,
+        "notes": "Large parcel, two outbuildings, creek access. Rare for under $150k."
+      },
+      {
+        "parcel_id": "63-07-11-400-008.000-001",
+        "address": "215 W Water St",
+        "city": "Winslow",
+        "county": "Pike",
+        "state": "IN",
+        "zip_code": "47598",
+        "land_acres": 0.3,
+        "assessed_value": 19200,
+        "land_value": 4200,
+        "improvement_value": 15000,
+        "property_class": "residential",
+        "year_built": 1928,
+        "owner_name": null,
+        "last_sale_date": null,
+        "last_sale_price": null,
+        "notes": "Very low entry price. High risk of foundation issues per local chatter."
+      }
+    ],
+    "budgets": [
+      {
+        "fiscal_year": 2025,
+        "entity": "Pike County",
+        "total_revenue": 4875000,
+        "total_expenditures": 5023000,
+        "surplus_deficit": -148000,
+        "major_funds": {
+          "General": 2150000,
+          "Road & Bridge": 980000,
+          "Cumulative Bridge": 420000,
+          "Health": 185000
+        },
+        "revenue_sources": {
+          "Property Tax": 2650000,
+          "Local Income Tax": 980000,
+          "State Distributions": 720000,
+          "Fees & Misc": 525000
+        },
+        "expenditure_categories": {
+          "Public Safety": 1450000,
+          "Highways/Roads": 1120000,
+          "General Gov": 890000,
+          "Health & Welfare": 410000,
+          "Debt Service": 320000
+        },
+        "notes": "Slight deficit. Road maintenance and bridge projects are the big pressure items. Property tax levy up ~4.2% YoY.",
+        "source": null
+      },
+      {
+        "fiscal_year": 2025,
+        "entity": "Winslow Town",
+        "total_revenue": 312000,
+        "total_expenditures": 298000,
+        "surplus_deficit": 14000,
+        "major_funds": {
+          "General": 185000,
+          "Utility": 127000
+        },
+        "revenue_sources": {},
+        "expenditure_categories": {},
+        "notes": "Small town, surprisingly balanced. Heavy reliance on utility transfers.",
+        "source": null
+      }
+    ],
+    "salaries": [
+      {
+        "department": "Sheriff",
+        "position": "Deputy Sheriff",
+        "employee_count": 6,
+        "avg_salary": 47800,
+        "min_salary": 41500,
+        "max_salary": 54200,
+        "total_payroll": null,
+        "year": 2025,
+        "notes": null
+      },
+      {
+        "department": "Highway",
+        "position": "Road Worker / Operator",
+        "employee_count": 4,
+        "avg_salary": 41200,
+        "min_salary": 36500,
+        "max_salary": 48900,
+        "total_payroll": null,
+        "year": 2025,
+        "notes": null
+      },
+      {
+        "department": "Auditor / Clerk",
+        "position": "Deputy Auditor",
+        "employee_count": 2,
+        "avg_salary": 38500,
+        "min_salary": null,
+        "max_salary": null,
+        "total_payroll": null,
+        "year": 2025,
+        "notes": null
+      }
+    ],
+    "summary": "Pike County (pop ~12,200) shows classic rural Indiana patterns: low property values, ag-heavy tax base, and tightening budgets. Winslow (pop ~780) has extremely affordable entry points — multiple habitable parcels under $30k. County is running a modest deficit in 2025 driven by road/bridge needs. Public payroll is lean; deputy and road crew pay hovers in the low-to-mid $40ks. Several large ag parcels remain surprisingly cheap by national standards, creating both opportunity and 'why is it still available' questions.",
+    "raw_excerpts": []
+  },
+  "analysis": {
+    "id": "analysis-90f2a122e02a",
+    "research_id": "research-9f5b96abff8a",
+    "county": "Pike",
+    "primary_area": "Winslow",
+    "generated_at": "2026-06-11T07:03:07.069849Z",
+    "insights": [
+      {
+        "category": "infrastructure",
+        "title": "Pike County spends heavily on roads — classic rural pressure point",
+        "detail": "Road & bridge category is one of the largest line items. In low-tax-base counties this is often the first thing to show visible decay.",
+        "supporting_numbers": [
+          "$1,120,000 on highways/roads"
+        ],
+        "confidence": 0.7,
+        "suggested_angle": "Show before/after photos of county roads + explain where the money actually goes."
+      },
+      {
+        "category": "property",
+        "title": "2 parcels under $35k assessed in Winslow area",
+        "detail": "Extremely low entry prices. Good for 'can you actually live on this' stories and land-banking angles. Also flags potential maintenance nightmares or title issues.",
+        "supporting_numbers": [
+          "Lowest: $19,200",
+          "Median in sample: $38,500"
+        ],
+        "confidence": 0.7,
+        "suggested_angle": "The $25k house in rural Indiana — what's the real monthly cost?"
+      },
+      {
+        "category": "opportunity",
+        "title": "Large acreage still trading under $150k — watch for consolidation or outside money",
+        "detail": "47-acre example at ~$124k assessed is cheap by almost any national metric. Either the land has serious limitations or the local market hasn't caught up to remote buyer interest.",
+        "supporting_numbers": [
+          "47.0 acres @ $124,000"
+        ],
+        "confidence": 0.7,
+        "suggested_angle": "Why 40+ acres in southern Indiana is still under $130k (and whether you want it)"
+      },
+      {
+        "category": "economy",
+        "title": "Public sector pay remains very low vs national rural averages",
+        "detail": "Deputy and road crew roles in the low $40ks. This is both a 'people can't afford to live here on these wages' story and a 'why recruitment is impossible' story.",
+        "supporting_numbers": [
+          "Road Worker / Operator: ~$41,200",
+          "Deputy Auditor: ~$38,500"
+        ],
+        "confidence": 0.7,
+        "suggested_angle": "What a $47k sheriff deputy job actually buys you in Pike County 2026"
+      }
+    ],
+    "red_flags": [
+      {
+        "severity": "medium",
+        "category": "budget_deficit",
+        "description": "Pike County FY2025 running $148,000 deficit (2.9% of spend).",
+        "evidence": "Revenue $4,875,000 vs Expenditures $5,023,000",
+        "recommended_action": "Watch next levy hearing and road project bids. Content angle: 'Why your rural county is quietly going broke on bridges'."
+      },
+      {
+        "severity": "medium",
+        "category": "depressed_values",
+        "description": "Median assessed value in sample is only $38,500. Signals either very old housing stock, lack of economic activity, or both.",
+        "evidence": "Direct from property roll sample",
+        "recommended_action": "Cross-reference with building permits and demolition orders. Good 'dying small town' or 'quiet revival' bifurcation story."
+      },
+      {
+        "severity": "high",
+        "category": "infrastructure_funding_gap",
+        "description": "Deficit + heavy road spend = classic rural trap. They are already underwater and the biggest expense category is non-optional.",
+        "evidence": "Budget + expenditure category cross-check",
+        "recommended_action": "Track the next cumulative bridge fund levy attempt. This is often where small counties quietly add 10-15% to tax bills."
+      }
+    ],
+    "budget_implications": [
+      "Pike County will likely raise property taxes or cut maintenance in 2026 to close the gap."
+    ],
+    "content_angles": [
+      "Top 2 cheapest habitable properties in Pike County right now (and what they actually need)"
+    ],
+    "overall_risk_score": 8.4,
+    "summary": "Pike / Winslow shows the typical rural squeeze: low asset values, structural budget pressure on infrastructure, and wages that make it hard for working families to stay. 3 red flags and 4 insights extracted. Strong material for both cautionary and 'last cheap land' style faceless content. | GATE WARNING: QUALITY GATE FAILURES: Risk score 8.4 is very high. Manual review recommended before Obsidian publish."
+  },
+  "obsidian_filename": null,
+  "tags": [
+    "rural-data",
+    "pike",
+    "faceless-channel"
+  ],
+  "video_title_ideas": [
+    "Top 2 cheapest habitable properties in Pike County right now (and what they actually need)",
+    "Pike County Indiana 2026: The $25k House Is Real (But Here's What It Costs You)",
+    "Why Rural Counties Are Quietly Raising Taxes While Property Values Stay Flat",
+    "47 Acres for $124k in Southern Indiana — Would You Buy It?"
+  ],
+  "key_stats": {
+    "properties_analyzed": 4,
+    "median_assessed_value": "$38,500",
+    "red_flags": 3,
+    "insights": 4,
+    "budget_deficit": true
+  }
+}
