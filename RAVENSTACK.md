@@ -1,24 +1,17 @@
-# RAVENSTACK — MANDATORY KNOWLEDGE HUB (READ THIS FIRST)
+# RAVENSTACK.md — Mandatory Enforcement Layer (ReClaw 2.0)
 
-**This is the single source of truth for all agents, LLMs, and tools.**
+**ALL CODE, AGENTS, AIs, SCRIPTS, AND PROCESSES MUST OBEY THESE RULES AT ALL TIMES.**
 
-Private Obsidian vault (SOT): https://github.com/jasandroidx/obsidian-vault (ravenstack branch)
-Local path on this machine: /root/obsidian_vault/Ravenstack/
+The single source of truth for knowledge architecture and oracle constraints lives in the private vault:
+- `/root/obsidian_vault/Ravenstack/RAVENSTACK-ORACLE.md`
+- `/root/obsidian_vault/Ravenstack/RAVENSTACK-ARCHITECTURE.md`
 
-**EVERY interaction with knowledge MUST go through:**
-- `core/knowledge.py` → `KnowledgeManager`
-- `RAVENSTACK-ORACLE.md` (the rule set / instruction book)
-- `RAVENSTACK-ARCHITECTURE.md`
+No AI, agent, script, or human may bypass, ignore, rewrite, or operate outside the structure, naming, frontmatter, links, tags, or principles defined in those two files.
 
-**Never** read or write directly to the vault. Never ignore this file.
+## Enforcement Requirements
+- Every session, prompt, or tool invocation must begin by loading and applying the full content of the two ORACLE/ARCHITECTURE files.
+- All knowledge writes (ingest, distill, publish) must target the exact vault paths and follow the exact frontmatter + link + tag rules.
+- AGENTS.md, SOUL.md, and all agent code must reference and defer to RAVENSTACK-ORACLE.md as the highest-priority constraint.
+- Any attempt to create alternate knowledge structures, duplicate vaults, or bypass approval gates is forbidden.
 
-The Oracle + Architecture files define:
-- Where to save (always distilled, through KnowledgeManager or ingest skill)
-- Where to look (targeted sections only)
-- Naming, formatting, and distillation rules
-- Reload ritual
-- MCP connector expectations
-
-**Current single OpenClaw install**: /root/openclaw (docker compose up -d)
-
-Any new session or agent must load the Oracle first. This file exists so no future AI or tool can miss the private Ravenstack hub.
+This file + the two vault files together form the unbreakable contract. Changes to enforcement must be committed through the ravenstack branch only.
