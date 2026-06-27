@@ -1,5 +1,7 @@
 # AGENTS.md — ReClaw 2.0 Platform Routing & Permissions
 
+**MANDATORY FIRST STEP FOR ANY AGENT/LLM/TOOL**: Load and obey `[[RAVENSTACK-ORACLE.md]]` + `[[RAVENSTACK-ARCHITECTURE.md]]` from the private vault at /root/obsidian_vault/Ravenstack/ (https://github.com/jasandroidx/obsidian-vault). All knowledge in/out MUST go through KnowledgeManager. Never bypass.
+
 This is the operational routing document for the general ReClaw 2.0 platform (with initial rural-data workflow package). It follows the same patterns as the parent winslow-core AGENTS.md in ~/clawd. Core is domain-agnostic; rural_data, grants, local_leads, content and future modules are isolated under agents/.
 
 ## Primary Entry Point: Gateway (Control Plane)

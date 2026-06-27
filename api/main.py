@@ -36,10 +36,13 @@ from agents.orchestrator import Orchestrator
 from core.handoff import ContentPackage, AgentEvent
 from core.session import create_session, Session
 from core.security import SecurityManager, DECLARED_CAPABILITIES
+from core.knowledge import KnowledgeManager  # Forces Oracle/Ravenstack rules on every gateway start
 
 app = FastAPI(title="ReClaw 2.0", version="2.0.0", description="General Agent Platform API (rural_data module + future domains)")
 
 settings = get_settings()
+# === ORACLE ENFORCEMENT: Gateway always instantiates KnowledgeManager so the Ravenstack rule set is in context
+_ = KnowledgeManager(settings)
 
 # The Gateway owns session creation. We create a fresh Orchestrator per job so it can be bound to one session.
 # (Lightweight for MVP; in heavier future we can pool or use dependency injection.)
