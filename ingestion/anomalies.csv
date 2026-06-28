@@ -1,0 +1,3 @@
+scope,county,department,category,fiscal_year,method,score,pct_change,amount,prev_amount,note,script_line
+crosssection_year,"Pike County, IN",PIKE COUNTY,,2025,ECOD,25.242140445046516,,13089524.0,,Statistical outlier vs peers (ECOD),"Pike County, IN: PIKE COUNTY in 2025 → $13,089,524 — flagged by ECOD (Statistical outlier vs peers (ECOD))"
+crosssection_year,"Pike County, IN",PIKE COUNTY,,2025,IsolationForest,0.648119156894823,,13089524.0,,Cross-sectional anomaly vs peers (totals + mix),"Pike County, IN: PIKE COUNTY in 2025 → $13,089,524 — flagged by IsolationForest (Cross-sectional anomaly vs peers (totals + mix))"

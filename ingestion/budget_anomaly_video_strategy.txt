@@ -1,0 +1,41 @@
+# Faceless Budget Anomaly Shorts – Video Format & Strategy
+
+## Viral Template Analysis
+- Hook (first 3–5s): Bold text overlay with shocking claim, stock/map background, upbeat music.
+- Countdown list (#5→#1): Each entry uses:
+  - Number label animation (#3, #2, etc.)
+  - Text overlay (3–6 words, bold)
+  - Narration (AI/TTS voice, short sentences)
+  - Transition sound (ding/swoosh)
+  - Background: stock clips or simple charts/maps
+- Visual Style: Consistent font/color, smooth transitions, captions on-screen.
+- Audio: Royalty-free looped track, clear AI narration, volume ducking under VO.
+- Ending CTA: Strong “Follow for more / Comment your guess” overlay.
+
+## Observations from Reference Video
+- Automation-friendly: Stock footage, template transitions → easily replicable.
+- Engagement-first: Simplifies data into eye-catching 1-liners.
+- Template-based: Fonts, timing, pacing are uniform (batch-generated).
+- Optimal length: 30–45s (TikTok/Shorts sweet spot).
+
+## Adaptation to Budget Anomaly Content
+- Hook: “Indiana’s counties are spending WILD this year 🚨”
+- Countdown Entries:
+  - Example: “#3: Monroe County – +80% Roads Budget”
+  - Narration: “Monroe County saw an 80% spike in road spending this year.”
+  - Visuals: Line/bar chart overlay highlighting the spike, county map highlight.
+- Transition FX: Ding/swoosh between entries.
+- CTA: “Should taxpayers be worried? Comment below 👇” + “Follow for hidden spending”
+
+## Why It Works for Budget Watchdog
+- Direct mapping of anomalies → ranked list format.
+- DOGEGPT pipeline outputs (county, dept, % change) → fits directly into video template.
+- Visual uniqueness: Using real anomaly charts/maps makes channel stand out from generic “city IQ” videos.
+- Fully automatable: pipeline → script → AI narration → CapCut/InVideo template → upload.
+
+## Next Steps
+1. Build anomaly CSVs with DOGEGPT pipeline.
+2. Auto-generate “Top 5 County Anomalies” script from CSV.
+3. Feed script to AI voiceover (ElevenLabs/Murf).
+4. Use CapCut/InVideo templates for stock footage + chart overlays.
+5. Export & schedule on TikTok/YouTube Shorts.

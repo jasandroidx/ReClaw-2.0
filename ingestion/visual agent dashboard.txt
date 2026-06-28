@@ -1,0 +1,913 @@
+I'm giving you a thrown together summary of the next project I want to start, within my ReClaw/Openclaw project. This is the fun part, and I want to get it started! Review this entire report....and then I want you to take that information, go out on your own, deep research, and come back with your best idea for how to make this work, and how to get build grok to build it. Remember, I want this to be able to be built up, with new rooms/cells/agents, or even torn down. Just depends on how the shit goes. Visual Agent Dashboard Research & Build Spec
+
+Executive Summary
+
+You want a visual "office/castle" dashboard where your OpenClaw/ReClaw agents appear as characters working on tasks — think pixel-art office simulation meets real agent orchestration. This report covers what exists, what we can build, and integration options, culminating in a detailed build prompt for Grok.
+
+What Already Exists
+
+1. Pixel Agents (VS Code Extension)
+
+Source: Open-source GitHub project with 7.8k stars
+
+What it does:
+
+Turns Claude Code AI agents into pixel-art office characters
+
+Each agent becomes an animated character with real-time activity reflection
+
+Characters walk around, sit at desks, show speech bubbles when waiting
+
+Built-in office layout editor with furniture, floors, walls
+
+Tracks agent status by watching JSONL transcript files (purely observational)
+
+Tech Stack:
+
+Extension: TypeScript, VS Code Webview API, esbuild
+
+Webview: React 19, Canvas 2D, Vite
+
+Game loop with BFS pathfinding and state machine (idle → walk → type/read)
+
+Limitations:
+
+Currently VS Code only, tied to Claude Code terminals
+
+Agent-terminal sync can desync with rapid open/close
+
+Status detection is heuristic-based (idle timers, not perfect)
+
+Key Insight: The architecture is being redesigned to be platform-agnostic and agent-agnostic through composable adapters.
+
+2. OpenClaw Dashboard (Go-based)
+
+Source: mudrii/openclaw-dashboard — 443 stars, production-ready
+
+What it does:
+
+Single-page command center for OpenClaw installations
+
+12 dashboard panels: metrics, health, costs, cron jobs, sessions, token usage, sub-agents, charts, chat
+
+Zero external dependencies (single Go binary + embedded HTML/CSS/JS)
+
+Real-time monitoring with auto-refresh every 60 seconds
+
+AI chat panel that queries your live data using OpenClaw gateway
+
+Tech Stack:
+
+Backend: Go (single binary)
+
+Frontend: Pure HTML/CSS/JS/SVG — no React, no build step, ~6k lines
+
+Runs as system service (launchd/systemd)
+
+Features:
+
+Top metrics bar with CPU/RAM/Swap/Disk color-coded by thresholds
+
+Agent hierarchy tree showing parent → sub-agent relationships
+
+Per-model cost breakdown with 7d/30d/all-time tabs
+
+Gateway runtime probes (liveness, readiness, failing deps)
+
+6 built-in themes (3 dark, 3 light)
+
+Key Insight: This is the functional analytics layer — it gives you what's happening but not the visual character simulation.
+
+3. Agent Office (VS Code Extension)
+
+Source: YouTube demo, GitHub harishkotra/agent-office
+
+What it does:
+
+Takes Pixel Agents concept and adds autonomous behavior
+
+Agents hire interns, assign tasks to each other, execute code
+
+Fully local running on Ollama multi-agent office
+
+Custom layout designer
+
+Key Insight: This is the "self-growing teams" vision — agents hiring agents, but it's conceptual and less stable than Pixel Agents.
+
+4. Other Dashboard Solutions
+
+OpenClaw Control UI (official):
+
+Browser-based gateway control panel served at /
+
+WebSocket connections for live updates
+
+Token-based auth, manages agents/conversations/channels
+
+Not a visual/game interface — traditional admin UI
+
+Third-party React dashboards:
+
+Task dashboards with Kanban boards, dependencies, file explorers
+
+Real-time monitoring of every task/conversation/workflow
+
+Cost tracking per session
+
+Traditional web UI, not pixel-art
+
+Build Options
+
+Option 1: Fork Pixel Agents + Add OpenClaw Integration
+
+What this means: Take the Pixel Agents codebase and adapt it to read OpenClaw data instead of Claude Code transcripts.
+
+Pros:
+
+Beautiful, proven pixel-art UI already works
+
+Open-source MIT license, 7.8k stars, active community
+
+Layout editor, character animations, pathfinding all done
+
+Modular asset system for custom furniture/sprites
+
+Cons:
+
+Currently VS Code-specific (requires webview panel)
+
+You'd need to fork and maintain your own version
+
+Agent detection logic needs rewriting for OpenClaw's data format
+
+Still tied to VS Code unless you extract the core renderer
+
+Effort: Medium-High (2-4 weeks for OpenClaw adapter)
+
+Option 2: Build Standalone with Phaser + React
+
+What this means: Create a web app from scratch using Phaser (game engine) for rendering and React for UI controls.
+
+Tech Stack:
+
+Phaser 3 for canvas rendering and game loop
+
+React 19 for UI panels (agent details, controls, filters)
+
+EventEmitter bridge for Phaser ↔ React communication
+
+Node.js/Express backend to poll OpenClaw data
+
+Pros:
+
+Full control over features and design
+
+Deployable anywhere (web, Electron, even mobile with React Native)
+
+Can integrate both OpenClaw Dashboard data and pixel visuals
+
+Not tied to VS Code or any IDE
+
+Cons:
+
+Start from zero for animations, pathfinding, layout editor
+
+Need to source or create pixel-art assets (character sprites, furniture, floors)
+
+More code to write and maintain
+
+Effort: High (4-8 weeks for MVP with basic animations)
+
+Option 3: Hybrid — OpenClaw Dashboard + Iframe Pixel Layer
+
+What this means: Run the existing OpenClaw Dashboard (Go binary) and embed a separate Phaser canvas in an iframe for the visual "office" layer.
+
+Architecture:
+
+
+
+text
+
+┌─────────────────────────────────────────┐│ OpenClaw Dashboard (Go + HTML)         ││ ┌─────────────────────────────────────┐ ││ │ Metrics | Health | Costs | Sessions │ ││ └─────────────────────────────────────┘ ││ ┌─────────────────────────────────────┐ ││ │ <iframe src="pixel-office.html">    │ ││ │   Phaser canvas with agent chars    │ ││ └─────────────────────────────────────┘ │└─────────────────────────────────────────┘
+
+Data Flow:
+
+OpenClaw Dashboard /api/refresh endpoint provides data.json with sessions, agents, crons
+
+Pixel iframe polls same data source (or listens to postMessage)
+
+Characters spawn/update based on active sessions
+
+Click character → postMessage to parent → dashboard highlights that session
+
+Pros:
+
+Leverage existing OpenClaw Dashboard stability and features
+
+Pixel layer can be simpler (no need to rebuild analytics)
+
+Both components can evolve independently
+
+Easier to deploy (single Go binary serves both)
+
+Cons:
+
+Iframe communication overhead
+
+Still need to build the Phaser renderer
+
+Character sprites and assets still required
+
+Effort: Medium (2-3 weeks for pixel iframe + integration)
+
+Option 4: Extend OpenClaw Dashboard with Inline Canvas
+
+What this means: Fork mudrii/openclaw-dashboard and add a anvas> element directly into the existing HTML, rendering Phaser on top of the current dashboard UI.
+
+Architecture:
+
+Keep the 12-panel structure
+
+Add new panel: Agent Floor View (Phaser canvas)
+
+Share the same /api/refresh data feed
+
+Use pure JS (no React) to match the existing zero-dependency design
+
+Pros:
+
+Single cohesive application
+
+Zero external dependencies maintained (matches dashboard philosophy)
+
+Can reuse the same backend data collection
+
+Simpler deployment (still one Go binary)
+
+Cons:
+
+Mixing game rendering with dashboard UI increases complexity
+
+Phaser adds ~1MB to the bundle (breaks "zero dependency" slightly)
+
+Need to coordinate Phaser lifecycle with dashboard refresh cycle
+
+Effort: Medium (2-3 weeks)
+
+Recommended Approach
+
+Build Option 3 (Hybrid) with a staged rollout:
+
+Phase 1: Pixel Office Prototype (Week 1-2)
+
+Standalone HTML file with Phaser 3
+
+Loads mock agent data from JSON
+
+3-5 character sprites walking between desks
+
+Click agent → show basic info tooltip
+
+Simple 10×10 grid office with desks, no editor yet
+
+Phase 2: OpenClaw Integration (Week 3)
+
+Iframe into OpenClaw Dashboard or fetch /api/refresh directly
+
+Map active sessions → characters on screen
+
+Reflect agent status: idle (standing), working (typing animation), waiting (speech bubble)
+
+Character color-coded by model or cost tier
+
+Phase 3: Polish & Interaction (Week 4)
+
+Add simple layout editor (place desks, walls)
+
+Click character → parent dashboard scrolls to that session details
+
+Speech bubbles for errors or "waiting for approval"
+
+Optional sound effects (like Pixel Agents)
+
+Phase 4 (Future): Advanced Features
+
+Drag agent to desk = assign to different project/room
+
+Agent hiring animation when sub-agent spawns
+
+Cost/token "health bars" above characters
+
+Persistent room layouts per OpenClaw workspace
+
+Asset Sourcing
+
+Character Sprites
+
+Option A: Use Pixel Agents' open-source characters (MIT license, based on JIK-A-4 Metro City)
+
+6 diverse character designs already animated
+
+Walking, idle, typing, reading states
+
+License allows commercial/personal use
+
+Option B: Buy/commission pixel-art characters
+
+itch.io asset packs ($5-30 for character sets)
+
+Fiverr pixel artists ($50-150 for custom 16×16 sprites)
+
+Option C: AI-generate with Midjourney/Stable Diffusion + pixel-art style
+
+"pixel art character sprite sheet, office worker, 16x16, 4 directions, idle walk type animations"
+
+Post-process in Aseprite or Piskel (free)
+
+Office Assets (Desks, Walls, Floors)
+
+Option A: Pixel Agents' open-source furniture (MIT license)
+
+Already includes desks, chairs, walls, floors, plants
+
+Modular manifest.json format for each item
+
+64×64 tile grid system
+
+Option B: Kenney.nl game assets (CC0 / public domain)
+
+Top-down office pack, modular buildings
+
+Free for any use
+
+Option C: Commissioned tile set ($100-300 for full office pack)
+
+Tech Stack Recommendation
+
+Standalone Pixel Office (for iframe or standalone deploy)
+
+Frontend:
+
+
+
+javascript
+
+// index.html<!DOCTYPE html><html><head>  <title>Agent Office</title>  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script></head><body>  <div id="game-container"></div>  <script src="office.js"></script></body></html>
+
+office.js (Phaser config):
+
+Scene: OfficeScene (preload, create, update)
+
+Character class (sprite, state machine, pathfinding)
+
+Desk class (grid position, assigned agent)
+
+Data poller (fetch /api/refresh every 10s)
+
+No React, no build step — matches OpenClaw Dashboard's philosophy.
+
+Integration with OpenClaw Dashboard
+
+Data Contract (existing /api/refresh response):
+
+
+
+json
+
+{  "sessions": [    {      "model": "claude-3-5-sonnet",      "type": "dm",      "contextPct": 45,      "tokens": 12450,      "status": "active"    }  ],  "subAgents": [    {      "parentSession": "abc123",      "purpose": "Dev+Coding",      "cost": 0.24,      "status": "idle"    }  ]}
+
+Mapping:
+
+sessions[].model → character color/sprite variant
+
+sessions[].status → character animation (active=typing, idle=standing, waiting=speech bubble)
+
+sessions[].contextPct → health bar or glow intensity
+
+subAgents[] → spawn linked character near parent
+
+Detailed Grok Build Prompt
+
+BUILD PROMPT FOR GROK
+
+Project: Pixel Office Dashboard for OpenClaw Agents
+
+Goal: Build a standalone web-based pixel-art office simulation where OpenClaw AI agents appear as animated characters working at desks. The visual layer should integrate with the existing OpenClaw Dashboard data feed to reflect real agent activity in real-time.
+
+Part 1: Core Requirements
+
+1.1 Visual Design
+
+Style: Top-down 2D pixel art, 16×16 character sprites, 32×32 furniture tiles
+
+Office Layout: 10×10 tile grid (expandable to 64×64 later), each tile = 32×32 pixels
+
+Characters: 3-6 distinct agent characters with 4-direction sprites (up, down, left, right)
+
+Animations: Idle (standing), walking (2-frame loop), working (typing at desk), waiting (speech bubble icon)
+
+1.2 Functional Requirements
+
+Agent Spawning: When a new session appears in data feed, spawn a character on the office floor
+
+Status Reflection:
+
+Active session → character sitting at desk with typing animation
+
+Idle session → character standing or wandering
+
+Waiting/blocked → speech bubble "?" above head
+
+Click Interaction: Click character → show tooltip with model name, tokens, cost, status
+
+Data Sync: Poll OpenClaw Dashboard /api/refresh endpoint every 10 seconds, update character states
+
+1.3 Technical Constraints
+
+Zero build step: Single HTML file with inline or CDN-loaded JS
+
+No React/Vue: Use vanilla JS or minimal framework
+
+Phaser 3: Use Phaser game engine for rendering (CDN: https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js)
+
+Runs standalone: Can be iframe'd into OpenClaw Dashboard or opened directly
+
+Data source: Fetch JSON from http://localhost:8080/api/refresh (OpenClaw Dashboard endpoint)
+
+Part 2: Data Integration
+
+2.1 OpenClaw Dashboard Data Format
+
+The /api/refresh endpoint returns:
+
+
+
+json
+
+{  "sessions": [    {      "id": "abc123",      "model": "claude-3-5-sonnet",      "type": "dm",      "contextPct": 45,      "tokens": 12450,      "status": "active",      "lastActivity": "2026-06-06T21:30:00Z"    }  ],  "subAgents": [    {      "id": "sub-xyz",      "parentSession": "abc123",      "purpose": "Dev+Coding",      "cost": 0.24,      "status": "idle"    }  ],  "crons": [    {      "name": "daily-report",      "status": "active",      "nextRun": "2026-06-07T06:00:00Z"    }  ]}
+
+2.2 Mapping Rules
+
+
+
+Data FieldVisual Representationsessions[].status == "active"Character at desk, typing animationsessions[].status == "idle"Character standing/wanderingsessions[].status == "waiting"Character with "?" speech bubblesessions[].modelCharacter color tint (e.g., claude=blue, gpt=green, ollama=purple)sessions[].contextPct > 80Red glow around character (warning)subAgents[]Smaller character near parent, linked with dotted linecrons[].status == "active"Desk with pulsing icon (optional)
+
+Part 3: Implementation Spec
+
+3.1 File Structure
+
+
+
+text
+
+pixel-office/├── index.html          # Single-page app├── office.js           # Phaser game logic (can be inline <script>)├── assets/│   ├── characters/│   │   ├── agent-blue.png     # 64×64 spritesheet (16×16 per frame, 4×4 grid)│   │   ├── agent-green.png│   │   └── agent-purple.png│   ├── furniture/│   │   ├── desk.png           # 32×32 tile│   │   ├── chair.png│   │   └── floor.png          # 32×32 tile│   └── ui/│       ├── speech-bubble.png  # 16×16 icon│       └── waiting-icon.png
+
+3.2 Phaser Scene Structure
+
+Scene: OfficeScene
+
+Methods:
+
+preload(): Load sprites, tilesets
+
+create(): Build initial 10×10 grid, place desks, spawn characters from data
+
+update(): Handle pathfinding, animations, data polling (every 10s)
+
+Custom Classes:
+
+
+
+javascript
+
+class AgentCharacter {  constructor(scene, x, y, sessionData) {    this.sprite = scene.add.sprite(x, y, 'agent-blue');    this.sessionId = sessionData.id;    this.status = sessionData.status;    this.model = sessionData.model;    this.desk = null; // Desk object if assigned  }    updateStatus(newStatus) {    // Change animation based on status    if (newStatus === 'active') {      this.playTypingAnimation();      this.moveToDesk();    } else if (newStatus === 'idle') {      this.playIdleAnimation();    } else if (newStatus === 'waiting') {      this.showSpeechBubble('?');    }  }    playTypingAnimation() {    this.sprite.anims.play('typing', true);  }    moveToDesk() {    // Simple pathfinding: walk to nearest empty desk    // Use Phaser's tween or arcade physics  }    showSpeechBubble(text) {    // Spawn speech bubble sprite above character  }}class Desk {  constructor(scene, gridX, gridY) {    this.sprite = scene.add.sprite(gridX * 32, gridY * 32, 'desk');    this.occupied = false;    this.assignedAgent = null;  }}
+
+3.3 Data Polling Logic
+
+
+
+javascript
+
+async function fetchAgentData() {  const response = await fetch('http://localhost:8080/api/refresh');  const data = await response.json();  return data;}function syncCharactersWithData(scene, data) {  // Compare current characters with data.sessions  // Add new characters for new sessions  // Update status for existing characters  // Remove characters for ended sessions (with fade-out animation)    const activeSessions = new Set(data.sessions.map(s => s.id));    // Remove ended sessions  scene.characters.forEach((char, id) => {    if (!activeSessions.has(id)) {      char.sprite.destroy();      scene.characters.delete(id);    }  });    // Add or update characters  data.sessions.forEach(session => {    if (!scene.characters.has(session.id)) {      const char = new AgentCharacter(scene, 100, 100, session);      scene.characters.set(session.id, char);    } else {      scene.characters.get(session.id).updateStatus(session.status);    }  });}// In OfficeScene.create()this.characters = new Map(); // sessionId -> AgentCharacterthis.time.addEvent({  delay: 10000, // 10 seconds  callback: async () => {    const data = await fetchAgentData();    syncCharactersWithData(this, data);  },  loop: true});
+
+3.4 Click Interaction
+
+
+
+javascript
+
+// In OfficeScene.create()this.input.on('gameobjectdown', (pointer, gameObject) => {  if (gameObject.texture.key.startsWith('agent-')) {    const char = this.findCharacterBySprite(gameObject);    if (char) {      showTooltip(char.sessionId, char.model, char.status);    }  }});function showTooltip(sessionId, model, status) {  // Create DOM element or Phaser text object  const tooltip = document.createElement('div');  tooltip.className = 'agent-tooltip';  tooltip.innerHTML = `    <strong>Session:</strong> ${sessionId}<br>    <strong>Model:</strong> ${model}<br>    <strong>Status:</strong> ${status}  `;  document.body.appendChild(tooltip);  // Position near mouse, remove after 3 seconds}
+
+Part 4: Minimal MVP Code Template
+
+index.html:
+
+
+
+xml
+
+<!DOCTYPE html><html><head>  <meta charset="UTF-8">  <title>Agent Office</title>  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>  <style>    body { margin: 0; background: #1a1a1a; font-family: monospace; }    #game-container { display: flex; justify-content: center; align-items: center; height: 100vh; }    .agent-tooltip {      position: fixed; top: 10px; right: 10px;      background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; border-radius: 5px;      font-size: 12px; pointer-events: none;    }  </style></head><body>  <div id="game-container"></div>  <script>    // Phaser config    const config = {      type: Phaser.AUTO,      width: 640,      height: 640,      parent: 'game-container',      backgroundColor: '#2d2d2d',      scene: {        preload: preload,        create: create,        update: update      }    };        const game = new Phaser.Game(config);    let characters = new Map();        function preload() {      // Load placeholder graphics (use data URLs or external assets)      // For MVP, use Phaser's built-in shapes      this.load.image('floor', 'data:image/png;base64,...'); // 32×32 gray square      this.load.image('desk', 'data:image/png;base64,...');  // 32×32 brown rect      // Load character spritesheets    }        function create() {      // Draw 10×10 grid of floor tiles      for (let x = 0; x < 10; x++) {        for (let y = 0; y < 10; y++) {          this.add.image(x * 32 + 16, y * 32 + 16, 'floor');        }      }            // Place 3 desks      this.add.image(2 * 32 + 16, 2 * 32 + 16, 'desk');      this.add.image(5 * 32 + 16, 2 * 32 + 16, 'desk');      this.add.image(8 * 32 + 16, 2 * 32 + 16, 'desk');            // Fetch initial agent data      fetchAndSync(this);            // Poll every 10s      this.time.addEvent({        delay: 10000,        callback: () => fetchAndSync(this),        loop: true      });    }        function update() {      // Handle animations    }        async function fetchAndSync(scene) {      try {        const res = await fetch('http://localhost:8080/api/refresh');        const data = await res.json();                // For MVP: spawn one circle per session        data.sessions.forEach((session, i) => {          if (!characters.has(session.id)) {            const circle = scene.add.circle(              100 + i * 50, 100, 10,              session.status === 'active' ? 0x00ff00 : 0xff0000            );            circle.setInteractive();            circle.on('pointerdown', () => {              console.log('Clicked agent:', session.model);            });            characters.set(session.id, { sprite: circle, session });          }        });      } catch (err) {        console.error('Failed to fetch agent data:', err);      }    }  </script></body></html>
+
+This MVP:
+
+Loads Phaser from CDN
+
+Draws 10×10 grid with 3 desks
+
+Fetches /api/refresh every 10s
+
+Spawns colored circles for each session (green=active, red=idle)
+
+Click circle → logs to console
+
+Next Steps After MVP:
+
+Replace circles with actual character sprites
+
+Add walking animations and pathfinding
+
+Implement status-based animations (typing, idle, waiting)
+
+Add speech bubbles for waiting/blocked agents
+
+Build layout editor (drag-drop desks)
+
+Part 5: Asset Requirements
+
+Character Sprites Needed
+
+Format: PNG spritesheets, 64×64 total (16×16 per frame)
+
+Frames:
+
+Row 1: Walk down (4 frames)
+
+Row 2: Walk left (4 frames)
+
+Row 3: Walk right (4 frames)
+
+Row 4: Walk up (4 frames)
+
+Additional rows for idle, typing animations (optional for MVP)
+
+Color Variants:
+
+Blue (for Claude models)
+
+Green (for GPT models)
+
+Purple (for Ollama/local models)
+
+Source Options:
+
+Use Pixel Agents' open-source sprites (MIT license)
+
+Commission on Fiverr ($50-100 for 3 variants)
+
+Use free assets from Kenney.nl or itch.io
+
+Furniture Sprites Needed
+
+Desk: 32×32 tile, brown wood texture
+
+Chair: 32×32 tile, simple office chair
+
+Floor: 32×32 tile, gray or carpet texture
+
+Wall: 32×32 tile, with auto-tiling (corners, edges)
+
+Source Options:
+
+Pixel Agents' furniture pack (MIT)
+
+Kenney.nl office pack (CC0)
+
+Generate with Midjourney + pixel-art upscaler
+
+Part 6: Deployment Options
+
+Option A: Iframe in OpenClaw Dashboard
+
+Steps:
+
+Build pixel-office as standalone index.html + office.js
+
+Fork mudrii/openclaw-dashboard
+
+Add new dashboard panel in web/index.html:
+
+
+
+xml
+
+<section class="panel">  <h2>Agent Office</h2>  <iframe src="/pixel-office.html" width="640" height="640"></iframe></section>
+
+Serve pixel-office files from same Go binary (web/pixel-office.html)
+
+Pros
+
+: Integrates directly with existing dashboard, single URL to manageCons: Iframe communication overhead, requires forking dashboard repo
+
+Option B: Standalone Deployment
+
+Steps:
+
+Build pixel-office as standalone web app
+
+Run with simple HTTP server: python -m http.server 8081
+
+Open http://localhost:8081 in browser alongside OpenClaw Dashboard
+
+Configure CORS if needed for cross-origin fetch to :8080/api/refresh
+
+Pros
+
+: No modification to OpenClaw Dashboard, easier to iterateCons: Two URLs to manage, CORS issues possible
+
+Option C: Desktop App (Future)
+
+Package as Electron app
+
+Bundle OpenClaw Dashboard Go binary + pixel-office frontend
+
+Single .app or .exe with system tray
+
+Auto-start on boot, lives in menu bar
+
+Part 7: Testing Checklist
+
+Functional Tests
+
+Office grid renders at 640×640 (10×10 tiles)
+
+Desks appear at correct positions
+
+Data fetch from /api/refresh succeeds (check Network tab)
+
+Character spawns when new session appears in data
+
+Character color changes based on model (blue/green/purple)
+
+Typing animation plays when status=active
+
+Speech bubble appears when status=waiting
+
+Click character shows tooltip with session details
+
+Character disappears when session ends (smooth fade-out)
+
+Sub-agents spawn near parent character
+
+Integration Tests
+
+OpenClaw Dashboard /api/refresh endpoint is accessible
+
+CORS headers allow cross-origin fetch (if standalone)
+
+Iframe communication works (if embedded)
+
+Dashboard and pixel-office sync on same data refresh cycle
+
+Performance Tests
+
+10+ active sessions render smoothly (60 FPS)
+
+No memory leaks after 1 hour runtime
+
+Fetch polling doesn't block rendering
+
+Part 8: Success Criteria
+
+Minimum Viable Product (Week 1-2):
+
+✅ 10×10 office grid with 3 desks
+
+✅ 1-3 animated agent characters reflecting live OpenClaw sessions
+
+✅ Click agent → see model name and status
+
+✅ Data syncs every 10 seconds from OpenClaw Dashboard
+
+Full Feature Set (Week 3-4):
+
+✅ Layout editor: drag-drop desks, walls, floors
+
+✅ 6 character variants with walking/typing/idle animations
+
+✅ Sub-agent visualization (linked characters)
+
+✅ Speech bubbles for waiting/error states
+
+✅ Click agent → parent dashboard highlights that session
+
+✅ Sound effects (optional)
+
+Stretch Goals (Future):
+
+Agent hiring animation when sub-agent spawns
+
+Drag agent to desk = assign to different project/room
+
+Cost/token health bars above characters
+
+Persistent layouts saved to OpenClaw config
+
+3D office mode (Three.js or Babylon.js)
+
+Part 9: Cost Estimate
+
+Time Investment
+
+MVP (pixel circles + data sync): 8-12 hours
+
+Sprite integration + animations: 16-24 hours
+
+Layout editor: 16-24 hours
+
+Polish + testing: 8-12 hours
+
+Total: 48-72 hours (1-2 weeks at 20-30 hrs/week)
+
+Monetary Costs
+
+Character sprites (if commissioned): $50-150
+
+Furniture assets (if purchased): $10-50
+
+Hosting (if deployed): $0 (local-only) to $5/month (VPS)
+
+Total: $60-200 one-time + $0-5/month
+
+Part 10: Next Actions
+
+For Grok to Execute:
+
+Generate MVP index.html with Phaser boilerplate
+
+Write fetchAndSync() function to poll OpenClaw Dashboard
+
+Implement basic character spawning (colored circles for MVP)
+
+Add click interaction to show session details
+
+Provide instructions for asset integration (where to place sprite files)
+
+Deliver as single HTML file ready to run in browser
+
+For You to Provide:
+
+OpenClaw Dashboard URL (default: http://localhost:8080)
+
+Preference: Iframe or standalone deployment?
+
+Any custom color scheme or theme preferences?
+
+Character style preference (realistic pixel-art vs. chibi/cartoon)?
+
+FINAL DELIVERABLE REQUEST:
+
+Grok, using the above specifications, generate:
+
+MVP index.html with inline Phaser code (single file, no external dependencies except Phaser CDN)
+
+File structure diagram showing where to place sprite assets
+
+Instructions for connecting to OpenClaw Dashboard /api/refresh endpoint
+
+Testing checklist to verify all core features work
+
+This file should be ready to open in a browser and immediately connect to a running OpenClaw Dashboard instance at http://localhost:8080. How we should approach it
+
+Short version of the plan:
+
+Piggyback on an existing pixel office for OpenClaw so you get something fun on-screen fast.
+
+Define a tiny, clear MVP: two rooms, a few agents, basic animations driven by real OpenClaw/ReClaw state.
+
+Have Grok Build generate a self-contained “Pixel Office” web app that talks to your existing OpenClaw gateway, lives alongside ReClaw, and can be iterated on.
+
+Iterate in layers: better sprites, more rooms, click-to-open logs, then eventually embed into your main control UI.
+
+That lets you see your “office/castle” working in a day or two, then improve it instead of getting stuck in perfection mode.
+
+Step 1: Steal shamelessly from existing work
+
+There is already an npm package called pixel-office-openclaw that does almost exactly the base thing you want: “Watch your OpenClaw AI agents work in a pixel-art virtual office. Each agent gets an animated character that walks around, sits at desks, and shows real-time status as they execute tasks. Pixel Office auto‑detects your OpenClaw home dir and gateway URL and runs a web server on http://localhost:3002.”
+
+It can be run with:
+
+npx pixel-office-openclaw
+
+or globally: npm install -g pixel-office-openclaw && pixel-office-openclaw
+
+So:
+
+Fastest MVP: run this on your OpenClaw box and see agents as pixel workers with zero custom code.
+
+Customization path: fork that repo later to swap tilesets, add your medieval forge room, futuristic lab, and Clawsmith sprite.
+
+We can still have Grok Build build your own variant from scratch, but this package proves the idea works end‑to‑end against OpenClaw and gives you reference patterns for wiring into the gateway.
+
+Step 2: Define a very small MVP scene
+
+Let’s lock what “v1” actually is, so Grok has a tight target:
+
+Visual scope (v1):
+
+One single-screen map with:
+
+Room A: “Forge” – medieval stone room, anvil, forge fire.
+
+Room B: “Lab” – high‑tech room with consoles and screens.
+
+Agents as simple sprites or colored circles first; we can swap in pixel art later.
+
+Each agent has:
+
+A name label (e.g., Clawsmith, Researcher-1).
+
+A state: idle, running, error.
+
+Behavior (v1):
+
+On load, the app calls a small backend endpoint that proxies OpenClaw (e.g., /api/agents) and returns:
+
+agent id, name
+
+role or “team” (maps to room: forge vs lab)
+
+status (idle|running|error)
+
+Each agent is rendered in the correct room:
+
+Running → “walking/hammering” animation (or just a bobbing circle).
+
+Idle → standing still.
+
+Error → small red icon over head.
+
+Click an agent → show a small info panel with last job and link to full logs in your existing UI.
+
+Special case: Clawsmith
+
+Clawsmith is always in the forge room.
+
+When status === running, show hammer‑on‑anvil loop.
+
+When status === idle, show him standing near the forge.
+
+This is tiny enough for Grok to build safely, but already useful and fun.
+
+Step 3: Where this lives in your stack
+
+Given what you’ve got:
+
+OpenClaw gateway already exposes agent/session/task state via its API.
+
+ReClaw can treat this as just another internal “tooling” web app.
+
+Concrete placement:
+
+A new folder under your server, e.g. /opt/reclaw/pixel-office/ (or a sibling directory if you prefer).
+
+A small Node.js server or even just a static front‑end plus a thin proxy that:
+
+Reads OpenClaw config (gateway URL, token) from ~/.openclaw or your env.
+
+Exposes /api/agents for the front‑end.
+
+Front‑end: a simple Phaser 3 or canvas app served at http://yourbox:3002 or similar.
+
+This keeps it decoupled: if the visual layer crashes, OpenClaw/ReClaw keep running.
+
+Step 4: What to actually ask Grok Build to do
+
+Below is a ready‑to‑paste prompt for Grok Build. Use it in a grok session or with grok -p as a one‑shot.
+
+You can tweak paths (like /opt/reclaw) if your layout is slightly different.
+
+
+
+text
+
+You are my coding agent working on a local Hetzner box called "Openclaw".High-level goal:Build a very small, self-contained "Pixel Office" web app that visualizes my OpenClaw agents as characters in a two-room scene:- Room A: medieval forge (for my main agent "Clawsmith")- Room B: futuristic high-tech lab (for other agents)This is v1, so keep it simple and boringly reliable. I want to be able to grow it later.My environment and constraints:- OpenClaw is already installed and running on this box. It exposes an HTTP gateway with agent/session/task state; detect its URL and token from the usual OpenClaw config in ~/.openclaw if possible.- ReClaw lives under /opt/reclaw (main git repo on branch "ravenstack"). Treat this Pixel Office as a separate, optional web app, not something that breaks core flows if it goes down.- This server is low-cost Hetzner. Keep dependencies light (Node + Express + Phaser or vanilla canvas is fine). No fancy cloud services, no paid SaaS.- Everything should run on localhost behind my existing setup; I’m fine with a new port like 3002.Concrete tasks (do these in order):1) REPO DISCOVERY AND PLAN- Recursively scan the local filesystem for:  - /opt/reclaw (ReClaw project)  - ~/.openclaw and any OpenClaw gateway config files- Identify:  - How to talk to the OpenClaw gateway (base URL, auth token/header)  - Any existing HTTP services or dashboards that you should not break- Based on what you find, propose:  - A directory to put this new app (for example: /opt/reclaw/pixel-office/)  - A port to run it on (default 3002 unless that’s taken)  - The minimal tech stack (Node + Express + small front-end with Phaser 3 or plain JS canvas)2) BACKEND API FOR AGENT STATE- Create a small Node.js backend (Express or similar) in the new directory that:  - Reads configuration for the OpenClaw gateway (URL + token) from:    - Either ~/.openclaw    - Or an .env file you create (document the variables clearly)  - Exposes a single JSON endpoint at GET /api/agents that returns a normalized list of agents:    - id    - name    - role or type (e.g. "forge", "lab", or unknown)    - status: "idle" | "running" | "error"    - last_task_summary (short string)  - Implements the actual call(s) into the OpenClaw gateway to get this data.- If you can’t find a clean "agents" endpoint in OpenClaw, choose the best approximation (e.g. sessions, workers, or tasks) and normalize that into an “agent-like” structure.- Add basic error handling and logging. If the gateway is down, /api/agents should return a clear JSON error, not crash the server.3) FRONT-END "PIXEL OFFICE" MVP- In the same project, add a simple front-end served from / (root path):  - Use a single HTML file (index.html), a single JS file, and a basic CSS file.  - You can use Phaser 3 via CDN or a simple canvas-based renderer.- Visual layout:  - The canvas shows two rooms on a single screen:    - Left: “Forge” room – stone walls, anvil, forge fire (can be simple block graphics in v1).    - Right: “Lab” room – dark floor, glowing consoles, screens (again, simple block graphics is fine).- Agent rendering rules (v1):  - Fetch /api/agents on load, and then poll every 5–10 seconds.  - Map each agent to a room:    - If name === "Clawsmith" or role === "forge" → forge room.    - Else → lab room.  - Render each agent as:    - For v1: a colored circle or simple sprite with the agent’s name under it.    - Position agents in a simple grid in their room.  - Animations:    - status === "running" → bob up and down or “walk” left/right.    - status === "idle" → stand still.    - status === "error" → show a red exclamation mark over the agent.- Special behavior for Clawsmith:  - Clawsmith is always in the forge room.  - When status === "running", show a simple hammer-on-anvil loop (can be just a vertical up/down motion over an anvil sprite).  - When status === "idle", show him standing by the forge.- Interaction:  - Click on an agent → show a small panel (or tooltip) with:    - name    - status    - last_task_summary    - a hyperlink that points to the relevant existing ReClaw/OpenClaw logs page for that agent if you can derive it, or just a placeholder link if not.4) WIRING, SCRIPTS, AND DOCS- Add npm scripts:  - "start": start the backend + serve static front-end (Node only, no build tools).  - "dev": optional, hot-reload isn’t mandatory but nice if easy.- Make sure the app starts with one command from the project folder:  - e.g. `npm install` then `npm start`, serving the UI at http://localhost:3002.- Document in a README:  - How to configure the OpenClaw gateway URL and token (e.g. .env variables or config file).  - How to start the app.  - Where to tweak the room layout, colors, and basic agent sprites so I can later add more rooms (medieval, sci-fi, etc.).Quality bar:- Keep dependencies minimal.- No TypeScript or bundlers in v1; plain JS is fine.- Favor clear, small files over “clever” abstractions.- Don’t change any existing ReClaw / OpenClaw code; keep this as an additive project.When you’re done:- Print a short summary of:  - The directory you created  - How to run the app  - Which file to edit if I want to customize the rooms and sprites.
+
+That’s enough context for Grok Build to safely scan your existing setup, wire into OpenClaw, and spit out a working v1 without trampling your ReClaw code.
+
+Step 5: How we iterate from there
+
+Once v1 is running:
+
+Swap the circles for real pixel sprites (Clawsmith, generic agents).
+
+Add more rooms (e.g., “Library”, “War Room”, “Market”) and map them to agent roles/projects.
+
+Replace polling with a websocket if/when you want smoother, realtime motion.
+
+Embed the Pixel Office into your main control UI (iframe or reverse proxy) so it feels like part of the “office”, not a side toy.
+
+If you want, next step I can help you design:
+
+The sprite sheet spec for Clawsmith & friends.
+
+A simple role→room mapping so the office layout mirrors your actual money pipelines (lead gen, content, flip finder, etc.).
