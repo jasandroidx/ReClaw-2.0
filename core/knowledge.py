@@ -243,11 +243,12 @@ tags: [ai-agents, monetization, backlog, clawsmith, visual-dashboard]
         else:
             text = str(content_or_path)
 
-        # Basic distillation (template + key extraction; replace with Ollama call in prod for smarter summary)
+        # Fix: extract and clean snippet outside f-string to avoid backslash-in-f-string SyntaxError (Python 3.11)
+        snippet = text[:500].replace('\n', ' ')[:300]
         distilled = f"""# Distilled from {source}
 
 ## Extracted Principles & Tactics
-- {text[:500].replace('\n', ' ')[:3]}... (key patterns synthesized — full auto-LLM in v2)
+- {snippet}... (key patterns synthesized — full auto-LLM in v2)
 
 ## Relevance to ReClaw Empire
 - High for Clawsmith room generation, visual pixel agents, marketplace flips, content automation, rural data red flags, 24/7 revenue.
