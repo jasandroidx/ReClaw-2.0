@@ -1,0 +1,9 @@
+[Unit]
+Description=ReClaw daily Pike/Winslow content package
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/ReClaw-2.0
+ExecStart=/root/ReClaw-2.0/scripts/run-daily-pike-winslow.sh
