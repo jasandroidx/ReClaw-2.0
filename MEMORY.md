@@ -16,7 +16,7 @@ ReClaw companion at /root/ReClaw-2.0. Gateway at http://127.0.0.1:8000 (host.doc
 - **Scriptwriter** (`tools/scriptwriter.py`): monetization-ready 8–12 min long-form + 5 geo-targeted shorts per audit.
 - Human uploads: `data/inbox/` → `tools/inbox_loader.scan_inbox()` → `ingestion/`.
 - Server path: `/root/ReClaw-2.0` (not `/opt/reclaw`).
-- Latest commit on `ravenstack`: `387c590` (multi-source auditor).
+- Latest commit on `ravenstack`: `6a1f417` (docs + platform sync).
 
 ## Operating principles
 - When multiple paths exist, default to the easiest + most efficient one.
