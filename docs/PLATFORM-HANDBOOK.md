@@ -1,12 +1,14 @@
 # ReClaw 2.0 Platform Handbook
 
 > **Single reference for everything wired, built, and running on production.**  
-> Last updated: **2026-07-05** · Branch: `ravenstack` · Server: Hetzner `178.156.235.36`
+> Last updated: **2026-07-05 (evening sync)** · Branch: `ravenstack` · Server: Hetzner `178.156.235.36`  
+> **Live on GitHub:** https://github.com/jasandroidx/ReClaw-2.0/blob/ravenstack/docs/PLATFORM-HANDBOOK.md
 
 ---
 
 ## Table of Contents
 
+0. [Quick Lookup — I Need To…](#0-quick-lookup--i-need-to)
 1. [Executive Summary](#1-executive-summary)
 2. [Production Environment](#2-production-environment)
 3. [Port & Service Map](#3-port--service-map)
@@ -28,6 +30,42 @@
 19. [Known Gaps & Roadmap](#19-known-gaps--roadmap)
 20. [Deployment Changelog](#20-deployment-changelog)
 21. [Related Documentation](#21-related-documentation)
+22. [What Is NOT in Git](#22-what-is-not-in-git)
+
+---
+
+## 0. Quick Lookup — I Need To…
+
+| I need to… | Do this |
+|------------|---------|
+| **See everything about the stack** | Read this handbook (you're here) |
+| **SSH / upload files to server** | `ssh root@178.156.235.36` or `scp -r ./files root@178.156.235.36:/root/ReClaw-2.0/` |
+| **Check if stack is healthy** | `cd /root/ReClaw-2.0 && ./scripts/post-deploy-healthcheck.sh` |
+| **Run Pike/Winslow pipeline** | `curl -sf -X POST 'http://127.0.0.1:8000/run-sync?county=Pike&area=Winslow&write_obsidian=true'` |
+| **Search vault knowledge (RAG)** | `curl -sf -X POST http://127.0.0.1:8000/rag/search -H 'Content-Type: application/json' -d '{"query":"your question","top_k":5}'` |
+| **Re-index vault into RAG** | `curl -sf -X POST http://127.0.0.1:8000/rag/vault/sync` |
+| **Access API remotely (tailnet)** | `https://openclaw.tail20a090.ts.net/reclaw/health` |
+| **Use Ravenstack from Grok Build** | MCP tools: `reclaw-platform__*` (17 tools). Run `grok mcp doctor reclaw-platform` |
+| **Use GitHub from Grok Build** | MCP tools: `github__*` (26 tools). Account: `jasandroidx` (authenticated) |
+| **Connect Grok.com web UI** | [grok.com/connectors](https://grok.com/connectors) → Custom → public tunnel URL (see §12) |
+| **Read/write Obsidian vault** | Vault path: `/root/obsidian_vault`. MCP: `reclaw-platform__read_vault_file` / `write_vault_file` |
+| **Read Oracle rules** | MCP: `reclaw-platform__read_oracle` or file: `/root/obsidian_vault/Ravenstack/RAVENSTACK-ORACLE.md` |
+| **Deploy / restart stack** | `cd /root/ReClaw-2.0 && docker compose up -d --build && ./scripts/post-deploy-healthcheck.sh` |
+| **Set gateway token** | Edit `/root/ReClaw-2.0/.env`: `RECLAW_GATEWAY_TOKEN` + `OPENCLAW_GATEWAY_TOKEN` (same value) |
+| **Set API keys** | Edit `/root/ReClaw-2.0/.env`: `XAI_API_KEY`, `GEMINI_API_KEY`, `OLLAMA_API_KEY` — never commit |
+| **Push code to GitHub** | `cd /root/ReClaw-2.0 && git push origin ravenstack` (requires `gh auth login`) |
+| **View pipeline audit trail** | `ls data/sessions/` and `ls data/runs/` on server |
+| **Fortress dashboard** | http://127.0.0.1:8081 (Phaser UI; Next.js version in `dashboard/ravenstack-fortress/` not served) |
+
+### Where secrets live (never in git)
+
+| Secret | File |
+|--------|------|
+| Gateway tokens | `/root/ReClaw-2.0/.env` → `RECLAW_GATEWAY_TOKEN`, `OPENCLAW_GATEWAY_TOKEN` |
+| LLM API keys | `/root/ReClaw-2.0/.env` + `/root/.env` |
+| OpenClaw gateway token | `/root/.openclaw/openclaw.json` → `gateway.auth.token` |
+| GitHub token (MCP) | Via `gh auth` → `GITHUB_TOKEN` env or `~/.config/gh/` |
+| Grok MCP env | `/root/.grok/config.toml` (use `${VAR}` references, not raw keys) |
 
 ---
 
@@ -69,7 +107,7 @@
 | Grok Build config | `/root/.grok/config.toml` + `/root/ReClaw-2.0/.grok/config.toml` |
 | Env files | `/root/ReClaw-2.0/.env`, `/root/.env` (never commit) |
 
-### Live stack snapshot (2026-07-05)
+### Live stack snapshot (2026-07-05 evening)
 
 | Container / Service | Status | Notes |
 |---------------------|--------|-------|
@@ -77,8 +115,12 @@
 | `reclaw-dashboard` | healthy | Static Phaser fortress on host `:8081` |
 | `openclaw-gateway` | healthy | Host network on `:18789` |
 | Ollama | running | Local `:8080`, model `llama3.1:8b` pulled |
-| `reclaw-mcp-bridge` (systemd) | **inactive** | HTTP MCP on `:8100` — needs enable/start |
+| MCP HTTP bridge | **running** | Python on `127.0.0.1:8100` (manual process; systemd unit in `deploy/`) |
+| Tailscale serve | active | `/`, `/reclaw`, `/reclaw-mcp` paths configured |
+| GitHub (`gh`) | authenticated | Account `jasandroidx`, push works |
+| GitHub MCP (Grok) | enabled | 26 tools via `github__*` |
 | RAG index | synced | 24 documents, **281 chunks** in Chroma |
+| Git repo | **synced** | `ravenstack` pushed to origin (no unpushed commits) |
 
 ### File upload to server
 
@@ -569,14 +611,37 @@ sudo systemctl enable --now reclaw-mcp-bridge
 
 2. Ensure Tailscale serve path `/reclaw-mcp` → `:8100` is active.
 
-3. In Grok config on your PC:
+3. **Grok Build on your PC** (tailnet device only — not public internet):
 
 ```toml
 [mcp_servers.reclaw-platform]
 url = "https://openclaw.tail20a090.ts.net/reclaw-mcp/mcp"
 ```
 
-**Note:** SuperGrok web UI cannot add custom MCPs. Use **Grok Build** (CLI/IDE) or Tailscale HTTP bridge.
+Enable `reclaw-platform-remote` in config or add the URL block above.
+
+### Grok.com web UI (Custom Connector)
+
+xAI supports custom MCP at **[grok.com/connectors](https://grok.com/connectors)** → **New Connector** → **Custom**.
+
+**Important:** Grok's servers must reach your MCP over the **public internet**. Tailscale-only URLs (`openclaw.tail20a090.ts.net`) work only on your tailnet — **not** from grok.com unless you use **Tailscale Funnel** or a tunnel.
+
+| Step | Action |
+|------|--------|
+| 1 | Ensure MCP bridge is running: `./scripts/run-reclaw-mcp-bridge.sh` (listens on `:8100`) |
+| 2 | Expose port 8100 publicly. Options: **ngrok** `ngrok http 8100`, **cloudflared** `cloudflared tunnel --url http://127.0.0.1:8100`, or **Tailscale Funnel** `tailscale funnel --bg 8100` |
+| 3 | In grok.com Custom Connector, enter: **Name** `ReClaw Platform` · **URL** `https://YOUR-PUBLIC-TUNNEL/mcp` |
+| 4 | Test in chat: *"Use ReClaw to run stack_health and query knowledge for Pike County"* |
+
+**Security:** The MCP HTTP endpoint has no auth today. If you tunnel publicly, treat the URL like a secret or add auth later.
+
+### GitHub MCP (enabled)
+
+```bash
+grok mcp doctor github   # expect 26 tools
+```
+
+Authenticated as **jasandroidx**. Example prompts: *"List open issues on jasandroidx/ReClaw-2.0"*, *"Show recent commits on ravenstack"*.
 
 ### Cursor vs Grok Build
 
@@ -657,27 +722,12 @@ Script: `scripts/run-reclaw-mcp-bridge.sh`
 
 **Current status:** systemd unit not active. Tailscale path exists but bridge must be started.
 
-### Recommended systemd unit
+### Systemd unit (in repo)
 
-```ini
-# /etc/systemd/system/reclaw-mcp-bridge.service
-[Unit]
-Description=ReClaw MCP HTTP Bridge
-After=network.target docker.service
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/root/ReClaw-2.0
-ExecStart=/root/ReClaw-2.0/scripts/run-reclaw-mcp-bridge.sh
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
+Template: `deploy/reclaw-mcp-bridge.service`
 
 ```bash
+sudo cp /root/ReClaw-2.0/deploy/reclaw-mcp-bridge.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now reclaw-mcp-bridge
 ```
@@ -826,14 +876,17 @@ scp -r ./local-files root@178.156.235.36:/root/ReClaw-2.0/
 
 ### Remote
 
-```
-https://github.com/jasandroidx/ReClaw-2.0
-Branch: ravenstack
-```
+| Item | Value |
+|------|-------|
+| URL | https://github.com/jasandroidx/ReClaw-2.0 |
+| Branch | `ravenstack` |
+| Account | `jasandroidx` (authenticated via `gh auth login`) |
+| Status | **Synced** — local `ravenstack` matches `origin/ravenstack` |
 
-### Unpushed commits (8 ahead of origin as of 2026-07-05)
+### Key commits on `ravenstack` (newest first)
 
 ```
+79595c5 docs: add PLATFORM-HANDBOOK — full production reference
 849d0de feat(mcp): unified reclaw-platform connector (SuperGrok-style)
 595ad5f chore(env): wire XAI and Gemini API keys through compose and examples
 04c4b46 feat(ops): Ravenstack MCP connector + Grok Build upgrade + Ollama wiring
@@ -847,19 +900,26 @@ d433c78 feat(grok-build): add project-scoped ReClaw specialist skill and MCP sta
 ### Push from server
 
 ```bash
-gh auth login          # one-time
 cd /root/ReClaw-2.0
+git add <files>
+git commit -m "your message"
 git push origin ravenstack
 ```
 
-### Push from dev PC
+If HTTPS push fails, use token auth:
 
 ```bash
-git remote add hetzner root@178.156.235.36:/root/ReClaw-2.0
-# or pull commits via scp/rsync then push to GitHub from PC
+git push https://x-access-token:$(gh auth token)@github.com/jasandroidx/ReClaw-2.0.git ravenstack
 ```
 
-**Current blocker:** `gh auth login` not completed on server.
+### Clone on dev PC
+
+```bash
+git clone https://github.com/jasandroidx/ReClaw-2.0.git
+cd ReClaw-2.0
+git checkout ravenstack
+cp .env.example .env   # fill in locally, never commit
+```
 
 ---
 
@@ -867,16 +927,21 @@ git remote add hetzner root@178.156.235.36:/root/ReClaw-2.0
 
 | Gap | Impact | Fix |
 |-----|--------|-----|
-| Git push blocked | Handbook + 8 commits not on GitHub | `gh auth login` on server or push from PC |
-| GitHub MCP disabled | No PR/issue ops from Grok | `gh auth login` + enable in config.toml |
-| MCP HTTP bridge inactive | Remote `/reclaw-mcp` returns connection refused | `systemctl enable --now reclaw-mcp-bridge` |
+| MCP bridge not in systemd | Dies on reboot; grok.com tunnel breaks | `sudo cp deploy/reclaw-mcp-bridge.service /etc/systemd/system/ && sudo systemctl enable --now reclaw-mcp-bridge` |
+| grok.com needs public URL | Tailscale serve alone won't work for web UI | ngrok / cloudflared / Tailscale Funnel on `:8100` (see §12) |
 | RAG React dashboard not on port | No hosted RAG UI on compose | Add nginx/service for `dashboard/rag-dashboard/` |
 | Silent Auditor runtime | Agent needs DOGEGPT data + pandas | Install deps + seed compliance data |
 | `dashboard/` gitignored | Fortress fixes only on disk | Decide: track or deploy script |
 | `commands.ownerAllowFrom` unset | OpenClaw command restrictions open | Set in openclaw.json when ready |
-| SuperGrok web custom MCP | Cannot add reclaw-platform in browser | Use Grok Build or Tailscale HTTP |
-| README merge conflict | Stale `<<<<<<< HEAD` markers | Fixed in this commit |
-| Stale `/opt/reclaw` paths in docs | Confusion | Use `/root/ReClaw-2.0` everywhere |
+| Stale `/opt/reclaw` paths in some docs | Confusion in AGENTS.md, SOUL files, tools/ | Use `/root/ReClaw-2.0`; handbook uses correct path |
+| MCP HTTP endpoint has no auth | Public tunnel = open access | Add bearer auth before long-term public exposure |
+
+### Resolved (2026-07-05)
+
+- ✅ Git push — `gh auth login` done, `ravenstack` on GitHub
+- ✅ GitHub MCP — enabled, 26 tools
+- ✅ PLATFORM-HANDBOOK — published on repo
+- ✅ README merge conflict — fixed
 
 ### Next phases
 
@@ -892,6 +957,8 @@ git remote add hetzner root@178.156.235.36:/root/ReClaw-2.0
 
 | Date | Commit | Summary |
 |------|--------|---------|
+| 2026-07-05 | `79595c5` | PLATFORM-HANDBOOK + README refresh |
+| 2026-07-05 | — | GitHub auth + push; GitHub MCP enabled |
 | 2026-07-05 | `849d0de` | Unified `reclaw-platform` MCP connector (17 tools) |
 | 2026-07-05 | `595ad5f` | XAI/Gemini env through docker-compose |
 | 2026-07-05 | `04c4b46` | Ravenstack MCP + Grok Build upgrade + Ollama wiring |
@@ -923,6 +990,26 @@ git remote add hetzner root@178.156.235.36:/root/ReClaw-2.0
 | Oracle SOT | `RAVENSTACK-ORACLE.md` / vault copy |
 | Grok Build skill | `.grok/skills/reclaw-build/SKILL.md` |
 | Agent routing | `AGENTS.md` |
+
+---
+
+## 22. What Is NOT in Git
+
+These are intentional — runtime, secrets, or local-only:
+
+| Path / item | Why excluded |
+|-------------|--------------|
+| `.env`, `/root/.env` | Secrets (tokens, API keys) |
+| `.venv/` | Python virtualenv (rebuild with `pip install -r requirements.txt`) |
+| `data/rag_chroma/`, `data/rag_embeddings/`, `data/rag_state/` | RAG index (rebuild via `/rag/vault/sync`) |
+| `data/runs/`, `data/sessions/` | Pipeline audit artifacts (server-only) |
+| `outputs/` | Dev Obsidian output mirror |
+| `dashboard/` | Fortress UI (gitignored; lives on server disk) |
+| `/root/.openclaw/` | OpenClaw runtime config (contains gateway token) |
+| `/root/obsidian_vault/` | Production vault (separate from repo; mounted into Docker) |
+| `/root/Kimi_Agent_ReClaw-2.0 Build Ideas/` | Upload reference folder (not in repo) |
+
+**What IS in git:** all platform code, `rag/`, `scripts/`, MCP servers, `skills/`, `.grok/skills/`, `knowledge/`, `docs/`, `tests/`, `deploy/`, `.env.example`.
 
 ---
 

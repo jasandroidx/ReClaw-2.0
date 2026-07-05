@@ -1,0 +1,14 @@
+[Unit]
+Description=ReClaw MCP HTTP Bridge (streamable-http on :8100)
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/ReClaw-2.0
+ExecStart=/root/ReClaw-2.0/scripts/run-reclaw-mcp-bridge.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
