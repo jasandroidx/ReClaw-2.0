@@ -75,6 +75,22 @@ DECLARED_CAPABILITIES: dict[str, Capability] = {
         description="Run arbitrary shell commands. Almost never granted in this swarm.",
         requires_approval=True,
     ),
+    "skill_scan": Capability(
+        name="skill_scan",
+        risk=RiskLevel.LOW,
+        description="Run SkillScan (tokauthai) on skill packages before install. Read-only audit + external API upload of skill hash/content.",
+    ),
+    "skill_vet": Capability(
+        name="skill_vet",
+        risk=RiskLevel.LOW,
+        description="Manual SKILL.md code review checklist via skill-vetter before ClawHub installs.",
+    ),
+    "skill_install": Capability(
+        name="skill_install",
+        risk=RiskLevel.MEDIUM,
+        description="Install or enable a ClawHub/OpenClaw skill after scan + vet pass.",
+        requires_approval=True,
+    ),
     # New capabilities for Clawsmith visual agent floor (per approved plan)
     "grant_scan": Capability(
         name="grant_scan",
