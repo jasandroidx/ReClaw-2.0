@@ -22,4 +22,4 @@ watchdog>=3.0
 # llama-cpp-python[server]  # or vllm when you need it
 # pytesseract>=0.3  # optional OCR — requires tesseract-ocr system package
 # Pillow>=10.0
-# pandas>=2.0
+pandas>=2.0  # Silent Auditor + DOGEGPT budget anomaly pipeline

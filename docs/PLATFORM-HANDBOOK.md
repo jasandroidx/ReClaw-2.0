@@ -401,12 +401,25 @@ Written to vault subdir `Rural Data/` (configurable via `RECLAW_OBSIDIAN_SUBDIR`
 └── _latest.md
 ```
 
+### Data priority (Pike County)
+
+| Priority | Source | File / URL |
+|----------|--------|------------|
+| 1 | DOR budget certification | `ingestion/pike_budget_textmode.csv` |
+| 2 | Gateway salary transparency | `ingestion/SalarySearch.csv` |
+| 3 | DOGEGPT anomaly pipeline | `ingestion/anomalies.csv` |
+| 4 | Indiana Gateway disbursements | Live download → `data/cache/gateway_disbursements_*.txt` |
+| 5 | Parcel examples (until GIS wired) | Seed + Beacon GIS link |
+
+Full source registry: `data/public_data_sources.yaml`
+
 ### Seeds vs live fetch
 
 | Mode | Env | Behavior |
 |------|-----|----------|
-| Seeds (default) | `USE_LIVE_FETCH=false` | Deterministic `data/seeds/` JSON |
-| Live | `USE_LIVE_FETCH=true` + approval | HTTP to county .gov / GIS |
+| Public cache (Pike) | always for Pike | Real CSVs in `ingestion/` — **not seeds** |
+| Seeds (fallback) | other counties / failure | `data/seeds/` JSON |
+| Live Gateway | `USE_LIVE_FETCH=true` | Re-download disbursements from gateway.ifionline.org |
 
 ---
 

@@ -1,0 +1,59 @@
+# Public data source registry — Indiana rural counties (Pike primary)
+# Used by Researcher + Silent Auditor. Truth + provenance only.
+
+indiana:
+  gateway_disbursements:
+    name: Indiana Gateway — Disbursements by Fund
+    url: https://gateway.ifionline.org/public/download.aspx
+    afr_url: https://gateway.ifionline.org/public/AFR.aspx
+    description: Statewide flat file of local government disbursements (corruption/procurement audits)
+    format: pipe-delimited txt
+    years_available: [2010, 2023, 2024, 2025]
+    corruption_signals:
+      - split purchases near bid thresholds
+      - vendor concentration spikes
+      - YoY department anomalies (see pipeline_budget_anomalies)
+
+  budget_certification_textmode:
+    name: Indiana DOR Budget Certification (text mode)
+    url: https://www.in.gov/dor/budget-and-claims/budget-orders/
+    description: Certified budget orders by county — levies, funds, departments
+    local_cache: ingestion/pike_budget_textmode.csv
+    notes: Exported from DOR text-mode reports (Pike 2025 on disk)
+
+  budget_totals_yoy:
+    name: Pike County budget totals 2022-2025
+    local_cache: ingestion/pike_county_totals_2022_2025.csv
+    description: YoY total certified budget for anomaly detection
+
+  salary_transparency:
+    name: Indiana Public Employee Compensation (Gateway salary search export)
+    url: https://gateway.ifionline.org/public/SESalarySearch.aspx
+    local_cache: ingestion/SalarySearch.csv
+    description: 273 Pike County public salaries/compensation (2025)
+
+  property_gis:
+    name: Beacon / Schneider GIS (parcel search)
+    url: https://beacon.schneidercorp.com/
+    pike_hint: Select Indiana → Pike County for parcel rolls
+    notes: Interactive GIS — manual or future Playwright automation
+
+  county_website:
+    name: Pike County official site
+    url: https://www.pikecounty.in.gov/
+    auditor: https://www.pikecounty.in.gov/departments/auditor/
+
+  winslow_town:
+    name: Winslow Civil Town budget lines
+    source: budget_certification_textmode (WINSLOW CIVIL TOWN rows)
+    area_match: Winslow
+
+corruption_detection:
+  pipeline: ingestion/pipeline_budget_anomalies.py
+  output: ingestion/anomalies.csv
+  methods: [robust_zscore, IsolationForest, ECOD, ADTK]
+  patterns:
+    - contextual monthly spikes in department spend
+    - YoY budget jumps without policy match
+    - Benford smoke test on disbursement amounts
+    - split vendor payments (Silent Auditor RULEBOOK)

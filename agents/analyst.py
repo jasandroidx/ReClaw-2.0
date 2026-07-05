@@ -67,8 +67,41 @@ class AnalystAgent:
         county = research.county
         area = research.primary_area
 
+        # === DOGEGPT / Gateway excerpts (real public data signals) ===
+        for excerpt in research.raw_excerpts[:8]:
+            lower = excerpt.lower()
+            severity = "medium"
+            category = "budget_anomaly"
+            if "ecod" in lower or "isolationforest" in lower or "flagged" in lower:
+                severity = "high"
+                category = "statistical_anomaly"
+            elif "vendor" in lower or "disbursement" in lower:
+                category = "procurement"
+            red_flags.append(
+                RedFlag(
+                    severity=severity,
+                    category=category,
+                    description=excerpt[:500],
+                    evidence="Indiana Gateway / DOGEGPT pipeline (see ResearchPackage.sources)",
+                    recommended_action="Pull supporting lines from gateway disbursements or budget CSV for video script.",
+                )
+            )
+            content_angles.append(excerpt[:120])
+
         # === Budget analysis ===
         for b in research.budgets:
+            highway_spend = b.major_funds.get("HIGHWAY", 0) or b.major_funds.get("LOCAL ROAD & STREET", 0)
+            if highway_spend > 500_000:
+                insights.append(
+                    Insight(
+                        category="infrastructure",
+                        title=f"{b.entity} certified highway/road funds: ${highway_spend:,}",
+                        detail="From DOR budget certification (real public data). Road pressure is the dominant rural budget story.",
+                        supporting_numbers=[f"Highway/road certified: ${highway_spend:,}"],
+                        suggested_angle=f"Where {b.entity}'s road money actually goes — certified budget breakdown",
+                    )
+                )
+
             if b.surplus_deficit is not None and b.surplus_deficit < 0:
                 deficit_pct = abs(b.surplus_deficit) / max(b.total_expenditures or 1, 1) * 100
                 red_flags.append(

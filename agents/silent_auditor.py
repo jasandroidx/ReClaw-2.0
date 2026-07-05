@@ -23,7 +23,8 @@ def _load_audit_pipeline():
     """Lazy-load pandas + DOGEGPT detectors (optional heavy deps)."""
     import pandas as pd
 
-    sys.path.append(str(Path("/root/DOGEGPT_AD_STARTER")))
+    repo = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(repo / "ingestion"))
     try:
         from pipeline_budget_anomalies import load_data, timeseries_anomalies, crosssection_anomalies
     except ImportError:
@@ -83,7 +84,14 @@ class SilentAuditorAgent:
         pd, load_data, timeseries_anomalies, crosssection_anomalies = _load_audit_pipeline()
 
         if not source_file:
-            source_file = "/root/.openclaw/workspace/gateway_disbursements_2023.txt"
+            candidates = [
+                self.settings.data_dir / "cache" / "gateway_disbursements_2023.txt",
+                Path("/root/ReClaw-2.0/data/cache/gateway_disbursements_2023.txt"),
+                Path("/root/.openclaw/workspace/gateway_disbursements_2023.txt"),
+            ]
+            if self.session:
+                candidates.insert(0, self.session.base_dir / "sources" / "gateway_disbursements_2023.txt")
+            source_file = str(next((p for p in candidates if p.exists()), candidates[0]))
 
         source_path = Path(source_file)
         if not source_path.exists():
