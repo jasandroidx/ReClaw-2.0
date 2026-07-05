@@ -136,6 +136,8 @@ def _run_orchestrator_job(job_id: str, county: str, area: str, write_obsidian: b
             "package_id": pkg.id,
             "obsidian_file": pkg.obsidian_filename,
             "risk_score": pkg.analysis.overall_risk_score,
+            "short_scripts": len(pkg.short_scripts),
+            "approval_status": pkg.approval_status,
             "session_id": session.session_id,
         }
         _persist_job(job_id, status)
@@ -238,6 +240,8 @@ def run_sync(county: str = "Pike", area: str = "Winslow", write_obsidian: bool =
         "obsidian_file": pkg.obsidian_filename,
         "red_flags": len(pkg.analysis.red_flags),
         "insights": len(pkg.analysis.insights),
+        "short_scripts": len(pkg.short_scripts),
+        "approval_status": pkg.approval_status,
         "session_id": session.session_id,
         "session_dir": str(session.base_dir),
         "run_artifact": str((settings.runs_dir / f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{pkg.id}.json")),
