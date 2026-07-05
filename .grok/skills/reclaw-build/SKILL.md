@@ -30,12 +30,20 @@ You operate the jasandroidx/ReClaw-2.0 deployment (branch: `ravenstack`). Repo p
 | Tailscale ReClaw | `https://openclaw.tail20a090.ts.net/reclaw/health` |
 | Tailscale OpenClaw | `https://openclaw.tail20a090.ts.net/health` |
 
-## MCP tools (prefer over raw shell)
+## MCP connectors (SuperGrok-style — prefer over raw shell)
 
-- `ravenstack__*` — ingest, query, reload, save_to_vault
-- `reclaw-api__*` — health, run_rural_data, post_deploy_healthcheck, list_recent_sessions
-- `obsidian__*` — vault read/write (when enabled)
-- Platform: `grok_com_github`, `grok_com_notion`, `grok_com_canva`
+**Primary:** `reclaw-platform__*` — unified connector (Ravenstack + ReClaw + vault read/write + pipeline + docker/git health).
+
+| Tool prefix | Use for |
+|-------------|---------|
+| `reclaw-platform__query_knowledge` | RAG search with citations |
+| `reclaw-platform__read_oracle` | ORACLE / architecture rules |
+| `reclaw-platform__read_vault_file` / `write_vault_file` | Obsidian real-time R/W |
+| `reclaw-platform__read_repo_file` | ReClaw code/config |
+| `reclaw-platform__run_pike_winslow` | Daily content package |
+| `reclaw-platform__stack_health` | Full deploy check |
+
+Also: `ravenstack__*`, `reclaw-api__*`, `reclaw-fs__*`, `obsidian__*`. Remote HTTP: `https://openclaw.tail20a090.ts.net/reclaw-mcp/mcp` (enable `reclaw-platform-remote` in config). Call `reclaw-platform__connector_help` for setup.
 
 ## Self-review (mandatory after major tasks)
 
