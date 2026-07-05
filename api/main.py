@@ -29,6 +29,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Header, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from core.config import get_settings
@@ -39,6 +40,13 @@ from core.security import SecurityManager, DECLARED_CAPABILITIES
 from core.knowledge import KnowledgeManager  # Forces Oracle/Ravenstack rules on every gateway start
 
 app = FastAPI(title="ReClaw 2.0", version="2.0.0", description="General Agent Platform API (rural_data module + future domains)")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 settings = get_settings()
 # === ORACLE ENFORCEMENT: Gateway always instantiates KnowledgeManager so the Ravenstack rule set is in context
