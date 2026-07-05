@@ -23,3 +23,5 @@ watchdog>=3.0
 # pytesseract>=0.3  # optional OCR — requires tesseract-ocr system package
 # Pillow>=10.0
 pandas>=2.0  # Silent Auditor + DOGEGPT budget anomaly pipeline
+numpy>=1.26
+scikit-learn>=1.4  # local_auditor_live IsolationForest ensemble
