@@ -84,10 +84,11 @@ docker compose up -d
 ## Current Implementation (MVP rural_data module)
 
 - **Researcher** (`agents/researcher.py`) — real Indiana public data (DOR, Gateway, salaries) → ResearchPackage
+- **Local Auditor** (`tools/local_auditor_live.py`) — multi-source live audit (USASpending, Census, ProPublica, Gateway) + ensemble detectors → `silent_auditor.json`
 - **Analyst** (`agents/analyst.py`) — taxpayer red flags, multi-year budget shock → AnalysisPackage
-- **Content Studio** (`agents/content_studio.py`) — 3 Shorts scripts from top flags → `short_scripts` in ContentPackage
-- **Silent Auditor** (`agents/silent_auditor.py`) — compliance flags (optional; feeds Content Studio when present)
-- **Orchestrator** — researcher → analyst → content studio → Obsidian (`pending_approval` scripts)
+- **Content Studio** (`agents/content_studio.py`) — 5 Shorts + optional long-form via `tools/scriptwriter.py` → `short_scripts` in ContentPackage
+- **County Queue** (`core/county_queue.py`) — one Indiana county at a time: audit → review card → approve/reject → advance
+- **Orchestrator** — researcher → local auditor → analyst → content studio → Obsidian (`pending_approval` scripts)
 - **Gateway** (`api/main.py`) — sessions, permissions, HTTP triggers, RAG router
 - **RAG** (`rag/`) — semantic search, vault sync, multi-format ingest
 
@@ -111,6 +112,8 @@ See [AGENTS.md](AGENTS.md) for routing and [docs/HANDOFF.md](docs/HANDOFF.md) fo
 - `data/sessions/` — per-run audit trail
 - `data/inbox/` — drop zone for human-uploaded CSVs/PDFs (→ `ingestion/`)
 - `data/cache/` — Gateway disbursement prefetch (2022–2025)
+- `data/county_queue/` — county video queue cursor + review state
+- `data/indiana_county_worklist.yaml` — 92-county ordered worklist (Pike-first)
 - `ingestion/` — real Pike budget, salary, anomaly CSVs
 
 ## Ravenstack Fortress Dashboard
@@ -132,8 +135,18 @@ Details: [docs/PLATFORM-HANDBOOK.md §12](docs/PLATFORM-HANDBOOK.md#12-grok-buil
 
 ## Status
 
-MVP complete + Phase C RAG + Kimi integration + MCP connectors live on server.
+MVP complete + Phase C RAG + multi-source auditor + county video queue live on server.
 
-**Next:** live county fetchers, Scriptwriter agent, faceless channel episodes, full visual office swarm.
+**Next:** `CENSUS_API_KEY` for live ACS on all counties, Beacon GIS, faceless channel publish workflow, full visual office swarm.
+
+### County video queue
+
+```bash
+curl -sf http://127.0.0.1:8000/county-queue/status
+curl -sf -X POST http://127.0.0.1:8000/county-queue/run-next
+curl -sf -X POST http://127.0.0.1:8000/county-queue/approve \
+  -H 'Content-Type: application/json' \
+  -d '{"publish_formats":["long_form","shorts"]}'
+```
 
 Run it. Read the SOUL files. Respect the gates. Ship small.

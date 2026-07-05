@@ -1,7 +1,7 @@
 # ReClaw 2.0 Platform Handbook
 
 > **Single reference for everything wired, built, and running on production.**  
-> Last updated: **2026-07-05 (Content Studio sync)** · Branch: `ravenstack` · Server: Hetzner `178.156.235.36`  
+> Last updated: **2026-07-05 (multi-source auditor + county queue sync)** · Branch: `ravenstack` · Server: Hetzner `178.156.235.36`  
 > **Live on GitHub:** https://github.com/jasandroidx/ReClaw-2.0/blob/ravenstack/docs/PLATFORM-HANDBOOK.md
 
 ---
@@ -44,6 +44,8 @@
 | **Run Pike/Winslow pipeline** | `curl -sf -X POST 'http://127.0.0.1:8000/run-sync?county=Pike&area=Winslow&write_obsidian=true'` |
 | **Upload huge data dumps** | `scp file.csv root@178.156.235.36:/root/ReClaw-2.0/data/inbox/` then `PYTHONPATH=. python3 -c "from tools.inbox_loader import scan_inbox; scan_inbox()"` |
 | **Review Shorts scripts** | Vault `Rural Data/YYYY-MM-DD-pike-winslow.md` → **Short-Form Scripts (Content Studio)** (`approval_status: pending_approval`) |
+| **Run next Indiana county (video queue)** | `curl -sf -X POST http://127.0.0.1:8000/county-queue/run-next` → review card in vault → `approve` or `reject` |
+| **County queue status** | `curl -sf http://127.0.0.1:8000/county-queue/status` |
 | **Search vault knowledge (RAG)** | `curl -sf -X POST http://127.0.0.1:8000/rag/search -H 'Content-Type: application/json' -d '{"query":"your question","top_k":5}'` |
 | **Re-index vault into RAG** | `curl -sf -X POST http://127.0.0.1:8000/rag/vault/sync` |
 | **Access API remotely (tailnet)** | `https://openclaw.tail20a090.ts.net/reclaw/health` |
@@ -318,6 +320,27 @@ Base URL (tailnet): `https://openclaw.tail20a090.ts.net/reclaw`
 | `POST` | `/re-export/{package_id}` | Re-render package to Obsidian |
 | `POST` | `/ingest` | Upload file → Kimi distill → vault |
 
+### County video queue (`/county-queue/*`)
+
+One county at a time: audit → long-form + shorts → human approval → advance cursor.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/county-queue/status` | Cursor position, pending review, worklist stats |
+| `POST` | `/county-queue/run-next` | Audit next county; write review card to vault |
+| `POST` | `/county-queue/approve` | Approve formats (`long_form`, `shorts`); advance cursor |
+| `POST` | `/county-queue/reject` | Reject with reason; advance cursor |
+
+```bash
+curl -sf http://127.0.0.1:8000/county-queue/status
+curl -sf -X POST http://127.0.0.1:8000/county-queue/run-next
+curl -sf -X POST http://127.0.0.1:8000/county-queue/approve \
+  -H 'Content-Type: application/json' \
+  -d '{"publish_formats":["long_form","shorts"]}'
+```
+
+Worklist: `data/indiana_county_worklist.yaml` (92 counties, Pike-first). State: `data/county_queue/state.json`.
+
 ### RAG endpoints (`/rag/*`)
 
 | Method | Path | Description |
@@ -367,13 +390,16 @@ The **rural_data** module is the first concrete domain on the general platform.
 Gateway → create_session() → SecurityManager grants
     → Orchestrator.run_county()
         → Researcher (public cache + optional live_fetch)
+        → Local Auditor (`tools/local_auditor_live.py` → `silent_auditor.json`)
         → Analyst (taxpayer red flags + insights)
-        → Content Studio (3 Shorts scripts, pending_approval)
+        → Content Studio (5 Shorts + optional long-form via `tools/scriptwriter.py`)
         → Quality gates (risk_score ≤ 8 or override)
         → ContentPackage → ObsidianWriter
 ```
 
-Silent Auditor (when `handoffs/silent_auditor.json` exists) feeds extra flags into Content Studio automatically.
+**Local Auditor** runs on every orchestrator pass: multi-source fetch (USASpending, Census ACS, ProPublica, Gateway cache) + ensemble detectors (Benford χ², robust z-score, IsolationForest, vendor fragmentation). Output: `CompliancePackage` in `handoffs/silent_auditor.json` — feeds Content Studio automatically.
+
+**County queue** (`core/county_queue.py`) is the separate one-at-a-time video loop: audit one county → review card → human approve/reject → next county.
 
 ### Handoff contracts (`core/handoff.py`)
 
@@ -420,9 +446,12 @@ Written to vault subdir `Rural Data/` (configurable via `RECLAW_OBSIDIAN_SUBDIR`
 | 1 | DOR budget certification | `ingestion/pike_budget_textmode.csv` |
 | 2 | Gateway salary transparency | `ingestion/SalarySearch.csv` |
 | 3 | DOGEGPT anomaly pipeline | `ingestion/anomalies.csv` |
-| 4 | Indiana Gateway disbursements | Live download → `data/cache/gateway_disbursements_*.txt` |
-| 5 | Parcel examples (until GIS wired) | Seed + Beacon GIS link |
-| 6 | Human-uploaded dumps | `data/inbox/` → `tools/inbox_loader.scan_inbox()` → `ingestion/` |
+| 4 | Indiana Gateway disbursements | `data/cache/gateway_disbursements_*.txt` (prefetch + live fallback) |
+| 5 | USASpending.gov API | Federal awards by county FIPS (`tools/local_auditor_live.py`) |
+| 6 | Census ACS API | Population/income (`CENSUS_API_KEY` in `.env`; embedded fallback for Pike) |
+| 7 | ProPublica Nonprofit API | Local 990 index |
+| 8 | Parcel examples (until GIS wired) | Seed + Beacon GIS link |
+| 9 | Human-uploaded dumps | `data/inbox/` → `tools/inbox_loader.scan_inbox()` → `ingestion/` |
 
 Full source registry: `data/public_data_sources.yaml`
 
@@ -798,6 +827,7 @@ Copy `.env.example` → `.env`. All `RECLAW_*` settings use the `RECLAW_` prefix
 | `GEMINI_API_KEY` | Google Gemini |
 | `GOOGLE_API_KEY` | Alias for Gemini |
 | `OLLAMA_API_KEY` | Ollama Cloud |
+| `CENSUS_API_KEY` | Census ACS API (free — api.census.gov/data/key_signup.html) |
 
 ### RAG tuning
 
@@ -972,7 +1002,7 @@ cp .env.example .env   # fill in locally, never commit
 | MCP bridge not in systemd | Dies on reboot; grok.com tunnel breaks | `sudo cp deploy/reclaw-mcp-bridge.service /etc/systemd/system/ && sudo systemctl enable --now reclaw-mcp-bridge` |
 | grok.com needs public URL | Tailscale serve alone won't work for web UI | ngrok / cloudflared / Tailscale Funnel on `:8100` (see §12) |
 | RAG React dashboard not on port | No hosted RAG UI on compose | Add nginx/service for `dashboard/rag-dashboard/` |
-| Silent Auditor in daily pipeline | Code exists; Perplexity build in progress | Wire into orchestrator after researcher when ready |
+| Live Census ACS per county | `CENSUS_API_KEY` not in `.env` yet | Add key; falls back to embedded Pike census |
 | `dashboard/` gitignored | Fortress fixes only on disk | Decide: track or deploy script |
 | `commands.ownerAllowFrom` unset | OpenClaw command restrictions open | Set in openclaw.json when ready |
 | Stale `/opt/reclaw` paths in some docs | Confusion in AGENTS.md, SOUL files, tools/ | Use `/root/ReClaw-2.0`; handbook uses correct path |
@@ -988,10 +1018,14 @@ cp .env.example .env   # fill in locally, never commit
 - ✅ Multi-year budget + salary shock red-flag engine (`taxpayer_red_flags.py`)
 - ✅ Content Studio wired — 3 Shorts scripts per run, Obsidian script board
 - ✅ `data/inbox/` human upload workflow + `tools/inbox_loader.py`
+- ✅ Multi-source `local_auditor_live.py` (USASpending, Census, ProPublica, Gateway + ensemble detectors)
+- ✅ Local auditor wired in orchestrator → `silent_auditor.json` → Content Studio
+- ✅ County video queue (92-county worklist, one-at-a-time approve/reject)
+- ✅ `tools/scriptwriter.py` — 5 shorts + 8–12 min long-form per audit
 
 ### Next phases
 
-- Silent Auditor in orchestrator (Perplexity build landing)
+- Add `CENSUS_API_KEY` for live ACS on all 92 counties
 - Beacon GIS / multi-county expansion
 - Grant Hall / Job Aggregator cells in fortress
 - Full e2e swarm with visual office event bus
@@ -1003,6 +1037,9 @@ cp .env.example .env   # fill in locally, never commit
 
 | Date | Commit | Summary |
 |------|--------|---------|
+| 2026-07-05 | `387c590` | Multi-source local auditor + IsolationForest ensemble + numpy/sklearn deps |
+| 2026-07-05 | `6fe9de4` | Local auditor live + orchestrator wiring |
+| 2026-07-05 | `6b8166b` | County video queue (one-at-a-time approval gate) |
 | 2026-07-05 | `8d8abd6` | Content Studio: Shorts scripts in pipeline + Obsidian + data/inbox |
 | 2026-07-05 | `54b707c` | Multi-year budget + salary shock red-flag engine |
 | 2026-07-05 | `058c04a` | Real Indiana public data wiring (Gateway, DOR, salary) |

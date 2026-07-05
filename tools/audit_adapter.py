@@ -2,7 +2,7 @@
 Adapt ReClaw handoff packages → scriptwriter AuditResult shape.
 
 Works with AnalysisPackage / CompliancePackage red flags without requiring
-tools.local_auditor_live (Silent Auditor / Perplexity build can plug in later).
+tools.local_auditor_live multi-source audit (primary forensic source).
 """
 
 from __future__ import annotations

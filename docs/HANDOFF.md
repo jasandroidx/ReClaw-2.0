@@ -33,7 +33,9 @@ All communication between Researcher, Analyst, Orchestrator, and the Gateway use
    - tags, obsidian_filename
    - to_obsidian_frontmatter() helper for clean YAML
 
-5. **CompliancePackage** (Silent Auditor, optional)
+5. **CompliancePackage** (Local Auditor / Silent Auditor, optional)
+   - Produced by `tools/local_auditor_live.py` via orchestrator → `silent_auditor.json`
+   - Multi-source: USASpending, Census ACS, ProPublica, Gateway cache
    - red_flags[], overall_risk_score — merged into Content Studio when present
 
 ## On Disk (inside a session)

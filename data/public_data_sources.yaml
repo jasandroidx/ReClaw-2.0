@@ -56,6 +56,33 @@ indiana:
     supported_formats: [csv, txt, pdf, json, xlsx, xls]
     notes: Manifest at data/inbox/manifest.json
 
+  usaspending:
+    name: USASpending.gov API
+    url: https://api.usaspending.gov/
+    loader: tools/local_auditor_live.fetch_fed_timeseries
+    description: Federal awards/grants/contracts by county place-of-performance (no key)
+    notes: County filter uses 3-digit FIPS within state (e.g. 125 for Pike)
+
+  census_acs:
+    name: U.S. Census ACS 5-year API
+    url: https://api.census.gov/data/2022/acs/acs5
+    env_key: CENSUS_API_KEY
+    loader: tools/local_auditor_live.fetch_census
+    description: Population, median income, poverty rate per county
+
+  propublica_nonprofits:
+    name: ProPublica Nonprofit Explorer API
+    url: https://projects.propublica.org/nonprofits/api/v2
+    loader: tools/local_auditor_live.fetch_nonprofits
+    description: Local nonprofit 990 index (no key)
+
+  local_auditor:
+    name: Multi-source live county auditor
+    module: tools/local_auditor_live
+    orchestrator: agents/orchestrator._run_local_auditor
+    output: handoffs/silent_auditor.json
+    detectors: [robust_zscore, IsolationForest, benford_chi_sq, vendor_concentration, vendor_fragmentation, cross_source_contrast]
+
 corruption_detection:
   pipeline: ingestion/pipeline_budget_anomalies.py
   taxpayer_scan: tools/taxpayer_red_flags.py
