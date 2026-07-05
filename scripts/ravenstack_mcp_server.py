@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Ravenstack ingest MCP server (ORACLE spec).
+"""Ravenstack MCP — knowledge + server ops connector for Grok Build / Gemini / OpenClaw.
 
-Exposes ingest, query, reload, and vault save tools for Grok Build / OpenClaw agents.
-All knowledge I/O routes through KnowledgeManager — never direct FS writes outside vault.
+Stdio MCP server: run on the Hetzner box so any connected agent can read Ravenstack,
+search RAG, trigger pipelines, and inspect stack health. Mutations route through
+KnowledgeManager and ReClaw API (approval gates preserved).
 """
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -19,14 +21,31 @@ os.environ.setdefault("RECLAW_OBSIDIAN_VAULT_PATH", "/root/obsidian_vault")
 
 from mcp.server.fastmcp import FastMCP
 
-from core.knowledge import KnowledgeManager
 from core.config import get_settings
+from core.knowledge import KnowledgeManager
 
 mcp = FastMCP("ravenstack")
+GATEWAY = os.environ.get("RECLAW_GATEWAY_URL", "http://127.0.0.1:8000")
+GATEWAY_TOKEN = os.environ.get("RECLAW_GATEWAY_TOKEN", "")
 
 
 def _km() -> KnowledgeManager:
     return KnowledgeManager(get_settings())
+
+
+def _curl_json(method: str, path: str, body: dict | None = None, timeout: int = 300) -> str:
+    cmd = ["curl", "-sf", "-X", method, f"{GATEWAY}{path}"]
+    if GATEWAY_TOKEN:
+        cmd.extend(["-H", f"Authorization: Bearer {GATEWAY_TOKEN}"])
+    if body is not None:
+        cmd.extend(["-H", "Content-Type: application/json", "-d", json.dumps(body)])
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    if proc.returncode != 0:
+        return f"request failed: {proc.stderr or proc.stdout}"
+    try:
+        return json.dumps(json.loads(proc.stdout), indent=2)
+    except json.JSONDecodeError:
+        return proc.stdout
 
 
 @mcp.tool()
@@ -38,12 +57,39 @@ def ingest_document(source: str, content_or_path: str, auto_categorize: bool = T
 
 @mcp.tool()
 def query_knowledge(query: str, top_k: int = 5) -> str:
-    """Semantic search over Ravenstack knowledge sections."""
-    km = _km()
-    if hasattr(km, "query_rag"):
-        results = km.query_rag(query, top_k=top_k)
-        return str(results)
-    return km.get("knowledge_index.md")[:2000]
+    """Semantic RAG search over Obsidian vault + Ravenstack (citation-backed)."""
+    try:
+        from rag.client import RAGClient
+
+        client = RAGClient()
+        response = client.search(query=query, top_k=top_k, vault_only=True, min_score=0.25)
+        lines = []
+        for r in response.results:
+            cite = r.chunk.citation
+            lines.append(
+                f"[{r.score:.2f}] {r.chunk.text[:400]}...\n"
+                f"  source: {cite.source_path} ({cite.section_header or 'n/a'})"
+            )
+        return "\n\n".join(lines) if lines else "no matches"
+    except Exception as e:
+        return f"rag fallback: {_km().get('knowledge_index.md')[:1500]}\n\n(rag error: {e})"
+
+
+@mcp.tool()
+def list_knowledge_topics() -> str:
+    """List Ravenstack knowledge files and ORACLE anchors."""
+    kp = _km().knowledge_path
+    files = sorted(p.relative_to(kp).as_posix() for p in kp.rglob("*.md") if p.is_file())
+    return "\n".join(files[:80])
+
+
+@mcp.tool()
+def read_oracle(section: str = "") -> str:
+    """Read RAVENSTACK-ORACLE.md or a specific section heading."""
+    if section:
+        sec = _km().get_section("RAVENSTACK-ORACLE.md", section)
+        return f"## {sec.title}\n\n{sec.content}"
+    return _km().get("RAVENSTACK-ORACLE.md")[:8000]
 
 
 @mcp.tool()
@@ -66,6 +112,68 @@ def save_to_vault(source: str, distilled: str, potential_for: str = "revenue-loo
     """Save distilled content to Ravenstack backlog with frontmatter."""
     path = _km().save_to_backlog(source, distilled, potential_for)
     return str(path)
+
+
+@mcp.tool()
+def stack_health() -> str:
+    """Full ReClaw + OpenClaw + Ollama health snapshot."""
+    script = ROOT / "scripts" / "post-deploy-healthcheck.sh"
+    proc = subprocess.run(["bash", str(script)], cwd=str(ROOT), capture_output=True, text=True, timeout=120)
+    return (proc.stdout or "") + (proc.stderr or "")
+
+
+@mcp.tool()
+def run_rural_data(county: str = "Pike", area: str = "Winslow", write_obsidian: bool = True) -> str:
+    """Run Pike/Winslow seed pipeline synchronously via ReClaw Gateway."""
+    qs = f"county={county}&area={area}&write_obsidian={'true' if write_obsidian else 'false'}"
+    return _curl_json("POST", f"/run-sync?{qs}")
+
+
+@mcp.tool()
+def rag_vault_sync() -> str:
+    """Re-index Obsidian vault into local RAG vector store."""
+    return _curl_json("POST", "/rag/vault/sync", timeout=600)
+
+
+@mcp.tool()
+def trigger_county_job(county: str = "Pike", area: str = "Winslow") -> str:
+    """Queue background rural_data job (requires gateway token if configured)."""
+    return _curl_json("POST", f"/trigger/{county}?area={area}")
+
+
+@mcp.tool()
+def list_recent_sessions(limit: int = 5) -> str:
+    """List recent isolated session directories for audit."""
+    sessions = ROOT / "data" / "sessions"
+    if not sessions.exists():
+        return "no sessions dir"
+    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    return "\n".join(d.name for d in dirs[:limit])
+
+
+@mcp.tool()
+def connector_info() -> str:
+    """How to attach Grok Build, Gemini, or other MCP clients to this server."""
+    return """Ravenstack MCP connector (stdio — runs on Hetzner)
+
+Grok Build (already on server):
+  ~/.grok/config.toml → [mcp_servers.ravenstack]
+  Restart grok session; tools appear as ravenstack__*
+
+Gemini / other remote MCP clients:
+  1. SSH to server: ssh root@178.156.235.36
+  2. Run stdio bridge over SSH (from your PC):
+     ssh root@178.156.235.36 '/root/ReClaw-2.0/.venv/bin/python /root/ReClaw-2.0/scripts/ravenstack_mcp_server.py'
+  3. Point your MCP client at that command (Claude Desktop, Gemini CLI, etc.)
+
+Tailscale (preferred remote path):
+  Same SSH command over tailnet hostname openclaw.tail20a090.ts.net
+
+Mutations: ingest_document, save_to_vault, run_rural_data, trigger_county_job
+Reads: query_knowledge, read_oracle, stack_health, list_knowledge_topics
+
+Env: RECLAW_GATEWAY_URL, RECLAW_GATEWAY_TOKEN, RECLAW_OBSIDIAN_VAULT_PATH
+"""
 
 
 if __name__ == "__main__":

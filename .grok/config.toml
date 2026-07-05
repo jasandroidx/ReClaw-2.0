@@ -2,37 +2,52 @@
 
 [skills]
 paths = [".grok/skills"]
+bundled_skill_dirs = ["/root/.grok/bundled/skills"]
+
+[plugins]
+paths = [".grok/plugins"]
 
 [mcp_servers.ravenstack]
 command = "/root/ReClaw-2.0/.venv/bin/python"
 args = ["/root/ReClaw-2.0/scripts/ravenstack_mcp_server.py"]
-env = { RECLAW_KNOWLEDGE_PATH = "/root/obsidian_vault/Ravenstack", RECLAW_OBSIDIAN_VAULT_PATH = "/root/obsidian_vault" }
-startup_timeout_sec = 30
+startup_timeout_sec = 45
+
+[mcp_servers.ravenstack.env]
+RECLAW_KNOWLEDGE_PATH = "/root/obsidian_vault/Ravenstack"
+RECLAW_OBSIDIAN_VAULT_PATH = "/root/obsidian_vault"
+RECLAW_GATEWAY_URL = "http://127.0.0.1:8000"
+RECLAW_GATEWAY_TOKEN = "${RECLAW_GATEWAY_TOKEN}"
 
 [mcp_servers.reclaw-api]
 command = "/root/ReClaw-2.0/.venv/bin/python"
 args = ["/root/ReClaw-2.0/scripts/reclaw_api_mcp_server.py"]
-env = { RECLAW_GATEWAY_URL = "http://127.0.0.1:8000" }
-startup_timeout_sec = 20
+startup_timeout_sec = 30
+
+[mcp_servers.reclaw-api.env]
+RECLAW_GATEWAY_URL = "http://127.0.0.1:8000"
+RECLAW_GATEWAY_TOKEN = "${RECLAW_GATEWAY_TOKEN}"
 
 [mcp_servers.obsidian]
 command = "npx"
 args = ["-y", "obsidian-mcp-server"]
-env = { OBSIDIAN_VAULT_PATH = "/root/obsidian_vault" }
 startup_timeout_sec = 60
+
+[mcp_servers.obsidian.env]
+OBSIDIAN_VAULT_PATH = "/root/obsidian_vault"
 
 [mcp_servers.reclaw-fs]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-filesystem", "/root/ReClaw-2.0", "/root/obsidian_vault"]
 startup_timeout_sec = 45
 
-# Gated — enable only after approval + API key in env
 [mcp_servers.brave-search]
 enabled = false
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-brave-search"]
-env = { BRAVE_API_KEY = "${BRAVE_API_KEY}" }
 startup_timeout_sec = 45
+
+[mcp_servers.brave-search.env]
+BRAVE_API_KEY = "${BRAVE_API_KEY}"
 
 [mcp_servers.playwright]
 enabled = false

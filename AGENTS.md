@@ -146,3 +146,17 @@ This document + SOUL.md + the per-agent SOULs are the contract. Code must implem
 - **Location in repo:** /opt/reclaw/tools/clawsmith.py + skill in workspace. Part of visual_office future domain.
 
 Add routing in gateway/permission_registry.py if needed for auto-approval levels (low-risk forging).
+
+## Grok Build operator (Hetzner)
+
+Grok Build on this server is the primary infra operator. MCP connectors:
+
+| MCP | Tools |
+|-----|-------|
+| `ravenstack` | ORACLE read, RAG query, ingest, stack_health, run_rural_data |
+| `reclaw-api` | health, run_rural_data, rag_search, rag_vault_sync |
+| `reclaw-fs` | read/write repo + vault paths |
+| `obsidian` | vault notes |
+
+Remote clients (Gemini, another Grok session): SSH stdio bridge —
+`ssh root@178.156.235.36 '/root/ReClaw-2.0/.venv/bin/python /root/ReClaw-2.0/scripts/ravenstack_mcp_server.py'`

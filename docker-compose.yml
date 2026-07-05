@@ -55,6 +55,8 @@ services:
       - .env
     environment:
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+      - OLLAMA_HOST=http://127.0.0.1:8080
     volumes:
       - /root/.openclaw:/home/node/.openclaw
     network_mode: host
