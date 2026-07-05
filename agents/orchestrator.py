@@ -81,24 +81,21 @@ class Orchestrator:
         research = self.researcher.run(county=county, area=area)
         print(f"[Orchestrator] Research complete: {research.id} ({research.total_properties} props, {len(research.budgets)} budgets)")
 
-        # 2. Analyst
+        # 2. Local auditor (Gateway forensic flags → compliance handoff)
+        compliance = self._run_local_auditor(county)
+
+        # 3. Analyst
         analysis = self.analyst.run(research)
         print(f"[Orchestrator] Analysis complete: {analysis.id} | risk={analysis.overall_risk_score} | flags={len(analysis.red_flags)}")
 
-        # 3. Content Studio (Shorts scripts from red flags)
-        compliance = None
-        if self.session:
-            comp_path = self.session.handoff_dir / "silent_auditor.json"
-            if comp_path.exists():
-                from core.handoff import CompliancePackage
-                compliance = CompliancePackage.model_validate_json(comp_path.read_text())
+        # 4. Content Studio (Shorts scripts from red flags)
         studio = self.content_studio.run(research, analysis, compliance=compliance)
         print(
             f"[Orchestrator] Content Studio: {len(studio.short_scripts)} scripts "
             f"({studio.scripts_pruned} pruned)"
         )
 
-        # 4. Quality gates (from SOUL.md)
+        # 5. Quality gates (from SOUL.md)
         self._enforce_quality_gates(research, analysis)
 
         pkg = self._assemble_package(research, analysis, studio)
@@ -120,6 +117,30 @@ class Orchestrator:
         if self.session:
             self.session.log("Orchestrator pipeline complete.")
         return pkg
+
+    def _run_local_auditor(self, county: str):
+        """Run live Gateway forensic audit; write silent_auditor handoff when session exists."""
+        from tools.local_auditor_live import audit_county_by_name, to_compliance_package
+
+        try:
+            result = audit_county_by_name(county)
+            pkg = to_compliance_package(result)
+            if self.session:
+                self.session.write_handoff("silent_auditor", pkg)
+                self.session.log(
+                    f"Local auditor: {len(pkg.red_flags)} compliance flags for {county}"
+                )
+            print(
+                f"[Orchestrator] Local auditor: {len(pkg.red_flags)} flags "
+                f"(risk={pkg.overall_risk_score})"
+            )
+            return pkg
+        except Exception as e:
+            msg = f"Local auditor skipped for {county}: {e}"
+            print(f"[Orchestrator] {msg}")
+            if self.session:
+                self.session.log(msg, level="WARN")
+            return None
 
     def _enforce_quality_gates(self, research, analysis) -> None:
         """Hard gates. Abort or mark if violated."""

@@ -1,0 +1,24 @@
+# Silent Auditor rule configuration — procurement / compliance domains
+domains:
+  procurement:
+    rules:
+      - id: SPLIT_PURCHASE
+        severity: high
+        description: Purchases split to avoid bid thresholds (IC 36-1-12-19 pattern)
+        data_source: gateway_disbursements
+        params:
+          window_days: 30
+          min_combined_amount: 50000
+          single_tx_max: 49999
+  claims:
+    rules: []
+  payroll:
+    rules: []
+  revenues:
+    rules: []
+  grants:
+    rules: []
+  transparency:
+    rules: []
+  control_environment:
+    rules: []

@@ -13,7 +13,7 @@ ReClaw companion at /root/ReClaw-2.0. Gateway at http://127.0.0.1:8000 (host.doc
 - Pipeline: researcher → analyst (36 red flags, risk 10.0) → **content studio** (3 Shorts scripts) → Obsidian.
 - Vault `Rural Data/2026-07-05-pike-winslow.md` includes Short-Form Scripts section with `pending_approval`.
 - Human uploads: `data/inbox/` → `tools/inbox_loader.scan_inbox()` → `ingestion/`.
-- Silent Auditor: Perplexity build in progress; orchestrator auto-merges `silent_auditor.json` when present.
+- Local auditor: `tools/local_auditor_live.py` (Benford, dominant line, vendor concentration) wired in orchestrator → `silent_auditor.json`. Perplexity chat not required.
 - Server path: `/root/ReClaw-2.0` (not `/opt/reclaw`).
 
 ## Operating principles
