@@ -459,3 +459,42 @@ def _titles(county, flags):
         out.append(f"One Company Got HALF of {county}'s Money — Here's Who")
     out.append(f"I Audited {county}'s Entire Budget. Here's What the Data Shows.")
     return out[:5]
+
+
+def build_package(
+    result,
+    channel: str = "The Local Auditor",
+    county: str | None = None,
+    *,
+    max_shorts: int = 5,
+) -> dict:
+    """
+    Combined output: worthiness gate + long-form + shorts + distribution meta.
+    """
+    county = county or getattr(result, "county", "this county")
+    flags = getattr(result, "red_flags", result)
+    worthy, score, reasons = long_form_worthiness(result)
+    long_md, long_meta = (None, {})
+    if worthy:
+        long_md, long_meta = build_script(result, channel=channel, county=county)
+    shorts, dist = build_shorts(result, channel=channel, county=county, max_shorts=max_shorts)
+    hook_flag = sorted(flags, key=_sev_rank)[0] if flags else None
+    top_finding = hook_flag.description if hook_flag else "No flags surfaced"
+    return {
+        "county": county,
+        "worthy": worthy,
+        "worthiness_score": score,
+        "worthiness_reasons": reasons,
+        "recommendation": (
+            f"STRONG long-form (~{long_meta.get('runtime_min', 0)} min) + {len(shorts)} shorts"
+            if worthy
+            else f"Shorts only ({len(shorts)} hooks) — thin for 8+ min"
+        ),
+        "long_form": {"markdown": long_md, **long_meta} if long_md else None,
+        "shorts": shorts,
+        "distribution": dist,
+        "top_finding": top_finding,
+        "top_category": hook_flag.category if hook_flag else None,
+        "flag_count": len(flags),
+        "disclaimer": DISCLAIMER,
+    }

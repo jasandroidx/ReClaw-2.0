@@ -26,6 +26,8 @@ memory/*.md  # keep only curated; runtime in rooms/
 data/cache/
 data/inbox/*
 !data/inbox/.gitkeep
+data/county_queue/state.json
+data/county_queue/pending/
 data/rag_chroma/
 data/rag_embeddings/
 data/rag_state/

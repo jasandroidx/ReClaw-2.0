@@ -1,0 +1,966 @@
+generated_from: /root/ReClaw-2.0/data/cache/gateway_disbursements_2024.txt
+anchor: Pike
+total_counties: 92
+counties:
+- gateway_code: 63
+  name: Pike
+  fips: '18125'
+  state: IN
+  lat: 38.019
+  lon: -87.285
+  distance_from_pike_mi: 0.0
+  county_seat_hint: Pike County, IN
+  geo_push: 'Facebook: ''Pike County News'', local town groups, #PikeIndiana #IndianaTaxpayers'
+  worklist_position: 0
+- gateway_code: 87
+  name: Warrick
+  fips: '18173'
+  state: IN
+  lat: 38.099
+  lon: -87.274
+  distance_from_pike_mi: 5.6
+  county_seat_hint: Warrick County, IN
+  geo_push: 'Facebook: ''Warrick County News'', local town groups, #WarrickIndiana
+    #IndianaTaxpayers'
+  worklist_position: 1
+- gateway_code: 74
+  name: Spencer
+  fips: '18147'
+  state: IN
+  lat: 38.017
+  lon: -87.0
+  distance_from_pike_mi: 15.5
+  county_seat_hint: Spencer County, IN
+  geo_push: 'Facebook: ''Spencer County News'', local town groups, #SpencerIndiana
+    #IndianaTaxpayers'
+  worklist_position: 2
+- gateway_code: 82
+  name: Vanderburgh
+  fips: '18163'
+  state: IN
+  lat: 38.02
+  lon: -87.57
+  distance_from_pike_mi: 15.5
+  county_seat_hint: Vanderburgh County, IN
+  geo_push: 'Facebook: ''Vanderburgh County News'', local town groups, #VanderburghIndiana
+    #IndianaTaxpayers'
+  worklist_position: 3
+- gateway_code: 26
+  name: Gibson
+  fips: '18051'
+  state: IN
+  lat: 38.305
+  lon: -87.571
+  distance_from_pike_mi: 25.1
+  county_seat_hint: Gibson County, IN
+  geo_push: 'Facebook: ''Gibson County News'', local town groups, #GibsonIndiana #IndianaTaxpayers'
+  worklist_position: 4
+- gateway_code: 65
+  name: Posey
+  fips: '18129'
+  state: IN
+  lat: 38.02
+  lon: -87.785
+  distance_from_pike_mi: 27.2
+  county_seat_hint: Posey County, IN
+  geo_push: 'Facebook: ''Posey County News'', local town groups, #PoseyIndiana #IndianaTaxpayers'
+  worklist_position: 5
+- gateway_code: 19
+  name: Dubois
+  fips: '18037'
+  state: IN
+  lat: 38.376
+  lon: -86.874
+  distance_from_pike_mi: 33.3
+  county_seat_hint: Dubois County, IN
+  geo_push: 'Facebook: ''Dubois County News'', local town groups, #DuboisIndiana #IndianaTaxpayers'
+  worklist_position: 6
+- gateway_code: 62
+  name: Perry
+  fips: '18123'
+  state: IN
+  lat: 38.08
+  lon: -86.645
+  distance_from_pike_mi: 35.1
+  county_seat_hint: Perry County, IN
+  geo_push: 'Facebook: ''Perry County News'', local town groups, #PerryIndiana #IndianaTaxpayers'
+  worklist_position: 7
+- gateway_code: 42
+  name: Knox
+  fips: '18083'
+  state: IN
+  lat: 38.678
+  lon: -87.42
+  distance_from_pike_mi: 46.1
+  county_seat_hint: Knox County, IN
+  geo_push: 'Facebook: ''Knox County News'', local town groups, #KnoxIndiana #IndianaTaxpayers'
+  worklist_position: 8
+- gateway_code: 14
+  name: Daviess
+  fips: '18027'
+  state: IN
+  lat: 38.695
+  lon: -87.075
+  distance_from_pike_mi: 48.1
+  county_seat_hint: Daviess County, IN
+  geo_push: 'Facebook: ''Daviess County News'', local town groups, #DaviessIndiana
+    #IndianaTaxpayers'
+  worklist_position: 9
+- gateway_code: 13
+  name: Crawford
+  fips: '18025'
+  state: IN
+  lat: 38.29
+  lon: -86.458
+  distance_from_pike_mi: 48.7
+  county_seat_hint: Crawford County, IN
+  geo_push: 'Facebook: ''Crawford County News'', local town groups, #CrawfordIndiana
+    #IndianaTaxpayers'
+  worklist_position: 10
+- gateway_code: 51
+  name: Martin
+  fips: '18101'
+  state: IN
+  lat: 38.731
+  lon: -86.803
+  distance_from_pike_mi: 55.7
+  county_seat_hint: Martin County, IN
+  geo_push: 'Facebook: ''Martin County News'', local town groups, #MartinIndiana #IndianaTaxpayers'
+  worklist_position: 11
+- gateway_code: 59
+  name: Orange
+  fips: '18117'
+  state: IN
+  lat: 38.545
+  lon: -86.495
+  distance_from_pike_mi: 56.2
+  county_seat_hint: Orange County, IN
+  geo_push: 'Facebook: ''Orange County News'', local town groups, #OrangeIndiana #IndianaTaxpayers'
+  worklist_position: 12
+- gateway_code: 31
+  name: Harrison
+  fips: '18061'
+  state: IN
+  lat: 38.195
+  lon: -86.11
+  distance_from_pike_mi: 65.0
+  county_seat_hint: Harrison County, IN
+  geo_push: 'Facebook: ''Harrison County News'', local town groups, #HarrisonIndiana
+    #IndianaTaxpayers'
+  worklist_position: 13
+- gateway_code: 47
+  name: Lawrence
+  fips: '18093'
+  state: IN
+  lat: 38.83
+  lon: -86.485
+  distance_from_pike_mi: 70.8
+  county_seat_hint: Lawrence County, IN
+  geo_push: 'Facebook: ''Lawrence County News'', local town groups, #LawrenceIndiana
+    #IndianaTaxpayers'
+  worklist_position: 14
+- gateway_code: 28
+  name: Greene
+  fips: '18055'
+  state: IN
+  lat: 39.035
+  lon: -87.045
+  distance_from_pike_mi: 71.4
+  county_seat_hint: Greene County, IN
+  geo_push: 'Facebook: ''Greene County News'', local town groups, #GreeneIndiana #IndianaTaxpayers'
+  worklist_position: 15
+- gateway_code: 77
+  name: Sullivan
+  fips: '18153'
+  state: IN
+  lat: 39.09
+  lon: -87.415
+  distance_from_pike_mi: 74.3
+  county_seat_hint: Sullivan County, IN
+  geo_push: 'Facebook: ''Sullivan County News'', local town groups, #SullivanIndiana
+    #IndianaTaxpayers'
+  worklist_position: 16
+- gateway_code: 88
+  name: Washington
+  fips: '18175'
+  state: IN
+  lat: 38.6
+  lon: -86.105
+  distance_from_pike_mi: 75.5
+  county_seat_hint: Washington County, IN
+  geo_push: 'Facebook: ''Washington County News'', local town groups, #WashingtonIndiana
+    #IndianaTaxpayers'
+  worklist_position: 17
+- gateway_code: 22
+  name: Floyd
+  fips: '18043'
+  state: IN
+  lat: 38.315
+  lon: -85.906
+  distance_from_pike_mi: 77.7
+  county_seat_hint: Floyd County, IN
+  geo_push: 'Facebook: ''Floyd County News'', local town groups, #FloydIndiana #IndianaTaxpayers'
+  worklist_position: 18
+- gateway_code: 10
+  name: Clark
+  fips: '18019'
+  state: IN
+  lat: 38.308
+  lon: -85.76
+  distance_from_pike_mi: 85.2
+  county_seat_hint: Clark County, IN
+  geo_push: 'Facebook: ''Clark County News'', local town groups, #ClarkIndiana #IndianaTaxpayers'
+  worklist_position: 19
+- gateway_code: 53
+  name: Monroe
+  fips: '18105'
+  state: IN
+  lat: 39.165
+  lon: -86.523
+  distance_from_pike_mi: 89.2
+  county_seat_hint: Monroe County, IN
+  geo_push: 'Facebook: ''Monroe County News'', local town groups, #MonroeIndiana #IndianaTaxpayers'
+  worklist_position: 20
+- gateway_code: 36
+  name: Jackson
+  fips: '18071'
+  state: IN
+  lat: 38.907
+  lon: -86.038
+  distance_from_pike_mi: 91.2
+  county_seat_hint: Jackson County, IN
+  geo_push: 'Facebook: ''Jackson County News'', local town groups, #JacksonIndiana
+    #IndianaTaxpayers'
+  worklist_position: 21
+- gateway_code: 60
+  name: Owen
+  fips: '18119'
+  state: IN
+  lat: 39.307
+  lon: -86.838
+  distance_from_pike_mi: 92.2
+  county_seat_hint: Owen County, IN
+  geo_push: 'Facebook: ''Owen County News'', local town groups, #OwenIndiana #IndianaTaxpayers'
+  worklist_position: 22
+- gateway_code: 72
+  name: Scott
+  fips: '18143'
+  state: IN
+  lat: 38.685
+  lon: -85.745
+  distance_from_pike_mi: 95.3
+  county_seat_hint: Scott County, IN
+  geo_push: 'Facebook: ''Scott County News'', local town groups, #ScottIndiana #IndianaTaxpayers'
+  worklist_position: 23
+- gateway_code: 11
+  name: Clay
+  fips: '18021'
+  state: IN
+  lat: 39.396
+  lon: -87.11
+  distance_from_pike_mi: 95.6
+  county_seat_hint: Clay County, IN
+  geo_push: 'Facebook: ''Clay County News'', local town groups, #ClayIndiana #IndianaTaxpayers'
+  worklist_position: 24
+- gateway_code: 7
+  name: Brown
+  fips: '18013'
+  state: IN
+  lat: 39.145
+  lon: -86.23
+  distance_from_pike_mi: 96.4
+  county_seat_hint: Brown County, IN
+  geo_push: 'Facebook: ''Brown County News'', local town groups, #BrownIndiana #IndianaTaxpayers'
+  worklist_position: 25
+- gateway_code: 84
+  name: Vigo
+  fips: '18167'
+  state: IN
+  lat: 39.427
+  lon: -87.391
+  distance_from_pike_mi: 97.5
+  county_seat_hint: Vigo County, IN
+  geo_push: 'Facebook: ''Vigo County News'', local town groups, #VigoIndiana #IndianaTaxpayers'
+  worklist_position: 26
+- gateway_code: 3
+  name: Bartholomew
+  fips: '18005'
+  state: IN
+  lat: 39.201
+  lon: -85.921
+  distance_from_pike_mi: 110.0
+  county_seat_hint: Bartholomew County, IN
+  geo_push: 'Facebook: ''Bartholomew County News'', local town groups, #BartholomewIndiana
+    #IndianaTaxpayers'
+  worklist_position: 27
+- gateway_code: 67
+  name: Putnam
+  fips: '18133'
+  state: IN
+  lat: 39.575
+  lon: -86.85
+  distance_from_pike_mi: 110.0
+  county_seat_hint: Putnam County, IN
+  geo_push: 'Facebook: ''Putnam County News'', local town groups, #PutnamIndiana #IndianaTaxpayers'
+  worklist_position: 28
+- gateway_code: 55
+  name: Morgan
+  fips: '18109'
+  state: IN
+  lat: 39.481
+  lon: -86.445
+  distance_from_pike_mi: 110.7
+  county_seat_hint: Morgan County, IN
+  geo_push: 'Facebook: ''Morgan County News'', local town groups, #MorganIndiana #IndianaTaxpayers'
+  worklist_position: 29
+- gateway_code: 40
+  name: Jennings
+  fips: '18079'
+  state: IN
+  lat: 39.018
+  lon: -85.63
+  distance_from_pike_mi: 113.0
+  county_seat_hint: Jennings County, IN
+  geo_push: 'Facebook: ''Jennings County News'', local town groups, #JenningsIndiana
+    #IndianaTaxpayers'
+  worklist_position: 30
+- gateway_code: 39
+  name: Jefferson
+  fips: '18077'
+  state: IN
+  lat: 38.79
+  lon: -85.43
+  distance_from_pike_mi: 113.7
+  county_seat_hint: Jefferson County, IN
+  geo_push: 'Facebook: ''Jefferson County News'', local town groups, #JeffersonIndiana
+    #IndianaTaxpayers'
+  worklist_position: 31
+- gateway_code: 41
+  name: Johnson
+  fips: '18081'
+  state: IN
+  lat: 39.423
+  lon: -86.055
+  distance_from_pike_mi: 117.5
+  county_seat_hint: Johnson County, IN
+  geo_push: 'Facebook: ''Johnson County News'', local town groups, #JohnsonIndiana
+    #IndianaTaxpayers'
+  worklist_position: 32
+- gateway_code: 32
+  name: Hendricks
+  fips: '18063'
+  state: IN
+  lat: 39.641
+  lon: -86.515
+  distance_from_pike_mi: 119.5
+  county_seat_hint: Hendricks County, IN
+  geo_push: 'Facebook: ''Hendricks County News'', local town groups, #HendricksIndiana
+    #IndianaTaxpayers'
+  worklist_position: 33
+- gateway_code: 61
+  name: Parke
+  fips: '18121'
+  state: IN
+  lat: 39.76
+  lon: -87.205
+  distance_from_pike_mi: 120.4
+  county_seat_hint: Parke County, IN
+  geo_push: 'Facebook: ''Parke County News'', local town groups, #ParkeIndiana #IndianaTaxpayers'
+  worklist_position: 34
+- gateway_code: 83
+  name: Vermillion
+  fips: '18165'
+  state: IN
+  lat: 39.76
+  lon: -87.46
+  distance_from_pike_mi: 120.7
+  county_seat_hint: Vermillion County, IN
+  geo_push: 'Facebook: ''Vermillion County News'', local town groups, #VermillionIndiana
+    #IndianaTaxpayers'
+  worklist_position: 35
+- gateway_code: 16
+  name: Decatur
+  fips: '18031'
+  state: IN
+  lat: 39.307
+  lon: -85.501
+  distance_from_pike_mi: 131.1
+  county_seat_hint: Decatur County, IN
+  geo_push: 'Facebook: ''Decatur County News'', local town groups, #DecaturIndiana
+    #IndianaTaxpayers'
+  worklist_position: 36
+- gateway_code: 73
+  name: Shelby
+  fips: '18145'
+  state: IN
+  lat: 39.52
+  lon: -85.79
+  distance_from_pike_mi: 131.3
+  county_seat_hint: Shelby County, IN
+  geo_push: 'Facebook: ''Shelby County News'', local town groups, #ShelbyIndiana #IndianaTaxpayers'
+  worklist_position: 37
+- gateway_code: 69
+  name: Ripley
+  fips: '18137'
+  state: IN
+  lat: 39.103
+  lon: -85.265
+  distance_from_pike_mi: 132.4
+  county_seat_hint: Ripley County, IN
+  geo_push: 'Facebook: ''Ripley County News'', local town groups, #RipleyIndiana #IndianaTaxpayers'
+  worklist_position: 38
+- gateway_code: 78
+  name: Switzerland
+  fips: '18155'
+  state: IN
+  lat: 38.825
+  lon: -85.025
+  distance_from_pike_mi: 134.4
+  county_seat_hint: Switzerland County, IN
+  geo_push: 'Facebook: ''Switzerland County News'', local town groups, #SwitzerlandIndiana
+    #IndianaTaxpayers'
+  worklist_position: 39
+- gateway_code: 49
+  name: Marion
+  fips: '18097'
+  state: IN
+  lat: 39.768
+  lon: -86.158
+  distance_from_pike_mi: 135.2
+  county_seat_hint: Marion County, IN
+  geo_push: 'Facebook: ''Marion County News'', local town groups, #MarionIndiana #IndianaTaxpayers'
+  worklist_position: 40
+- gateway_code: 58
+  name: Ohio
+  fips: '18115'
+  state: IN
+  lat: 38.785
+  lon: -84.965
+  distance_from_pike_mi: 136.3
+  county_seat_hint: Ohio County, IN
+  geo_push: 'Facebook: ''Ohio County News'', local town groups, #OhioIndiana #IndianaTaxpayers'
+  worklist_position: 41
+- gateway_code: 54
+  name: Montgomery
+  fips: '18107'
+  state: IN
+  lat: 40.04
+  lon: -86.86
+  distance_from_pike_mi: 141.5
+  county_seat_hint: Montgomery County, IN
+  geo_push: 'Facebook: ''Montgomery County News'', local town groups, #MontgomeryIndiana
+    #IndianaTaxpayers'
+  worklist_position: 42
+- gateway_code: 23
+  name: Fountain
+  fips: '18045'
+  state: IN
+  lat: 40.12
+  lon: -87.243
+  distance_from_pike_mi: 145.2
+  county_seat_hint: Fountain County, IN
+  geo_push: 'Facebook: ''Fountain County News'', local town groups, #FountainIndiana
+    #IndianaTaxpayers'
+  worklist_position: 43
+- gateway_code: 30
+  name: Hancock
+  fips: '18059'
+  state: IN
+  lat: 39.783
+  lon: -85.773
+  distance_from_pike_mi: 146.5
+  county_seat_hint: Hancock County, IN
+  geo_push: 'Facebook: ''Hancock County News'', local town groups, #HancockIndiana
+    #IndianaTaxpayers'
+  worklist_position: 44
+- gateway_code: 6
+  name: Boone
+  fips: '18011'
+  state: IN
+  lat: 40.05
+  lon: -86.469
+  distance_from_pike_mi: 147.0
+  county_seat_hint: Boone County, IN
+  geo_push: 'Facebook: ''Boone County News'', local town groups, #BooneIndiana #IndianaTaxpayers'
+  worklist_position: 45
+- gateway_code: 15
+  name: Dearborn
+  fips: '18029'
+  state: IN
+  lat: 39.145
+  lon: -84.973
+  distance_from_pike_mi: 147.1
+  county_seat_hint: Dearborn County, IN
+  geo_push: 'Facebook: ''Dearborn County News'', local town groups, #DearbornIndiana
+    #IndianaTaxpayers'
+  worklist_position: 46
+- gateway_code: 70
+  name: Rush
+  fips: '18139'
+  state: IN
+  lat: 39.62
+  lon: -85.47
+  distance_from_pike_mi: 147.6
+  county_seat_hint: Rush County, IN
+  geo_push: 'Facebook: ''Rush County News'', local town groups, #RushIndiana #IndianaTaxpayers'
+  worklist_position: 47
+- gateway_code: 24
+  name: Franklin
+  fips: '18047'
+  state: IN
+  lat: 39.415
+  lon: -85.06
+  distance_from_pike_mi: 153.9
+  county_seat_hint: Franklin County, IN
+  geo_push: 'Facebook: ''Franklin County News'', local town groups, #FranklinIndiana
+    #IndianaTaxpayers'
+  worklist_position: 48
+- gateway_code: 29
+  name: Hamilton
+  fips: '18057'
+  state: IN
+  lat: 40.045
+  lon: -86.052
+  distance_from_pike_mi: 154.8
+  county_seat_hint: Hamilton County, IN
+  geo_push: 'Facebook: ''Hamilton County News'', local town groups, #HamiltonIndiana
+    #IndianaTaxpayers'
+  worklist_position: 49
+- gateway_code: 21
+  name: Fayette
+  fips: '18041'
+  state: IN
+  lat: 39.64
+  lon: -85.18
+  distance_from_pike_mi: 159.3
+  county_seat_hint: Fayette County, IN
+  geo_push: 'Facebook: ''Fayette County News'', local town groups, #FayetteIndiana
+    #IndianaTaxpayers'
+  worklist_position: 50
+- gateway_code: 86
+  name: Warren
+  fips: '18171'
+  state: IN
+  lat: 40.35
+  lon: -87.35
+  distance_from_pike_mi: 161.1
+  county_seat_hint: Warren County, IN
+  geo_push: 'Facebook: ''Warren County News'', local town groups, #WarrenIndiana #IndianaTaxpayers'
+  worklist_position: 51
+- gateway_code: 12
+  name: Clinton
+  fips: '18023'
+  state: IN
+  lat: 40.301
+  lon: -86.475
+  distance_from_pike_mi: 163.5
+  county_seat_hint: Clinton County, IN
+  geo_push: 'Facebook: ''Clinton County News'', local town groups, #ClintonIndiana
+    #IndianaTaxpayers'
+  worklist_position: 52
+- gateway_code: 33
+  name: Henry
+  fips: '18065'
+  state: IN
+  lat: 39.931
+  lon: -85.396
+  distance_from_pike_mi: 166.6
+  county_seat_hint: Henry County, IN
+  geo_push: 'Facebook: ''Henry County News'', local town groups, #HenryIndiana #IndianaTaxpayers'
+  worklist_position: 53
+- gateway_code: 79
+  name: Tippecanoe
+  fips: '18157'
+  state: IN
+  lat: 40.417
+  lon: -86.875
+  distance_from_pike_mi: 167.1
+  county_seat_hint: Tippecanoe County, IN
+  geo_push: 'Facebook: ''Tippecanoe County News'', local town groups, #TippecanoeIndiana
+    #IndianaTaxpayers'
+  worklist_position: 54
+- gateway_code: 48
+  name: Madison
+  fips: '18095'
+  state: IN
+  lat: 40.105
+  lon: -85.68
+  distance_from_pike_mi: 167.9
+  county_seat_hint: Madison County, IN
+  geo_push: 'Facebook: ''Madison County News'', local town groups, #MadisonIndiana
+    #IndianaTaxpayers'
+  worklist_position: 55
+- gateway_code: 81
+  name: Union
+  fips: '18161'
+  state: IN
+  lat: 39.625
+  lon: -84.925
+  distance_from_pike_mi: 168.7
+  county_seat_hint: Union County, IN
+  geo_push: 'Facebook: ''Union County News'', local town groups, #UnionIndiana #IndianaTaxpayers'
+  worklist_position: 56
+- gateway_code: 80
+  name: Tipton
+  fips: '18159'
+  state: IN
+  lat: 40.28
+  lon: -86.04
+  distance_from_pike_mi: 169.9
+  county_seat_hint: Tipton County, IN
+  geo_push: 'Facebook: ''Tipton County News'', local town groups, #TiptonIndiana #IndianaTaxpayers'
+  worklist_position: 57
+- gateway_code: 89
+  name: Wayne
+  fips: '18177'
+  state: IN
+  lat: 39.865
+  lon: -85.01
+  distance_from_pike_mi: 176.7
+  county_seat_hint: Wayne County, IN
+  geo_push: 'Facebook: ''Wayne County News'', local town groups, #WayneIndiana #IndianaTaxpayers'
+  worklist_position: 58
+- gateway_code: 4
+  name: Benton
+  fips: '18007'
+  state: IN
+  lat: 40.606
+  lon: -87.311
+  distance_from_pike_mi: 178.8
+  county_seat_hint: Benton County, IN
+  geo_push: 'Facebook: ''Benton County News'', local town groups, #BentonIndiana #IndianaTaxpayers'
+  worklist_position: 59
+- gateway_code: 18
+  name: Delaware
+  fips: '18035'
+  state: IN
+  lat: 40.193
+  lon: -85.396
+  distance_from_pike_mi: 181.2
+  county_seat_hint: Delaware County, IN
+  geo_push: 'Facebook: ''Delaware County News'', local town groups, #DelawareIndiana
+    #IndianaTaxpayers'
+  worklist_position: 60
+- gateway_code: 8
+  name: Carroll
+  fips: '18015'
+  state: IN
+  lat: 40.583
+  lon: -86.563
+  distance_from_pike_mi: 181.3
+  county_seat_hint: Carroll County, IN
+  geo_push: 'Facebook: ''Carroll County News'', local town groups, #CarrollIndiana
+    #IndianaTaxpayers'
+  worklist_position: 61
+- gateway_code: 34
+  name: Howard
+  fips: '18067'
+  state: IN
+  lat: 40.483
+  lon: -86.114
+  distance_from_pike_mi: 181.4
+  county_seat_hint: Howard County, IN
+  geo_push: 'Facebook: ''Howard County News'', local town groups, #HowardIndiana #IndianaTaxpayers'
+  worklist_position: 62
+- gateway_code: 91
+  name: White
+  fips: '18181'
+  state: IN
+  lat: 40.75
+  lon: -86.865
+  distance_from_pike_mi: 190.0
+  county_seat_hint: White County, IN
+  geo_push: 'Facebook: ''White County News'', local town groups, #WhiteIndiana #IndianaTaxpayers'
+  worklist_position: 63
+- gateway_code: 68
+  name: Randolph
+  fips: '18135'
+  state: IN
+  lat: 40.17
+  lon: -85.01
+  distance_from_pike_mi: 192.3
+  county_seat_hint: Randolph County, IN
+  geo_push: 'Facebook: ''Randolph County News'', local town groups, #RandolphIndiana
+    #IndianaTaxpayers'
+  worklist_position: 64
+- gateway_code: 27
+  name: Grant
+  fips: '18053'
+  state: IN
+  lat: 40.515
+  lon: -85.65
+  distance_from_pike_mi: 193.4
+  county_seat_hint: Grant County, IN
+  geo_push: 'Facebook: ''Grant County News'', local town groups, #GrantIndiana #IndianaTaxpayers'
+  worklist_position: 65
+- gateway_code: 9
+  name: Cass
+  fips: '18017'
+  state: IN
+  lat: 40.753
+  lon: -86.348
+  distance_from_pike_mi: 195.4
+  county_seat_hint: Cass County, IN
+  geo_push: 'Facebook: ''Cass County News'', local town groups, #CassIndiana #IndianaTaxpayers'
+  worklist_position: 66
+- gateway_code: 52
+  name: Miami
+  fips: '18103'
+  state: IN
+  lat: 40.762
+  lon: -86.06
+  distance_from_pike_mi: 200.5
+  county_seat_hint: Miami County, IN
+  geo_push: 'Facebook: ''Miami County News'', local town groups, #MiamiIndiana #IndianaTaxpayers'
+  worklist_position: 67
+- gateway_code: 5
+  name: Blackford
+  fips: '18009'
+  state: IN
+  lat: 40.52
+  lon: -85.325
+  distance_from_pike_mi: 202.1
+  county_seat_hint: Blackford County, IN
+  geo_push: 'Facebook: ''Blackford County News'', local town groups, #BlackfordIndiana
+    #IndianaTaxpayers'
+  worklist_position: 68
+- gateway_code: 56
+  name: Newton
+  fips: '18111'
+  state: IN
+  lat: 40.99
+  lon: -87.15
+  distance_from_pike_mi: 205.4
+  county_seat_hint: Newton County, IN
+  geo_push: 'Facebook: ''Newton County News'', local town groups, #NewtonIndiana #IndianaTaxpayers'
+  worklist_position: 69
+- gateway_code: 38
+  name: Jay
+  fips: '18075'
+  state: IN
+  lat: 40.438
+  lon: -85.006
+  distance_from_pike_mi: 206.9
+  county_seat_hint: Jay County, IN
+  geo_push: 'Facebook: ''Jay County News'', local town groups, #JayIndiana #IndianaTaxpayers'
+  worklist_position: 70
+- gateway_code: 37
+  name: Jasper
+  fips: '18073'
+  state: IN
+  lat: 41.019
+  lon: -87.12
+  distance_from_pike_mi: 207.5
+  county_seat_hint: Jasper County, IN
+  geo_push: 'Facebook: ''Jasper County News'', local town groups, #JasperIndiana #IndianaTaxpayers'
+  worklist_position: 71
+- gateway_code: 85
+  name: Wabash
+  fips: '18169'
+  state: IN
+  lat: 40.838
+  lon: -85.795
+  distance_from_pike_mi: 210.4
+  county_seat_hint: Wabash County, IN
+  geo_push: 'Facebook: ''Wabash County News'', local town groups, #WabashIndiana #IndianaTaxpayers'
+  worklist_position: 72
+- gateway_code: 66
+  name: Pulaski
+  fips: '18131'
+  state: IN
+  lat: 41.045
+  lon: -86.635
+  distance_from_pike_mi: 211.9
+  county_seat_hint: Pulaski County, IN
+  geo_push: 'Facebook: ''Pulaski County News'', local town groups, #PulaskiIndiana
+    #IndianaTaxpayers'
+  worklist_position: 73
+- gateway_code: 90
+  name: Wells
+  fips: '18179'
+  state: IN
+  lat: 40.73
+  lon: -85.22
+  distance_from_pike_mi: 217.4
+  county_seat_hint: Wells County, IN
+  geo_push: 'Facebook: ''Wells County News'', local town groups, #WellsIndiana #IndianaTaxpayers'
+  worklist_position: 74
+- gateway_code: 35
+  name: Huntington
+  fips: '18069'
+  state: IN
+  lat: 40.88
+  lon: -85.49
+  distance_from_pike_mi: 219.7
+  county_seat_hint: Huntington County, IN
+  geo_push: 'Facebook: ''Huntington County News'', local town groups, #HuntingtonIndiana
+    #IndianaTaxpayers'
+  worklist_position: 75
+- gateway_code: 1
+  name: Adams
+  fips: '18001'
+  state: IN
+  lat: 40.745
+  lon: -84.936
+  distance_from_pike_mi: 226.3
+  county_seat_hint: Adams County, IN
+  geo_push: 'Facebook: ''Adams County News'', local town groups, #AdamsIndiana #IndianaTaxpayers'
+  worklist_position: 76
+- gateway_code: 75
+  name: Starke
+  fips: '18149'
+  state: IN
+  lat: 41.28
+  lon: -86.65
+  distance_from_pike_mi: 227.8
+  county_seat_hint: Starke County, IN
+  geo_push: 'Facebook: ''Starke County News'', local town groups, #StarkeIndiana #IndianaTaxpayers'
+  worklist_position: 77
+- gateway_code: 25
+  name: Fulton
+  fips: '18049'
+  state: IN
+  lat: 41.322
+  lon: -86.263
+  distance_from_pike_mi: 234.6
+  county_seat_hint: Fulton County, IN
+  geo_push: 'Facebook: ''Fulton County News'', local town groups, #FultonIndiana #IndianaTaxpayers'
+  worklist_position: 78
+- gateway_code: 50
+  name: Marshall
+  fips: '18099'
+  state: IN
+  lat: 41.325
+  lon: -86.26
+  distance_from_pike_mi: 234.8
+  county_seat_hint: Marshall County, IN
+  geo_push: 'Facebook: ''Marshall County News'', local town groups, #MarshallIndiana
+    #IndianaTaxpayers'
+  worklist_position: 79
+- gateway_code: 92
+  name: Whitley
+  fips: '18183'
+  state: IN
+  lat: 41.14
+  lon: -85.49
+  distance_from_pike_mi: 235.9
+  county_seat_hint: Whitley County, IN
+  geo_push: 'Facebook: ''Whitley County News'', local town groups, #WhitleyIndiana
+    #IndianaTaxpayers'
+  worklist_position: 80
+- gateway_code: 43
+  name: Kosciusko
+  fips: '18085'
+  state: IN
+  lat: 41.291
+  lon: -85.86
+  distance_from_pike_mi: 238.4
+  county_seat_hint: Kosciusko County, IN
+  geo_push: 'Facebook: ''Kosciusko County News'', local town groups, #KosciuskoIndiana
+    #IndianaTaxpayers'
+  worklist_position: 81
+- gateway_code: 45
+  name: Lake
+  fips: '18089'
+  state: IN
+  lat: 41.474
+  lon: -87.349
+  distance_from_pike_mi: 238.8
+  county_seat_hint: Lake County, IN
+  geo_push: 'Facebook: ''Lake County News'', local town groups, #LakeIndiana #IndianaTaxpayers'
+  worklist_position: 82
+- gateway_code: 64
+  name: Porter
+  fips: '18127'
+  state: IN
+  lat: 41.478
+  lon: -87.069
+  distance_from_pike_mi: 239.3
+  county_seat_hint: Porter County, IN
+  geo_push: 'Facebook: ''Porter County News'', local town groups, #PorterIndiana #IndianaTaxpayers'
+  worklist_position: 83
+- gateway_code: 2
+  name: Allen
+  fips: '18003'
+  state: IN
+  lat: 41.13
+  lon: -85.13
+  distance_from_pike_mi: 243.7
+  county_seat_hint: Allen County, IN
+  geo_push: 'Facebook: ''Allen County News'', local town groups, #AllenIndiana #IndianaTaxpayers'
+  worklist_position: 84
+- gateway_code: 46
+  name: LaPorte
+  fips: '18091'
+  state: IN
+  lat: 41.607
+  lon: -86.722
+  distance_from_pike_mi: 249.7
+  county_seat_hint: LaPorte County, IN
+  geo_push: 'Facebook: ''LaPorte County News'', local town groups, #LaPorteIndiana
+    #IndianaTaxpayers'
+  worklist_position: 85
+- gateway_code: 57
+  name: Noble
+  fips: '18113'
+  state: IN
+  lat: 41.396
+  lon: -85.42
+  distance_from_pike_mi: 253.5
+  county_seat_hint: Noble County, IN
+  geo_push: 'Facebook: ''Noble County News'', local town groups, #NobleIndiana #IndianaTaxpayers'
+  worklist_position: 86
+- gateway_code: 71
+  name: St. Joseph
+  fips: '18141'
+  state: IN
+  lat: 41.616
+  lon: -86.29
+  distance_from_pike_mi: 254.1
+  county_seat_hint: St. Joseph County, IN
+  geo_push: 'Facebook: ''St. Joseph County News'', local town groups, #St.JosephIndiana
+    #IndianaTaxpayers'
+  worklist_position: 87
+- gateway_code: 20
+  name: Elkhart
+  fips: '18039'
+  state: IN
+  lat: 41.594
+  lon: -85.858
+  distance_from_pike_mi: 258.4
+  county_seat_hint: Elkhart County, IN
+  geo_push: 'Facebook: ''Elkhart County News'', local town groups, #ElkhartIndiana
+    #IndianaTaxpayers'
+  worklist_position: 88
+- gateway_code: 17
+  name: DeKalb
+  fips: '18033'
+  state: IN
+  lat: 41.396
+  lon: -85.055
+  distance_from_pike_mi: 261.7
+  county_seat_hint: DeKalb County, IN
+  geo_push: 'Facebook: ''DeKalb County News'', local town groups, #DeKalbIndiana #IndianaTaxpayers'
+  worklist_position: 89
+- gateway_code: 44
+  name: LaGrange
+  fips: '18087'
+  state: IN
+  lat: 41.645
+  lon: -85.42
+  distance_from_pike_mi: 269.4
+  county_seat_hint: LaGrange County, IN
+  geo_push: 'Facebook: ''LaGrange County News'', local town groups, #LaGrangeIndiana
+    #IndianaTaxpayers'
+  worklist_position: 90
+- gateway_code: 76
+  name: Steuben
+  fips: '18151'
+  state: IN
+  lat: 41.643
+  lon: -85.0
+  distance_from_pike_mi: 278.2
+  county_seat_hint: Steuben County, IN
+  geo_push: 'Facebook: ''Steuben County News'', local town groups, #SteubenIndiana
+    #IndianaTaxpayers'
+  worklist_position: 91

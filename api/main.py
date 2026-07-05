@@ -436,3 +436,49 @@ async def ingest_file(
         "vault_path": str(md_path),
         "message": f"Ingested via Kimi-claw ({model}). Organized note in Knowledge Vault, RAG updated, searchable in dashboard/chamber. Reload ritual for full sync."
     }
+
+
+# --- Indiana county video queue (one county → review → approve/reject → advance) ---
+
+class CountyRejectBody(BaseModel):
+    reason: str
+
+
+class CountyApproveBody(BaseModel):
+    publish_formats: list[str] | None = None
+    granted_by: str = "human"
+
+
+@app.get("/county-queue/status")
+def county_queue_status():
+    from core.county_queue import CountyQueue
+
+    return CountyQueue(settings).status()
+
+
+@app.post("/county-queue/run-next")
+def county_queue_run_next(force: bool = False):
+    """Audit one county, generate long + shorts, drop review card. Blocks if pending approval."""
+    from core.county_queue import CountyQueue
+
+    return CountyQueue(settings).run_next(force=force)
+
+
+@app.post("/county-queue/approve")
+def county_queue_approve(body: CountyApproveBody | None = None):
+    from core.county_queue import CountyQueue
+
+    body = body or CountyApproveBody()
+    return CountyQueue(settings).approve(
+        publish_formats=body.publish_formats,
+        granted_by=body.granted_by,
+    )
+
+
+@app.post("/county-queue/reject")
+def county_queue_reject(body: CountyRejectBody):
+    from core.county_queue import CountyQueue
+
+    if not body.reason.strip():
+        raise HTTPException(400, "reject reason required (logged for revisit)")
+    return CountyQueue(settings).reject(body.reason.strip())

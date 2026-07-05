@@ -73,6 +73,7 @@ This is the operational routing document for the general ReClaw 2.0 platform (wi
 
 ## Routing Rules (Gateway decides)
 - "Run Pike Winslow research package" (or any domain trigger) → full pipeline via Orchestrator: researcher → analyst → content_studio → Obsidian (default happy path for rural_data module)
+- "County video queue — next county" → `POST /county-queue/run-next` → review card in Obsidian → human `POST /county-queue/approve` or `reject` with reason → cursor advances (one county at a time, not batch)
 - "Just harvest data for Pike" → researcher only (rural_data), return ResearchPackage JSON, no Obsidian write
 - "Re-analyze existing research <id>" → load from runs/ or session, run analyst only
 - "Re-export package <id> to Obsidian" → load package, call writer (bypass gates if already approved)
