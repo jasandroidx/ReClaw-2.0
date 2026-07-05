@@ -36,15 +36,19 @@ Recommended commands (run yourself):
 tailscale status
 tailscale ip -4
 
-# Serve Gateway over Tailscale (background, survives reboots if in systemd)
-tailscale serve --bg http://127.0.0.1:8000
+# Dual-path serve: OpenClaw gateway + ReClaw API (background; survives reboots if in systemd)
+tailscale serve reset
+tailscale serve --bg --set-path=/ http://127.0.0.1:18789
+tailscale serve --bg --set-path=/reclaw http://127.0.0.1:8000
 tailscale serve status
 ```
 
 Test from this box or any Tailscale peer:
 ```bash
 curl -f http://127.0.0.1:8000/health
-# or via magic DNS
+curl -f http://127.0.0.1:18789/health
+# or via magic DNS (ReClaw API under /reclaw path)
+curl -f https://openclaw.your-tailnet.ts.net/reclaw/health
 curl -f https://openclaw.your-tailnet.ts.net/health
 ```
 

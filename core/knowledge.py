@@ -244,10 +244,11 @@ tags: [ai-agents, monetization, backlog, clawsmith, visual-dashboard]
             text = str(content_or_path)
 
         # Basic distillation (template + key extraction; replace with Ollama call in prod for smarter summary)
+        snippet = text[:500].replace("\n", " ")[:3]
         distilled = f"""# Distilled from {source}
 
 ## Extracted Principles & Tactics
-- {text[:500].replace('\n', ' ')[:3]}... (key patterns synthesized — full auto-LLM in v2)
+- {snippet}... (key patterns synthesized — full auto-LLM in v2)
 
 ## Relevance to ReClaw Empire
 - High for Clawsmith room generation, visual pixel agents, marketplace flips, content automation, rural data red flags, 24/7 revenue.
