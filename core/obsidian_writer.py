@@ -110,10 +110,30 @@ class ObsidianWriter:
         lines.append("## Research Summary\n")
         lines.append(r.summary.strip() + "\n\n")
 
+        # Multi-year budget trend
+        hist_budgets = sorted(
+            [b for b in r.budgets if "certified total" in b.entity.lower()],
+            key=lambda b: b.fiscal_year,
+        )
+        if len(hist_budgets) >= 2:
+            lines.append("## Multi-Year Budget Trend (Certified Totals)\n")
+            trend_rows = [
+                {
+                    "Year": f"FY{b.fiscal_year}",
+                    "Certified Total": f"${b.total_expenditures:,}" if b.total_expenditures else "?",
+                    "Notes": (b.notes or "")[:80],
+                }
+                for b in hist_budgets
+            ]
+            lines.append(render_table(trend_rows, ["Year", "Certified Total", "Notes"]))
+            lines.append("_Source: DOR budget certification / pike_county_totals_2022_2025.csv_\n\n")
+
         # Budget snapshot
         if r.budgets:
-            lines.append("## Budget Snapshot\n")
+            lines.append("## Budget Snapshot (Current Year Detail)\n")
             for b in r.budgets:
+                if "certified total" in b.entity.lower():
+                    continue
                 lines.append(f"**{b.entity} — FY{b.fiscal_year}**\n")
                 if b.total_revenue:
                     lines.append(f"- Revenue: ${b.total_revenue:,}")
@@ -146,9 +166,32 @@ class ObsidianWriter:
             lines.append(render_table(sample, ["Parcel", "Address", "Acres", "Assessed", "Class"]))
             lines.append("_Full list in sidecar JSON. Use for maps / deeper research._\n\n")
 
+        # Salary shock list (individual public records)
+        try:
+            from tools.public_data_loaders import load_salary_detail_records
+
+            detail = load_salary_detail_records()
+            if detail:
+                top = sorted(detail, key=lambda x: x["compensation"], reverse=True)[:12]
+                lines.append("## Salary Shock — Top Taxpayer Talking Points\n")
+                lines.append("_Public record from Indiana Gateway salary search._\n\n")
+                shock_rows = [
+                    {
+                        "Name": rec["name"],
+                        "Title": rec["job_title"],
+                        "Dept": rec["department_readable"],
+                        "Pay": f"${rec['compensation']:,}",
+                    }
+                    for rec in top
+                ]
+                lines.append(render_table(shock_rows, ["Name", "Title", "Dept", "Pay"]))
+                lines.append("")
+        except Exception:
+            pass
+
         # Salaries (if any)
         if r.salaries:
-            lines.append("## Public Payroll Highlights\n")
+            lines.append("## Public Payroll Highlights (By Department)\n")
             sal_rows = [
                 {
                     "Dept": s.department,

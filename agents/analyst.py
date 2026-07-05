@@ -28,6 +28,8 @@ from core.handoff import (
 )
 from core.security import SecurityManager
 from core.session import Session
+from tools.public_data_loaders import REPO_ROOT, load_multi_year_budget_totals, load_salary_detail_records
+from tools.taxpayer_red_flags import scan_taxpayer_red_flags
 
 
 class AnalystAgent:
@@ -66,6 +68,19 @@ class AnalystAgent:
 
         county = research.county
         area = research.primary_area
+
+        # === Taxpayer watchdog scan (multi-year budgets, salaries, disbursements) ===
+        cache_dir = REPO_ROOT / "data" / "cache"
+        if self.session:
+            sess_cache = self.session.base_dir / "sources"
+            if sess_cache.exists():
+                cache_dir = sess_cache.parent  # prefer session-adjacent cache
+        taxpayer = scan_taxpayer_red_flags(research, cache_dir=REPO_ROOT / "data" / "cache")
+        red_flags.extend(taxpayer.red_flags)
+        insights.extend(taxpayer.insights)
+        content_angles.extend(taxpayer.content_angles)
+        budget_implications.extend(taxpayer.budget_implications)
+        video_titles: list[str] = list(taxpayer.video_titles)
 
         # === DOGEGPT / Gateway excerpts (real public data signals) ===
         for excerpt in research.raw_excerpts[:8]:
@@ -195,20 +210,38 @@ class AnalystAgent:
                 )
             )
 
-        # Content angles (always produce some)
+        trend = load_multi_year_budget_totals()
+        if trend and len(trend) >= 2:
+            y0, y1 = trend[0], trend[-1]
+            if y0["amount"] > 0:
+                cum = (y1["amount"] - y0["amount"]) / y0["amount"] * 100
+                budget_implications.append(
+                    f"Certified spending {y0['year']}→{y1['year']}: {cum:+.1f}% — taxpayers should compare to their property tax bills."
+                )
+
+        # Salary shock titles for Shorts
+        salary_records = load_salary_detail_records()
+        if salary_records:
+            top = sorted(salary_records, key=lambda r: r["compensation"], reverse=True)[:5]
+            for rec in top:
+                video_titles.append(
+                    f"Taxpayers paid {rec['name']} ${rec['compensation']:,} as {rec['job_title']} in {county} County"
+                )
+
+        content_angles.extend(video_titles[:6])
+
         if not content_angles:
             content_angles = [
-                f"How {county} County's 2025 budget actually affects Winslow residents (the numbers no one reads)",
-                "Rural Indiana property under $50k — the good, the bad, and the foundation issues",
-                f"Why Pike County road crews make ${research.salaries[0].avg_salary if research.salaries else 42}k and what that means for your taxes",
+                f"How {county} County's budget grew since 2022 — the numbers no one reads",
+                f"{county} County salary transparency: who got paid the most with your tax dollars",
             ]
 
-        overall_risk = min(10.0, 2.0 + len(red_flags) * 1.8 + (1.0 if has_deficit else 0))
+        high_sev = sum(1 for f in red_flags if f.severity in ("high", "critical"))
+        overall_risk = min(10.0, 2.0 + high_sev * 2.2 + len(red_flags) * 0.6 + (1.0 if has_deficit else 0))
 
         summary = (
-            f"{county} / {area} shows the typical rural squeeze: low asset values, structural budget pressure on infrastructure, "
-            f"and wages that make it hard for working families to stay. {len(red_flags)} red flags and {len(insights)} insights extracted. "
-            "Strong material for both cautionary and 'last cheap land' style faceless content."
+            f"{county} / {area}: {len(red_flags)} taxpayer red flags ({high_sev} high/critical), "
+            f"{len(insights)} insights. Multi-year budget + public salary data wired for watchdog/Shorts content."
         )
 
         pkg = AnalysisPackage(

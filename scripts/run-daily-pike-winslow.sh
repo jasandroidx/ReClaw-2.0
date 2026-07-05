@@ -3,6 +3,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 LOG="${RECLAW_DAILY_LOG:-/var/log/reclaw-daily.log}"
+# Refresh multi-year Gateway disbursements (skip if files exist)
+./scripts/prefetch_gateway_years.sh >>"$LOG" 2>&1 || true
 {
   echo "=== $(date -Is) daily Pike/Winslow ==="
   curl -sf -X POST "http://127.0.0.1:8000/run-sync?county=Pike&area=Winslow&write_obsidian=true"

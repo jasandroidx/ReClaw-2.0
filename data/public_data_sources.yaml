@@ -50,10 +50,16 @@ indiana:
 
 corruption_detection:
   pipeline: ingestion/pipeline_budget_anomalies.py
+  taxpayer_scan: tools/taxpayer_red_flags.py
   output: ingestion/anomalies.csv
-  methods: [robust_zscore, IsolationForest, ECOD, ADTK]
+  methods: [robust_zscore, IsolationForest, ECOD, ADTK, YoY_spike, salary_shock, double_dip]
+  prefetch: scripts/prefetch_gateway_years.sh  # 2022-2025 disbursements → data/cache/
   patterns:
-    - contextual monthly spikes in department spend
-    - YoY budget jumps without policy match
-    - Benford smoke test on disbursement amounts
+    - multi-year certified budget growth vs flat population
+    - single-year budget spikes (>8% YoY)
+    - salary shock (top public paychecks)
+    - double-dip (same name, multiple compensation lines)
+    - parks vs roads fund imbalance
+    - reassessment line items (tax bill shock)
+    - Gateway disbursement swings year-over-year
     - split vendor payments (Silent Auditor RULEBOOK)

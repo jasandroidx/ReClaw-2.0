@@ -144,12 +144,12 @@ class Orchestrator:
             "budget_deficit": any((b.surplus_deficit or 0) < 0 for b in research.budgets),
         }
 
-        # Strong video titles for faceless channel (rural data / personal finance / prepping adjacent)
-        pkg.video_title_ideas = analysis.content_angles + [
-            f"Pike County Indiana 2026: The $25k House Is Real (But Here's What It Costs You)",
-            f"Why Rural Counties Are Quietly Raising Taxes While Property Values Stay Flat",
-            f"47 Acres for $124k in Southern Indiana — Would You Buy It?",
-        ]
+        pkg.video_title_ideas = list(dict.fromkeys(analysis.content_angles))[:12]
+        if len(pkg.video_title_ideas) < 4:
+            pkg.video_title_ideas.extend([
+                f"{research.county} County: where your tax dollars went (2022–2025)",
+                f"Top salaries in {research.county} County that taxpayers should see",
+            ])
 
         return pkg
 

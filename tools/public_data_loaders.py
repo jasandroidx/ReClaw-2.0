@@ -17,6 +17,24 @@ from core.handoff import BudgetData, SalaryEntry, SourceRef
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INGESTION = REPO_ROOT / "ingestion"
 
+DEPT_NAMES = {
+    "0005": "Sheriff",
+    "0061": "County Council",
+    "0068": "Commissioners",
+    "0380": "County Jail",
+    "0506": "Solid Waste",
+    "1219": "Park & Recreation",
+    "0303": "E911",
+    "0232": "Circuit Court",
+    "Highway": "Highway",
+    "EMS": "EMS",
+}
+
+
+def _dept_readable(dept: str) -> str:
+    key = dept.split()[0] if dept else ""
+    return DEPT_NAMES.get(key, dept)
+
 
 def _money(s: str) -> int | None:
     if not s:
@@ -122,6 +140,102 @@ def load_pike_budgets_from_textmode(
     return budgets, sources
 
 
+def load_multi_year_budget_totals(
+    county_label: str = "Pike County, IN",
+    department: str = "PIKE COUNTY",
+) -> list[dict]:
+    """
+    Year-by-year certified totals from ingestion/pike_county_totals_2022_2025.csv.
+    Returns [{year, amount, yoy_pct}, ...] sorted by year.
+    """
+    path = INGESTION / "pike_county_totals_2022_2025.csv"
+    if not path.exists():
+        return []
+
+    rows: list[dict] = []
+    with path.open(encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if row.get("county") != county_label or row.get("department") != department:
+                continue
+            rows.append({"year": int(row["fiscal_year"]), "amount": int(float(row["amount"]))})
+
+    rows.sort(key=lambda x: x["year"])
+    for i in range(1, len(rows)):
+        prev = rows[i - 1]["amount"]
+        if prev > 0:
+            rows[i]["yoy_pct"] = round((rows[i]["amount"] - prev) / prev * 100, 1)
+    return rows
+
+
+def load_pike_budgets_multi_year(
+    county_label: str = "Pike County, IN",
+    years: list[int] | None = None,
+) -> tuple[list[BudgetData], list[SourceRef]]:
+    """BudgetData entries for each year in totals file (county-wide certified)."""
+    series = load_multi_year_budget_totals(county_label=county_label)
+    if years:
+        series = [s for s in series if s["year"] in years]
+
+    sources = [
+        SourceRef(
+            kind="manual",
+            url="https://www.in.gov/dor/budget-and-claims/budget-orders/",
+            note="DOR certified budget totals 2022-2025 → pike_county_totals_2022_2025.csv",
+        )
+    ]
+    budgets: list[BudgetData] = []
+    for item in series:
+        note = f"Certified PIKE COUNTY total FY{item['year']}."
+        if item.get("yoy_pct") is not None:
+            note += f" YoY {item['yoy_pct']:+.1f}%."
+        budgets.append(
+            BudgetData(
+                fiscal_year=item["year"],
+                entity="Pike County (certified total)",
+                total_expenditures=item["amount"],
+                notes=note,
+                source=sources[0],
+            )
+        )
+    return budgets, sources
+
+
+def load_salary_detail_records() -> list[dict]:
+    """Individual compensation rows from SalarySearch.csv (public record)."""
+    path = INGESTION / "SalarySearch.csv"
+    if not path.exists():
+        return []
+
+    with path.open(encoding="utf-8-sig") as f:
+        rows = list(csv.reader(f))
+
+    data_start = 0
+    for i, row in enumerate(rows):
+        if row and row[0] == "Textbox6":
+            data_start = i + 1
+            break
+
+    records: list[dict] = []
+    for row in rows[data_start:]:
+        if len(row) < 6:
+            continue
+        comp = _money(row[5])
+        if comp is None or comp < 100:
+            continue
+        dept = row[2].strip()
+        records.append(
+            {
+                "name": row[1].strip().strip('"'),
+                "department": dept,
+                "department_readable": _dept_readable(dept),
+                "job_title": row[3].strip(),
+                "city": row[4].strip() if len(row) > 4 else "",
+                "compensation": comp,
+            }
+        )
+    return records
+
+
 def load_pike_salaries_from_gateway_export(
     fiscal_year: int = 2025,
     max_departments: int = 8,
@@ -159,18 +273,7 @@ def load_pike_salaries_from_gateway_export(
         comp = _money(row[5]) if len(row) > 5 else None
         if not dept or comp is None or comp < 1000:
             continue
-        key = dept.split()[0] if dept else "unknown"
-        # Normalize department codes to readable names where possible
-        dept_name = {
-            "0005": "Sheriff",
-            "0380": "County Jail",
-            "0506": "Solid Waste",
-            "1219": "Park & Recreation",
-            "0303": "E911",
-            "0232": "Circuit Court",
-            "Highway": "Highway",
-            "EMS": "EMS",
-        }.get(key, dept)
+        dept_name = _dept_readable(dept)
         by_dept[dept_name].append(comp)
 
     salaries: list[SalaryEntry] = []

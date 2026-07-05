@@ -36,8 +36,11 @@ from core.session import Session
 from tools.public_data_loaders import (
     gateway_disbursement_stats,
     load_budget_anomaly_excerpts,
+    load_multi_year_budget_totals,
     load_pike_budgets_from_textmode,
+    load_pike_budgets_multi_year,
     load_pike_salaries_from_gateway_export,
+    load_salary_detail_records,
 )
 
 
@@ -275,9 +278,22 @@ class ResearcherAgent:
         salaries: list[SalaryEntry] = []
         excerpts: list[str] = []
 
+        hist, hist_src = load_pike_budgets_multi_year(years=[2022, 2023, 2024])
+        budgets.extend(hist)
+        sources.extend(hist_src)
+
         b, b_src = load_pike_budgets_from_textmode(fiscal_year=year)
         budgets.extend(b)
-        sources.extend(b_src)
+        for src in b_src:
+            if not any(x.note == src.note for x in sources):
+                sources.append(src)
+
+        trend = load_multi_year_budget_totals()
+        for t in trend:
+            line = f"FY{t['year']} certified total: ${t['amount']:,}"
+            if t.get("yoy_pct") is not None:
+                line += f" ({t['yoy_pct']:+.1f}% YoY)"
+            excerpts.append(line)
 
         s, s_src = load_pike_salaries_from_gateway_export(fiscal_year=year)
         salaries.extend(s)
@@ -288,6 +304,14 @@ class ResearcherAgent:
         anom_ex, anom_src = load_budget_anomaly_excerpts(county=county)
         excerpts.extend(anom_ex)
         sources.extend(anom_src)
+
+        salary_records = load_salary_detail_records()
+        if salary_records:
+            top3 = sorted(salary_records, key=lambda r: r["compensation"], reverse=True)[:3]
+            for rec in top3:
+                excerpts.append(
+                    f"Top pay: {rec['name']} — {rec['job_title']} (${rec['compensation']:,})"
+                )
 
         gateway_path = self._gateway_cache_path(year)
         if not gateway_path.exists() or self.settings.use_live_fetch:
