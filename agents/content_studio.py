@@ -108,15 +108,19 @@ def _hook_for_flag(flag: RedFlag, county: str) -> str:
 
 
 def _script_body(flag: RedFlag, county: str, hook: str) -> str:
+    desc = flag.description.strip().rstrip(".")
+    evidence = flag.evidence.strip().rstrip(".")
     parts = [
         hook,
-        flag.description.rstrip("."),
-        f"Evidence: {flag.evidence.rstrip('.')}.",
-        "This is from official public records — budget orders, Gateway exports, or salary search.",
-        f"If you live in {county} County, save this and ask your officials for an explanation.",
+        f"{desc}.",
+        f"The receipt: {evidence}.",
+        "Pulled from official public records — not rumors.",
     ]
     if flag.recommended_action:
-        parts.insert(4, f"Watch for: {flag.recommended_action.rstrip('.')}.")
+        parts.append(f"Watch for: {flag.recommended_action.strip().rstrip('.')}.")
+    parts.append(
+        f"If you live in {county} County, save this and ask your officials for an explanation."
+    )
     return " ".join(parts)
 
 
