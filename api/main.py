@@ -163,8 +163,15 @@ def health():
         "env": settings.env,
         "version": "2.0.0",
         "platform": "ReClaw 2.0 (general with rural_data module)",
-        "event_model": "AgentEvent available (visual office contract)"
+        "event_model": "AgentEvent available (visual office contract)",
+        "rag": "available — POST /rag/search for semantic knowledge retrieval",
     }
+
+
+# Phase C — Document RAG pipeline
+from rag.api import router as rag_router
+
+app.include_router(rag_router)
 
 
 @app.post("/trigger/{county}", response_model=TriggerResponse)
@@ -184,7 +191,7 @@ def trigger_county(
     Simple Bearer token check (RECLAW_GATEWAY_TOKEN from .env) added for cron/systemd.
     """
     # Basic token auth (upgrade to full middleware later; matches .env)
-    token = getattr(settings, 'reclaw_gateway_token', 'supersecretchangemeinproduction1234567890abcdef')
+    token = settings.gateway_token
     expected = f"Bearer {token}"
     if authorization and authorization.strip().lower() != expected.lower():
         raise HTTPException(status_code=401, detail="Unauthorized - valid Bearer token required for automated triggers")

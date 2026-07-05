@@ -21,3 +21,4 @@ credentials/
 # Ignore generated memory and session logs that may contain tokens
 memory/dreaming/
 memory/*.md  # keep only curated; runtime in rooms/
+.venv/

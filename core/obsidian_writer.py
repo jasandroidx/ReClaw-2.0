@@ -225,7 +225,7 @@ class ObsidianWriter:
         import httpx
         import os
         settings = self.settings or get_settings()
-        token = os.getenv("KIMI_API_KEY") or os.getenv("XAI_API_KEY") or settings.reclaw_gateway_token[:20]  # fallback
+        token = os.getenv("KIMI_API_KEY") or os.getenv("XAI_API_KEY") or settings.gateway_token[:20]  # fallback
         prompt = f"""You are an Oracle-guided distiller for Ravenstack Knowledge Vault. Follow RAVENSTACK-ORACLE exactly:
 
 - ONLY high-value, actionable. No bloat, no raw text >200 words verbatim.

@@ -7,8 +7,19 @@ httpx>=0.27
 beautifulsoup4>=4.12
 pyyaml>=6.0
 python-multipart>=0.0.9
-pypdf2>=3.0.0  # For PDF extraction in ingest/Kimi pipeline
+pypdf2>=3.0.0  # PDF extraction in ingest pipeline
+groq   # free tier LLM for distillation per Oracle rules
+
+# Phase C: RAG (Document Ingestion & Retrieval) — local, no API keys
+sentence-transformers>=2.5
+chromadb>=0.4
+python-docx>=1.1
+watchdog>=3.0
+
 # For future LLM / GPU work add:
 # torch --index-url https://download.pytorch.org/whl/cu121   # only on GPU box
 # ollama
 # llama-cpp-python[server]  # or vllm when you need it
+# pytesseract>=0.3  # optional OCR — requires tesseract-ocr system package
+# Pillow>=10.0
+# pandas>=2.0

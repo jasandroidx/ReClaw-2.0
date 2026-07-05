@@ -252,6 +252,31 @@ class ForgePackage(BaseModel):
         return str(path)
 
 
+class CompliancePackage(BaseModel):
+    """
+    Output of Silent Auditor Agent.
+    Contains flagged anomalies and compliance audit results.
+    """
+    id: str = Field(default_factory=lambda: f"compliance-{uuid4().hex[:12]}")
+    county: str
+    generated_at: datetime = Field(default_factory=now_utc)
+    red_flags: list[RedFlag] = Field(default_factory=list)
+    overall_risk_score: float = Field(ge=0.0, le=10.0, default=3.0)
+    summary: str = ""
+    source_file: str | None = None
+    total_records_audited: int = 0
+
+    def to_obsidian_frontmatter(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "county": self.county,
+            "date": self.generated_at.date().isoformat(),
+            "risk_score": self.overall_risk_score,
+            "flags": len(self.red_flags),
+            "tags": ["compliance", "red-flag", "silent-auditor"],
+        }
+
+
 # CellBlueprint, AgentDesk, and ClawforgeCompiler are defined in core/cell.py (dedicated per plan.md).
 # handoff.py remains focused on ForgePackage + Obsidian patterns for handoffs from rooms.
 # Import from core.cell works cleanly now.

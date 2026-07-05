@@ -66,6 +66,43 @@ def post_deploy_healthcheck() -> str:
 
 
 @mcp.tool()
+def rag_search(query: str, top_k: int = 5, vault_only: bool = True) -> str:
+    """Semantic search across ingested Ravenstack/Obsidian knowledge."""
+    payload = json.dumps(
+        {"query": query, "top_k": top_k, "vault_only": vault_only, "min_score": 0.3}
+    )
+    proc = subprocess.run(
+        ["curl", "-sf", "-X", "POST", f"{GATEWAY}/rag/search", "-H", "Content-Type: application/json", "-d", payload],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if proc.returncode != 0:
+        return f"rag search failed: {proc.stderr or proc.stdout}"
+    try:
+        return json.dumps(json.loads(proc.stdout), indent=2)
+    except json.JSONDecodeError:
+        return proc.stdout
+
+
+@mcp.tool()
+def rag_vault_sync() -> str:
+    """Sync Obsidian vault into the local RAG vector store."""
+    proc = subprocess.run(
+        ["curl", "-sf", "-X", "POST", f"{GATEWAY}/rag/vault/sync"],
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    if proc.returncode != 0:
+        return f"vault sync failed: {proc.stderr or proc.stdout}"
+    try:
+        return json.dumps(json.loads(proc.stdout), indent=2)
+    except json.JSONDecodeError:
+        return proc.stdout
+
+
+@mcp.tool()
 def list_recent_sessions(limit: int = 5) -> str:
     """List recent isolated session directories for audit."""
     sessions = REPO / "data" / "sessions"

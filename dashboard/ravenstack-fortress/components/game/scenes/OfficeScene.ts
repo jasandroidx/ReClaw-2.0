@@ -95,9 +95,6 @@ export class OfficeScene extends Phaser.Scene {
       frameWidth: 48,
       frameHeight: 144,
     });
-
-    // Oracle room sprite (green chained eye per RAVENSTACK-ORACLE.md Step 5)
-    this.load.image("oracle_eye", "/characters/oracle_eye_48x48.png");
   }
 
   create() {
