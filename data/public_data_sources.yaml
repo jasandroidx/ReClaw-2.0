@@ -48,6 +48,14 @@ indiana:
     source: budget_certification_textmode (WINSLOW CIVIL TOWN rows)
     area_match: Winslow
 
+  human_inbox:
+    name: Human upload drop zone
+    local_path: data/inbox/
+    loader: tools/inbox_loader.scan_inbox
+    description: SCP huge CSVs/PDFs here; scan copies supported files into ingestion/
+    supported_formats: [csv, txt, pdf, json, xlsx, xls]
+    notes: Manifest at data/inbox/manifest.json
+
 corruption_detection:
   pipeline: ingestion/pipeline_budget_anomalies.py
   taxpayer_scan: tools/taxpayer_red_flags.py

@@ -83,11 +83,20 @@ docker compose up -d
 
 ## Current Implementation (MVP rural_data module)
 
-- **Researcher** (`agents/researcher/`) — pulls or loads seed data → ResearchPackage
-- **Analyst** (`agents/analyst/`) — insights + red flags + channel angles → AnalysisPackage
-- **Orchestrator** — sequences agents, quality gates, ContentPackage → Obsidian
+- **Researcher** (`agents/researcher.py`) — real Indiana public data (DOR, Gateway, salaries) → ResearchPackage
+- **Analyst** (`agents/analyst.py`) — taxpayer red flags, multi-year budget shock → AnalysisPackage
+- **Content Studio** (`agents/content_studio.py`) — 3 Shorts scripts from top flags → `short_scripts` in ContentPackage
+- **Silent Auditor** (`agents/silent_auditor.py`) — compliance flags (optional; feeds Content Studio when present)
+- **Orchestrator** — researcher → analyst → content studio → Obsidian (`pending_approval` scripts)
 - **Gateway** (`api/main.py`) — sessions, permissions, HTTP triggers, RAG router
 - **RAG** (`rag/`) — semantic search, vault sync, multi-format ingest
+
+### Upload huge data files
+
+```bash
+scp ./export.csv root@178.156.235.36:/root/ReClaw-2.0/data/inbox/
+ssh root@178.156.235.36 'cd /root/ReClaw-2.0 && PYTHONPATH=. python3 -c "from tools.inbox_loader import scan_inbox; scan_inbox()"'
+```
 
 See [AGENTS.md](AGENTS.md) for routing and [docs/HANDOFF.md](docs/HANDOFF.md) for JSON contracts.
 
@@ -100,7 +109,9 @@ See [AGENTS.md](AGENTS.md) for routing and [docs/HANDOFF.md](docs/HANDOFF.md) fo
 - `scripts/` — MCP servers, healthchecks, ingest pipeline
 - `docs/` — setup, security, architecture, **PLATFORM-HANDBOOK**
 - `data/sessions/` — per-run audit trail
-- `data/seeds/` — Pike/Winslow deterministic test data
+- `data/inbox/` — drop zone for human-uploaded CSVs/PDFs (→ `ingestion/`)
+- `data/cache/` — Gateway disbursement prefetch (2022–2025)
+- `ingestion/` — real Pike budget, salary, anomaly CSVs
 
 ## Ravenstack Fortress Dashboard
 

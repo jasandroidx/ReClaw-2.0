@@ -10,7 +10,8 @@ Core Platform (domain agnostic):
         ├── manages events (future JSON contract for visual office)
         └── invokes Orchestrator (per-domain)
               ├── Domain agents (e.g. rural_data/researcher with gate checks)
-              ├── Analyst / other specialists
+              ├── Analyst / Silent Auditor (optional)
+              ├── Content Studio (Shorts scripts from red flags)
               └── quality gates → ContentPackage
                     └── ObsidianWriter (core/obsidian_writer.py or domain channel)
 

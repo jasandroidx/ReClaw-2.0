@@ -1,7 +1,7 @@
 # ReClaw 2.0 Platform Handbook
 
 > **Single reference for everything wired, built, and running on production.**  
-> Last updated: **2026-07-05 (evening sync)** · Branch: `ravenstack` · Server: Hetzner `178.156.235.36`  
+> Last updated: **2026-07-05 (Content Studio sync)** · Branch: `ravenstack` · Server: Hetzner `178.156.235.36`  
 > **Live on GitHub:** https://github.com/jasandroidx/ReClaw-2.0/blob/ravenstack/docs/PLATFORM-HANDBOOK.md
 
 ---
@@ -42,6 +42,8 @@
 | **SSH / upload files to server** | `ssh root@178.156.235.36` or `scp -r ./files root@178.156.235.36:/root/ReClaw-2.0/` |
 | **Check if stack is healthy** | `cd /root/ReClaw-2.0 && ./scripts/post-deploy-healthcheck.sh` |
 | **Run Pike/Winslow pipeline** | `curl -sf -X POST 'http://127.0.0.1:8000/run-sync?county=Pike&area=Winslow&write_obsidian=true'` |
+| **Upload huge data dumps** | `scp file.csv root@178.156.235.36:/root/ReClaw-2.0/data/inbox/` then `PYTHONPATH=. python3 -c "from tools.inbox_loader import scan_inbox; scan_inbox()"` |
+| **Review Shorts scripts** | Vault `Rural Data/YYYY-MM-DD-pike-winslow.md` → **Short-Form Scripts (Content Studio)** (`approval_status: pending_approval`) |
 | **Search vault knowledge (RAG)** | `curl -sf -X POST http://127.0.0.1:8000/rag/search -H 'Content-Type: application/json' -d '{"query":"your question","top_k":5}'` |
 | **Re-index vault into RAG** | `curl -sf -X POST http://127.0.0.1:8000/rag/vault/sync` |
 | **Access API remotely (tailnet)** | `https://openclaw.tail20a090.ts.net/reclaw/health` |
@@ -200,6 +202,7 @@ flowchart TB
         ORCH[Orchestrator]
         RES[Researcher]
         ANA[Analyst]
+        CS[Content Studio]
         SA[Silent Auditor]
     end
 
@@ -211,8 +214,9 @@ flowchart TB
     TSERVE --> MCP
 
     API --> ORCH
-    ORCH --> RES --> ANA
-    ANA --> VAULT
+    ORCH --> RES --> ANA --> CS
+    SA -.->|optional compliance flags| CS
+    CS --> VAULT
     API --> RAG
     MCP --> API
     MCP --> VAULT
@@ -228,10 +232,11 @@ flowchart TB
 /root/ReClaw-2.0/
 ├── api/                    # FastAPI gateway (main.py)
 ├── agents/                 # Agent implementations + SOUL.md identities
-│   ├── orchestrator.py     # Sequences Researcher → Analyst
+│   ├── orchestrator.py     # Sequences Researcher → Analyst → Content Studio
 │   ├── researcher.py
 │   ├── analyst.py
-│   ├── silent_auditor.py   # Kimi integration (compliance)
+│   ├── content_studio.py   # Shorts scripts from red flags
+│   ├── silent_auditor.py   # Compliance (Perplexity build; optional in pipeline)
 │   └── <name>/SOUL.md      # Per-agent identity files
 ├── core/                   # Platform kernel
 │   ├── config.py           # Env-driven settings (RECLAW_* prefix)
@@ -267,7 +272,9 @@ flowchart TB
 ├── docker/Dockerfile
 ├── knowledge/              # Git-tracked Ravenstack knowledge (dev mirror)
 ├── data/
-│   ├── seeds/              # Pike/Winslow deterministic test data
+│   ├── inbox/              # Human drop zone → scan_inbox() → ingestion/
+│   ├── cache/              # Gateway disbursement prefetch (~30MB/year)
+│   ├── seeds/              # Fallback county test data
 │   ├── sessions/           # Per-run audit trail
 │   ├── runs/               # Completed package JSON artifacts
 │   └── rag_chroma/         # Chroma persistence (runtime)
@@ -359,11 +366,14 @@ The **rural_data** module is the first concrete domain on the general platform.
 ```
 Gateway → create_session() → SecurityManager grants
     → Orchestrator.run_county()
-        → Researcher (seeds or live_fetch)
-        → Analyst (heuristic red flags + insights)
+        → Researcher (public cache + optional live_fetch)
+        → Analyst (taxpayer red flags + insights)
+        → Content Studio (3 Shorts scripts, pending_approval)
         → Quality gates (risk_score ≤ 8 or override)
         → ContentPackage → ObsidianWriter
 ```
+
+Silent Auditor (when `handoffs/silent_auditor.json` exists) feeds extra flags into Content Studio automatically.
 
 ### Handoff contracts (`core/handoff.py`)
 
@@ -371,8 +381,10 @@ Gateway → create_session() → SecurityManager grants
 |------|------|
 | `ResearchPackage` | County data: properties, budgets, salaries |
 | `AnalysisPackage` | Red flags, insights, channel angles, risk score |
-| `ContentPackage` | Final deliverable for Obsidian + YT scripts |
-| `CompliancePackage` | Silent Auditor output (Kimi) |
+| `ContentStudioOutput` | ShortScripts + title ideas (session/handoffs/content_studio.json) |
+| `ShortScript` | One Shorts/TikTok episode: hook, script, CTA, provenance |
+| `ContentPackage` | Final deliverable for Obsidian + YT scripts (`short_scripts`, `approval_status`) |
+| `CompliancePackage` | Silent Auditor output (optional) |
 | `AgentEvent` | Visual office contract (future frontend) |
 
 ### Session artifacts
@@ -383,7 +395,7 @@ Every run creates `data/sessions/<session_id>/`:
 sessions/<id>/
 ├── task.json
 ├── soul/           # Copied SOUL.md files
-├── handoffs/       # researcher.json, analyst.json
+├── handoffs/       # researcher.json, analyst.json, content_studio.json, silent_auditor.json
 ├── approvals/      # pending/ + granted/
 └── logs/           # session.log, security.log
 ```
@@ -410,8 +422,25 @@ Written to vault subdir `Rural Data/` (configurable via `RECLAW_OBSIDIAN_SUBDIR`
 | 3 | DOGEGPT anomaly pipeline | `ingestion/anomalies.csv` |
 | 4 | Indiana Gateway disbursements | Live download → `data/cache/gateway_disbursements_*.txt` |
 | 5 | Parcel examples (until GIS wired) | Seed + Beacon GIS link |
+| 6 | Human-uploaded dumps | `data/inbox/` → `tools/inbox_loader.scan_inbox()` → `ingestion/` |
 
 Full source registry: `data/public_data_sources.yaml`
+
+### Human file upload workflow
+
+```bash
+# From your machine
+scp ./SalarySearch.csv root@178.156.235.36:/root/ReClaw-2.0/data/inbox/
+
+# On server — register + copy into ingestion/
+cd /root/ReClaw-2.0
+PYTHONPATH=. python3 -c "from tools.inbox_loader import scan_inbox; print(scan_inbox())"
+
+# Run pipeline (picks up new ingestion files)
+curl -sf -X POST 'http://127.0.0.1:8000/run-sync?county=Pike&area=Winslow&write_obsidian=true'
+```
+
+Vault output includes **Short-Form Scripts (Content Studio)** with `approval_status: pending_approval` until you approve for publish.
 
 ### Seeds vs live fetch
 
@@ -943,7 +972,7 @@ cp .env.example .env   # fill in locally, never commit
 | MCP bridge not in systemd | Dies on reboot; grok.com tunnel breaks | `sudo cp deploy/reclaw-mcp-bridge.service /etc/systemd/system/ && sudo systemctl enable --now reclaw-mcp-bridge` |
 | grok.com needs public URL | Tailscale serve alone won't work for web UI | ngrok / cloudflared / Tailscale Funnel on `:8100` (see §12) |
 | RAG React dashboard not on port | No hosted RAG UI on compose | Add nginx/service for `dashboard/rag-dashboard/` |
-| Silent Auditor runtime | Agent needs DOGEGPT data + pandas | Install deps + seed compliance data |
+| Silent Auditor in daily pipeline | Code exists; Perplexity build in progress | Wire into orchestrator after researcher when ready |
 | `dashboard/` gitignored | Fortress fixes only on disk | Decide: track or deploy script |
 | `commands.ownerAllowFrom` unset | OpenClaw command restrictions open | Set in openclaw.json when ready |
 | Stale `/opt/reclaw` paths in some docs | Confusion in AGENTS.md, SOUL files, tools/ | Use `/root/ReClaw-2.0`; handbook uses correct path |
@@ -955,11 +984,15 @@ cp .env.example .env   # fill in locally, never commit
 - ✅ GitHub MCP — enabled, 26 tools
 - ✅ PLATFORM-HANDBOOK — published on repo
 - ✅ README merge conflict — fixed
+- ✅ Real Indiana public data (Gateway, DOR, salary CSV) — not seeds for Pike
+- ✅ Multi-year budget + salary shock red-flag engine (`taxpayer_red_flags.py`)
+- ✅ Content Studio wired — 3 Shorts scripts per run, Obsidian script board
+- ✅ `data/inbox/` human upload workflow + `tools/inbox_loader.py`
 
 ### Next phases
 
-- Real live county fetchers (beyond seeds)
-- Scriptwriter agent for faceless YT episodes
+- Silent Auditor in orchestrator (Perplexity build landing)
+- Beacon GIS / multi-county expansion
 - Grant Hall / Job Aggregator cells in fortress
 - Full e2e swarm with visual office event bus
 - Income loops: ClawHub cells, monetizable output quality gates
@@ -970,6 +1003,9 @@ cp .env.example .env   # fill in locally, never commit
 
 | Date | Commit | Summary |
 |------|--------|---------|
+| 2026-07-05 | `8d8abd6` | Content Studio: Shorts scripts in pipeline + Obsidian + data/inbox |
+| 2026-07-05 | `54b707c` | Multi-year budget + salary shock red-flag engine |
+| 2026-07-05 | `058c04a` | Real Indiana public data wiring (Gateway, DOR, salary) |
 | 2026-07-05 | `79595c5` | PLATFORM-HANDBOOK + README refresh |
 | 2026-07-05 | — | GitHub auth + push; GitHub MCP enabled |
 | 2026-07-05 | `849d0de` | Unified `reclaw-platform` MCP connector (17 tools) |
@@ -1015,7 +1051,7 @@ These are intentional — runtime, secrets, or local-only:
 | `.env`, `/root/.env` | Secrets (tokens, API keys) |
 | `.venv/` | Python virtualenv (rebuild with `pip install -r requirements.txt`) |
 | `data/rag_chroma/`, `data/rag_embeddings/`, `data/rag_state/` | RAG index (rebuild via `/rag/vault/sync`) |
-| `data/runs/`, `data/sessions/` | Pipeline audit artifacts (server-only) |
+| `data/runs/`, `data/sessions/`, `data/cache/`, `data/inbox/*` | Pipeline artifacts + Gateway cache + user uploads |
 | `outputs/` | Dev Obsidian output mirror |
 | `dashboard/` | Fortress UI (gitignored; lives on server disk) |
 | `/root/.openclaw/` | OpenClaw runtime config (contains gateway token) |

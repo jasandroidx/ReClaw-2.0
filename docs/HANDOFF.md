@@ -21,19 +21,30 @@ All communication between Researcher, Analyst, Orchestrator, and the Gateway use
    - overall_risk_score (0-10)
    - summary
 
-3. **ContentPackage** (Orchestrator final)
+3. **ContentStudioOutput** (Content Studio → Orchestrator)
+   - short_scripts[] (hook, script, CTA, engagement_score, provenance)
+   - video_title_ideas[]
+   - scripts_pruned count
+
+4. **ContentPackage** (Orchestrator final)
    - research + analysis embedded
+   - short_scripts[], approval_status (`pending_approval` default)
    - key_stats, video_title_ideas
    - tags, obsidian_filename
    - to_obsidian_frontmatter() helper for clean YAML
+
+5. **CompliancePackage** (Silent Auditor, optional)
+   - red_flags[], overall_risk_score — merged into Content Studio when present
 
 ## On Disk (inside a session)
 
 ```
 data/sessions/<session-id>/
   handoffs/
-    researcher.json     # full ResearchPackage
-    analyst.json        # full AnalysisPackage
+    researcher.json       # full ResearchPackage
+    analyst.json          # full AnalysisPackage
+    content_studio.json   # ContentStudioOutput
+    silent_auditor.json   # CompliancePackage (optional)
   approvals/...
   logs/...
   soul/...
