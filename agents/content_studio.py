@@ -16,12 +16,20 @@ from core.handoff import (
     AnalysisPackage,
     CompliancePackage,
     ContentStudioOutput,
+    LongFormScript,
     RedFlag,
     ResearchPackage,
     ShortScript,
 )
 from core.security import SecurityManager
 from core.session import Session
+from tools.audit_adapter import build_audit_result
+from tools.scriptwriter import (
+    DISCLAIMER,
+    build_script,
+    build_shorts,
+    long_form_worthiness,
+)
 
 SEVERITY_SCORE = {"critical": 0.95, "high": 0.88, "medium": 0.72, "low": 0.55}
 CATEGORY_BOOST = {
@@ -212,6 +220,38 @@ def build_short_scripts(
     return scripts, pruned
 
 
+def _shorts_from_scriptwriter(
+    audit_result,
+    county: str,
+    *,
+    max_shorts: int = 5,
+) -> tuple[list[ShortScript], dict]:
+    """Map scriptwriter.build_shorts() dicts → ShortScript models."""
+    raw_shorts, dist = build_shorts(audit_result, county=f"{county} County", max_shorts=max_shorts)
+    scripts: list[ShortScript] = []
+    for idx, s in enumerate(raw_shorts):
+        beats = s.get("script") or []
+        hook = s.get("hook", "")
+        scripts.append(
+            ShortScript(
+                slug=f"{county.lower()}-{s.get('category', 'flag')}-{idx + 1}",
+                platform="shorts",
+                title=hook[:120],
+                hook=hook,
+                script="\n".join(beats) if isinstance(beats, list) else str(beats),
+                call_to_action=beats[-1] if beats else None,
+                source_flag_category=s.get("category"),
+                engagement_score=0.85 if s.get("severity") in ("critical", "high") else 0.75,
+                provenance=s.get("caption", "")[:500],
+                caption=s.get("caption"),
+                hashtags=s.get("hashtags"),
+                disclaimer=s.get("disclaimer") or DISCLAIMER,
+                beats=beats if isinstance(beats, list) else [],
+            )
+        )
+    return scripts, dist
+
+
 class ContentStudioAgent:
     """Faceless channel scriptwriter — provenance-first, no invented numbers."""
 
@@ -240,28 +280,58 @@ class ContentStudioAgent:
                     {"analysis_id": analysis.id, "county": analysis.county},
                 )
 
-        flags: list[RedFlag] = []
-        if compliance:
-            flags.extend(compliance.red_flags)
-        flags.extend(analysis.red_flags)
+        audit = build_audit_result(analysis, research=research, compliance=compliance)
+        flags = audit.red_flags
 
-        scripts, pruned = build_short_scripts(flags, analysis.county)
+        # Long-form 8-12 min script (monetization path)
+        worthy, worth_score, worth_reasons = long_form_worthiness(audit)
+        long_form: LongFormScript | None = None
+        if worthy:
+            md, meta = build_script(audit, county=audit.county)
+            long_form = LongFormScript(
+                markdown=md,
+                words=meta.get("words", 0),
+                runtime_min=meta.get("runtime_min", 0.0),
+                titles=meta.get("titles", []),
+                worthy=True,
+                worthiness_score=worth_score,
+                worthiness_reasons=worth_reasons,
+                disclaimer=meta.get("disclaimer", DISCLAIMER),
+            )
 
-        titles = [s.title for s in scripts]
+        # Vertical shorts (scriptwriter beats + legal guardrails)
+        scripts, dist = _shorts_from_scriptwriter(audit, analysis.county, max_shorts=5)
+        pruned = 0
+        if not scripts:
+            scripts, pruned = build_short_scripts(flags, analysis.county)
+
+        titles: list[str] = []
+        if long_form:
+            titles.extend(long_form.titles)
+        titles.extend(s.hook for s in scripts)
         for angle in analysis.content_angles[:6]:
             if angle and angle not in titles:
                 titles.append(angle)
+
+        parts = [f"{len(scripts)} Shorts"]
+        if long_form:
+            parts.append(f"long-form ~{long_form.runtime_min} min (score {worth_score})")
+        summary = (
+            f"Generated {' + '.join(parts)} from {len(flags)} flags. "
+            f"Worthiness: {worth_reasons[0] if worth_reasons else 'n/a'}."
+        )
+        if pruned:
+            summary += f" ({pruned} pruned below {MIN_ENGAGEMENT} engagement.)"
 
         output = ContentStudioOutput(
             county=analysis.county,
             primary_area=analysis.primary_area,
             short_scripts=scripts,
-            video_title_ideas=titles[:12],
+            long_form=long_form,
+            distribution_meta=dist,
+            video_title_ideas=list(dict.fromkeys(titles))[:12],
             scripts_pruned=pruned,
-            summary=(
-                f"Generated {len(scripts)} Shorts scripts from {len(flags)} flags "
-                f"({pruned} pruned below {MIN_ENGAGEMENT} engagement)."
-            ),
+            summary=summary,
         )
 
         if self.session:

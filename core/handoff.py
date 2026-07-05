@@ -152,11 +152,28 @@ class ShortScript(BaseModel):
     platform: Literal["tiktok", "shorts", "reels"] = "shorts"
     title: str
     hook: str
-    script: str  # 30–60s spoken text
+    script: str  # 30–60s spoken text (beats joined or prose)
     call_to_action: str | None = None
     source_flag_category: str | None = None
     engagement_score: float = Field(ge=0.0, le=1.0, default=0.75)
     provenance: str | None = None  # evidence trace from red flag
+    caption: str | None = None
+    hashtags: str | None = None
+    disclaimer: str | None = None
+    beats: list[str] = Field(default_factory=list)  # timed vertical beats
+
+
+class LongFormScript(BaseModel):
+    """8-12 min YouTube script (mid-roll ad eligible when >=8 min)."""
+    markdown: str
+    words: int = 0
+    runtime_min: float = 0.0
+    titles: list[str] = Field(default_factory=list)
+    worthy: bool = False
+    worthiness_score: int = 0
+    worthiness_reasons: list[str] = Field(default_factory=list)
+    disclaimer: str = ""
+    channel: str = "The Local Auditor"
 
 
 class ContentStudioOutput(BaseModel):
@@ -166,6 +183,8 @@ class ContentStudioOutput(BaseModel):
     primary_area: str
     generated_at: datetime = Field(default_factory=now_utc)
     short_scripts: list[ShortScript] = Field(default_factory=list)
+    long_form: LongFormScript | None = None
+    distribution_meta: dict[str, Any] = Field(default_factory=dict)
     video_title_ideas: list[str] = Field(default_factory=list)
     scripts_pruned: int = 0
     summary: str = ""
@@ -187,6 +206,7 @@ class ContentPackage(BaseModel):
     video_title_ideas: list[str] = Field(default_factory=list)
     key_stats: dict[str, Any] = Field(default_factory=dict)  # for voiceover / thumbnails
     short_scripts: list[ShortScript] = Field(default_factory=list)
+    long_form: LongFormScript | None = None
     approval_status: Literal["pending_approval", "approved", "published"] = "pending_approval"
 
     def to_obsidian_frontmatter(self) -> dict[str, Any]:
@@ -203,6 +223,10 @@ class ContentPackage(BaseModel):
             "flags": len(getattr(self.analysis, "red_flags", [])),
             "insights": len(getattr(self.analysis, "insights", [])),
             "short_scripts": len(self.short_scripts),
+            "long_form_runtime_min": (
+                self.long_form.runtime_min if self.long_form else None
+            ),
+            "long_form_worthy": self.long_form.worthy if self.long_form else False,
             "approval_status": self.approval_status,
         }
 

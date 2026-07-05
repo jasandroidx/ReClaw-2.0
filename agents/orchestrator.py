@@ -153,6 +153,7 @@ class Orchestrator:
 
         if studio:
             pkg.short_scripts = studio.short_scripts
+            pkg.long_form = studio.long_form
             pkg.video_title_ideas = list(dict.fromkeys(studio.video_title_ideas))[:12]
 
         # Derive some easy key_stats + title ideas here (orchestrator owns final polish)
@@ -162,6 +163,10 @@ class Orchestrator:
             "red_flags": len(analysis.red_flags),
             "insights": len(analysis.insights),
             "short_scripts": len(pkg.short_scripts),
+            "long_form_runtime_min": (
+                pkg.long_form.runtime_min if pkg.long_form else None
+            ),
+            "long_form_worthy": pkg.long_form.worthy if pkg.long_form else False,
             "budget_deficit": any((b.surplus_deficit or 0) < 0 for b in research.budgets),
         }
 

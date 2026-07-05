@@ -137,6 +137,10 @@ def _run_orchestrator_job(job_id: str, county: str, area: str, write_obsidian: b
             "obsidian_file": pkg.obsidian_filename,
             "risk_score": pkg.analysis.overall_risk_score,
             "short_scripts": len(pkg.short_scripts),
+            "long_form_worthy": bool(pkg.long_form and pkg.long_form.worthy),
+            "long_form_runtime_min": (
+                pkg.long_form.runtime_min if pkg.long_form else None
+            ),
             "approval_status": pkg.approval_status,
             "session_id": session.session_id,
         }
@@ -241,6 +245,10 @@ def run_sync(county: str = "Pike", area: str = "Winslow", write_obsidian: bool =
         "red_flags": len(pkg.analysis.red_flags),
         "insights": len(pkg.analysis.insights),
         "short_scripts": len(pkg.short_scripts),
+        "long_form_worthy": bool(pkg.long_form and pkg.long_form.worthy),
+        "long_form_runtime_min": (
+            pkg.long_form.runtime_min if pkg.long_form else None
+        ),
         "approval_status": pkg.approval_status,
         "session_id": session.session_id,
         "session_dir": str(session.base_dir),

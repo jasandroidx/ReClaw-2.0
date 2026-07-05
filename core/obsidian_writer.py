@@ -248,6 +248,24 @@ class ObsidianWriter:
                 lines.append(f"- {t}")
             lines.append("")
 
+        # Long-form YouTube script (8-12 min, mid-roll eligible)
+        if pkg.long_form and pkg.long_form.worthy:
+            lf = pkg.long_form
+            lines.append("## Long-Form Script (YouTube 8-12 min)\n")
+            lines.append(
+                f"_Status: **{pkg.approval_status}** · ~{lf.runtime_min} min ({lf.words} words) · "
+                f"worthiness score {lf.worthiness_score}_\n"
+            )
+            if lf.worthiness_reasons:
+                lines.append("Worthiness: " + "; ".join(lf.worthiness_reasons) + "\n")
+            if lf.titles:
+                lines.append("**Title options:**\n")
+                for t in lf.titles:
+                    lines.append(f"- {t}")
+                lines.append("")
+            lines.append(lf.markdown + "\n")
+            lines.append("---\n")
+
         # Short-form scripts (Content Studio)
         if pkg.short_scripts:
             lines.append("## Short-Form Scripts (Content Studio)\n")
@@ -263,6 +281,12 @@ class ObsidianWriter:
                 lines.append(f"**Script:**\n\n{script.script}\n")
                 if script.call_to_action:
                     lines.append(f"**CTA:** {script.call_to_action}\n")
+                if script.caption:
+                    lines.append(f"**Caption:** {script.caption}\n")
+                if script.hashtags:
+                    lines.append(f"**Hashtags:** {script.hashtags}\n")
+                if script.disclaimer:
+                    lines.append(f"_Disclaimer: {script.disclaimer}_\n")
                 if script.provenance:
                     lines.append(f"_Provenance: {script.provenance}_\n")
                 lines.append("---\n")
