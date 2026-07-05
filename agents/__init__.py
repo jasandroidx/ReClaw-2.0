@@ -7,6 +7,7 @@ Each agent directory contains:
 
 from .researcher import ResearcherAgent
 from .analyst import AnalystAgent
+from .content_studio import ContentStudioAgent
 from .orchestrator import Orchestrator
 
-__all__ = ["ResearcherAgent", "AnalystAgent", "Orchestrator"]
+__all__ = ["ResearcherAgent", "AnalystAgent", "ContentStudioAgent", "Orchestrator"]

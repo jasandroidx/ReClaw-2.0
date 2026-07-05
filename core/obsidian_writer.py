@@ -248,6 +248,25 @@ class ObsidianWriter:
                 lines.append(f"- {t}")
             lines.append("")
 
+        # Short-form scripts (Content Studio)
+        if pkg.short_scripts:
+            lines.append("## Short-Form Scripts (Content Studio)\n")
+            lines.append(f"_Status: **{pkg.approval_status}** — review before publish._\n")
+            for script in pkg.short_scripts:
+                lines.append(f"### {script.title}\n")
+                lines.append(f"- **Platform:** {script.platform}")
+                lines.append(f"- **Slug:** `{script.slug}`")
+                lines.append(f"- **Engagement score:** {script.engagement_score}")
+                if script.source_flag_category:
+                    lines.append(f"- **Source flag:** {script.source_flag_category}")
+                lines.append(f"\n**Hook:** {script.hook}\n")
+                lines.append(f"**Script:**\n\n{script.script}\n")
+                if script.call_to_action:
+                    lines.append(f"**CTA:** {script.call_to_action}\n")
+                if script.provenance:
+                    lines.append(f"_Provenance: {script.provenance}_\n")
+                lines.append("---\n")
+
         # Sources & provenance
         lines.append("## Sources & Provenance\n")
         for src in r.sources:

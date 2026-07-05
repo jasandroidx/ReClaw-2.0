@@ -44,6 +44,15 @@ This is the operational routing document for the general ReClaw 2.0 platform (wi
 - **Outputs:** AnalysisPackage (session/handoffs/analysis.json)
 - **Handoff target:** orchestrator
 
+### content_studio (rural_data)
+- **SOUL:** agents/content_studio/SOUL.md
+- **Mission:** Turn top red flags into short-form video scripts for TikTok/YouTube Shorts.
+- **Capabilities:**
+  - script_generate (low risk)
+- **Inputs:** ResearchPackage + AnalysisPackage (+ optional CompliancePackage from silent_auditor handoff)
+- **Outputs:** ContentStudioOutput (session/handoffs/content_studio.json)
+- **Routing:** Runs after `analyst` (and `silent_auditor` when present)
+
 ### orchestrator (light)
 - **Mission:** Sequence the pipeline, enforce quality gates, assemble ContentPackage, decide on publication, invoke channel writers.
 - **Capabilities:**
@@ -63,7 +72,7 @@ This is the operational routing document for the general ReClaw 2.0 platform (wi
 - **Visual:** Updates static pixel sprites on dashboard (Grant Hall FUNDING TRACKER etc.).
 
 ## Routing Rules (Gateway decides)
-- "Run Pike Winslow research package" (or any domain trigger) → full pipeline via Orchestrator (default happy path for rural_data module)
+- "Run Pike Winslow research package" (or any domain trigger) → full pipeline via Orchestrator: researcher → analyst → content_studio → Obsidian (default happy path for rural_data module)
 - "Just harvest data for Pike" → researcher only (rural_data), return ResearchPackage JSON, no Obsidian write
 - "Re-analyze existing research <id>" → load from runs/ or session, run analyst only
 - "Re-export package <id> to Obsidian" → load package, call writer (bypass gates if already approved)

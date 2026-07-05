@@ -2,7 +2,7 @@
 Light Orchestrator — ReClaw 2.0
 
 Coordinates the minimal swarm:
-    Researcher → Analyst/RedFlag → assemble ContentPackage → (optional) Obsidian write
+    Researcher → Analyst/RedFlag → Content Studio → assemble ContentPackage → (optional) Obsidian write
 
 Responsibilities:
 - Own the end-to-end flow for one county/area run.
@@ -24,6 +24,7 @@ from core.config import get_settings
 from core.handoff import ContentPackage
 from .researcher import ResearcherAgent
 from .analyst import AnalystAgent
+from .content_studio import ContentStudioAgent
 from core.obsidian_writer import ObsidianWriter
 from core.session import Session, create_session
 from core.security import SecurityManager
@@ -58,6 +59,7 @@ class Orchestrator:
         # Agents are created with the same session so they participate in isolation + security
         self.researcher = ResearcherAgent(self.settings, session=self.session)
         self.analyst = AnalystAgent(self.settings, session=self.session)
+        self.content_studio = ContentStudioAgent(self.settings, session=self.session)
         self.writer = ObsidianWriter(self.settings)
 
     def run_county(
@@ -83,10 +85,23 @@ class Orchestrator:
         analysis = self.analyst.run(research)
         print(f"[Orchestrator] Analysis complete: {analysis.id} | risk={analysis.overall_risk_score} | flags={len(analysis.red_flags)}")
 
-        # 3. Quality gates (from SOUL.md)
+        # 3. Content Studio (Shorts scripts from red flags)
+        compliance = None
+        if self.session:
+            comp_path = self.session.handoff_dir / "silent_auditor.json"
+            if comp_path.exists():
+                from core.handoff import CompliancePackage
+                compliance = CompliancePackage.model_validate_json(comp_path.read_text())
+        studio = self.content_studio.run(research, analysis, compliance=compliance)
+        print(
+            f"[Orchestrator] Content Studio: {len(studio.short_scripts)} scripts "
+            f"({studio.scripts_pruned} pruned)"
+        )
+
+        # 4. Quality gates (from SOUL.md)
         self._enforce_quality_gates(research, analysis)
 
-        pkg = self._assemble_package(research, analysis)
+        pkg = self._assemble_package(research, analysis, studio)
 
         # Persist full package (audit)
         artifact_path = self._save_run_artifact(pkg)
@@ -127,13 +142,18 @@ class Orchestrator:
             # For now we attach the note to the package via a side effect on analysis (simple).
             analysis.summary = analysis.summary + " | GATE WARNING: " + msg
 
-    def _assemble_package(self, research, analysis) -> ContentPackage:
+    def _assemble_package(self, research, analysis, studio=None) -> ContentPackage:
         pkg = ContentPackage(
             county=research.county,
             primary_area=research.primary_area,
             research=research,
             analysis=analysis,
+            approval_status="pending_approval",
         )
+
+        if studio:
+            pkg.short_scripts = studio.short_scripts
+            pkg.video_title_ideas = list(dict.fromkeys(studio.video_title_ideas))[:12]
 
         # Derive some easy key_stats + title ideas here (orchestrator owns final polish)
         pkg.key_stats = {
@@ -141,15 +161,18 @@ class Orchestrator:
             "median_assessed_value": f"${research.median_assessed:,}" if research.median_assessed else "N/A",
             "red_flags": len(analysis.red_flags),
             "insights": len(analysis.insights),
+            "short_scripts": len(pkg.short_scripts),
             "budget_deficit": any((b.surplus_deficit or 0) < 0 for b in research.budgets),
         }
 
-        pkg.video_title_ideas = list(dict.fromkeys(analysis.content_angles))[:12]
+        if not pkg.video_title_ideas:
+            pkg.video_title_ideas = list(dict.fromkeys(analysis.content_angles))[:12]
         if len(pkg.video_title_ideas) < 4:
             pkg.video_title_ideas.extend([
                 f"{research.county} County: where your tax dollars went (2022–2025)",
                 f"Top salaries in {research.county} County that taxpayers should see",
             ])
+        pkg.video_title_ideas = list(dict.fromkeys(pkg.video_title_ideas))[:12]
 
         return pkg
 

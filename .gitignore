@@ -24,6 +24,8 @@ memory/*.md  # keep only curated; runtime in rooms/
 .venv/
 # Runtime data (rebuilt on server; do not commit)
 data/cache/
+data/inbox/*
+!data/inbox/.gitkeep
 data/rag_chroma/
 data/rag_embeddings/
 data/rag_state/

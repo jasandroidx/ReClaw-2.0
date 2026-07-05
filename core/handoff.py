@@ -146,6 +146,31 @@ class AnalysisPackage(BaseModel):
     summary: str = ""
 
 
+class ShortScript(BaseModel):
+    """One short-form video idea: hook + script + title."""
+    slug: str
+    platform: Literal["tiktok", "shorts", "reels"] = "shorts"
+    title: str
+    hook: str
+    script: str  # 30–60s spoken text
+    call_to_action: str | None = None
+    source_flag_category: str | None = None
+    engagement_score: float = Field(ge=0.0, le=1.0, default=0.75)
+    provenance: str | None = None  # evidence trace from red flag
+
+
+class ContentStudioOutput(BaseModel):
+    """Handoff from Content Studio before Orchestrator final assembly."""
+    id: str = Field(default_factory=lambda: f"content-{uuid4().hex[:12]}")
+    county: str
+    primary_area: str
+    generated_at: datetime = Field(default_factory=now_utc)
+    short_scripts: list[ShortScript] = Field(default_factory=list)
+    video_title_ideas: list[str] = Field(default_factory=list)
+    scripts_pruned: int = 0
+    summary: str = ""
+
+
 class ContentPackage(BaseModel):
     """
     Final assembled package from Orchestrator.
@@ -161,6 +186,8 @@ class ContentPackage(BaseModel):
     tags: list[str] = Field(default_factory=lambda: ["rural-data", "pike", "faceless-channel"])
     video_title_ideas: list[str] = Field(default_factory=list)
     key_stats: dict[str, Any] = Field(default_factory=dict)  # for voiceover / thumbnails
+    short_scripts: list[ShortScript] = Field(default_factory=list)
+    approval_status: Literal["pending_approval", "approved", "published"] = "pending_approval"
 
     def to_obsidian_frontmatter(self) -> dict[str, Any]:
         """Frontmatter for Obsidian .md output. Matches what writer expects."""
@@ -175,6 +202,8 @@ class ContentPackage(BaseModel):
             "risk_score": getattr(self.analysis, "overall_risk_score", 5.0),
             "flags": len(getattr(self.analysis, "red_flags", [])),
             "insights": len(getattr(self.analysis, "insights", [])),
+            "short_scripts": len(self.short_scripts),
+            "approval_status": self.approval_status,
         }
 
 # Future visual office / agent frontend event contract (first-class, disk-based)
