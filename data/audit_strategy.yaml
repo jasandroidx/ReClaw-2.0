@@ -1,0 +1,81 @@
+# Audit strategy — synthesized from DOGEGPT kit + fraud-examination patterns + ReClaw stack.
+# Governs red_flag_engine, analyst, scriptwriter, county queue.
+
+philosophy:
+  - explainable_over_exotic
+  - audience_must_see_the_weird
+  - different_hook_per_county
+  - show_ask_cite_never_convict
+  - every_flag_traces_to_public_record
+
+three_pass_model:
+  pass_1_timeseries:
+    question: Did this line change over time?
+    detectors: [YoY_spike, robust_zscore, ADTK_level_shift, multi_year_growth, disbursement_swing]
+    thresholds:
+      budget_yoy_warn_pct: 8
+      budget_yoy_fury_pct: 12
+      disbursement_swing_pct: 15
+      robust_z_sigma: 3
+    patterns: [budget_spike, multi_year_growth, contextual_spike, collective_anomaly]
+
+  pass_2_cross_section:
+    question: Does this line look weird vs peers in the same year?
+    detectors: [IsolationForest, ECOD, composition_matrix, fund_imbalance]
+    note: >
+      Build department×category matrix per FY; flag outliers on totals AND mix ratios.
+      Big absolute numbers matter less than composition breaks.
+    patterns: [composition_break, fund_imbalance, statistical_anomaly, dominant_disbursement]
+
+  pass_3_cross_source:
+    question: Does the story hold across different public records?
+    sources: [gateway_disbursements, gateway_budgets, usaspending, census_acs, salary_export, propublica_990]
+    detectors: [per_capita_outlier, peer_county_ecod, federal_local_contrast, salary_vs_median]
+    patterns: [cross_source_contrast, peer_outlier, salary_shock, federal_spending_spike]
+
+procurement:
+  split_purchase:
+    statute: IC 36-1-12-19
+    rule: Multiple sub-threshold payments to same vendor summing above bid threshold
+    params:
+      single_tx_max: 49999
+      min_combined_amount: 50000
+      min_tx_count: 2
+    module: tools/split_purchase_detector.py
+
+benford:
+  apply_to: individual_disbursement_amounts
+  not_for: budget_totals
+  smoke_test_only: true
+
+video_format:
+  shorts:
+    length_sec: 30-45
+    structure: [hook_3s, countdown_top5, receipt_overlay, cta]
+    template: ingestion/video_script_template.md
+  long_form:
+    length_min: 8-12
+    structure: [hook_15s, receipts, explain, so_what, cta]
+    min_flags_for_long: 3
+  automation_chain:
+    - anomalies.csv
+    - scriptwriter.build_package
+    - content_studio
+    - human_approval_gate
+
+data_layers_per_county:
+  automated_all_92: [gateway_budgets, gateway_disbursements, usaspending, census]
+  per_county_manual: [salary_export, budget_order_pdf]
+  extractors:
+    pdf_to_csv: ingestion/extract_pike_budget.py
+    inbox: tools/inbox_loader.scan_inbox
+
+mcp_integrations:
+  primary: reclaw-platform
+  use_for:
+    - run_pike_winslow: daily content package
+    - query_knowledge: RAG citations for script context
+    - stack_health: deploy verification
+    - write_vault_file: obsidian durability
+  secondary: [reclaw-api, obsidian, github, grok_com_canva]
+  canva_use: thumbnail_and_short_visual_templates

@@ -177,6 +177,35 @@ def scan_all_red_flags(
     all_flags.extend(dg_flags)
     all_angles.extend(dg_angles)
 
+    # Layer 3b: DOGEGPT cross-section patterns (composition + collective)
+    try:
+        from tools.composition_break import detect_collective_anomalies, detect_composition_breaks
+
+        all_flags.extend(
+            detect_composition_breaks(county, gateway_code=meta.get("gateway_code"))
+        )
+        all_flags.extend(
+            detect_collective_anomalies(county, gateway_code=meta.get("gateway_code"))
+        )
+    except Exception:
+        pass
+
+    # Layer 3c: Split-purchase (IC 36-1-12-19)
+    try:
+        from tools.split_purchase_detector import detect_split_purchases
+
+        all_flags.extend(detect_split_purchases(county, year=2024, cache_dir=cache_dir))
+    except Exception:
+        pass
+
+    # Layer 3d: Statewide peer outlier
+    try:
+        from tools.county_peer_audit import detect_peer_outliers
+
+        all_flags.extend(detect_peer_outliers(county))
+    except Exception:
+        pass
+
     # Layer 4: data gaps
     all_flags.extend(_gap_flags(bundle.gaps))
 

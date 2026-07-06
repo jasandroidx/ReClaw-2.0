@@ -69,8 +69,12 @@ def _pick_hook(flags, county):
     priority = [
         "dominant_disbursement",
         "salary_shock",
+        "split_purchase",
+        "peer_outlier",
         "benford_violation",
         "vendor_concentration",
+        "composition_break",
+        "collective_anomaly",
         "federal_spending_spike",
         "budget_spike",
         "double_dip",

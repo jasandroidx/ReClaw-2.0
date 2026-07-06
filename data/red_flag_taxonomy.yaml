@@ -95,6 +95,15 @@ layers:
       - id: cross_source_contrast
         severity: medium
         description: Federal vs local vs income demographics mismatch
+      - id: peer_outlier
+        severity: high|medium
+        description: County budget or disbursements per capita outlier vs all 92 IN peers
+      - id: composition_break
+        severity: high|medium
+        description: Fund share of certified budget shifts sharply YoY (mix change)
+      - id: collective_anomaly
+        severity: medium
+        description: Multiple moderate fund spikes summing to material change (reclassification wave)
 
   procurement:
     source: agents/silent_auditor/RULEBOOK.yml
@@ -124,8 +133,12 @@ video_priority:
   # scriptwriter cold-open preference
   - dominant_disbursement
   - salary_shock
+  - split_purchase
+  - peer_outlier
   - benford_violation
   - vendor_concentration
+  - composition_break
+  - collective_anomaly
   - federal_spending_spike
   - budget_spike
   - double_dip

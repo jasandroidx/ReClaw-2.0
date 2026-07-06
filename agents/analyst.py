@@ -29,6 +29,7 @@ from core.handoff import (
 from core.security import SecurityManager
 from core.session import Session
 from tools.public_data_loaders import REPO_ROOT, load_multi_year_budget_totals, load_salary_detail_records
+from tools.red_flag_engine import scan_all_red_flags
 from tools.taxpayer_red_flags import scan_taxpayer_red_flags
 
 
@@ -75,15 +76,18 @@ class AnalystAgent:
             sess_cache = self.session.base_dir / "sources"
             if sess_cache.exists():
                 cache_dir = sess_cache.parent  # prefer session-adjacent cache
-        taxpayer = scan_taxpayer_red_flags(research, cache_dir=REPO_ROOT / "data" / "cache")
-        red_flags.extend(taxpayer.red_flags)
-        insights.extend(taxpayer.insights)
-        content_angles.extend(taxpayer.content_angles)
-        budget_implications.extend(taxpayer.budget_implications)
-        video_titles: list[str] = list(taxpayer.video_titles)
+        engine = scan_all_red_flags(research, cache_dir=REPO_ROOT / "data" / "cache")
+        red_flags.extend(engine.red_flags)
+        insights.extend(engine.insights)
+        content_angles.extend(engine.content_angles)
+        budget_implications.extend(engine.budget_implications)
+        video_titles: list[str] = list(engine.video_titles)
 
-        # === DOGEGPT / Gateway excerpts (real public data signals) ===
+        # === Supplemental excerpts not already captured by red_flag_engine ===
+        known = {f.description[:80] for f in red_flags}
         for excerpt in research.raw_excerpts[:8]:
+            if excerpt[:80] in known:
+                continue
             lower = excerpt.lower()
             severity = "medium"
             category = "budget_anomaly"
