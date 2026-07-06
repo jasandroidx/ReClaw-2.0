@@ -399,7 +399,11 @@ class ResearcherAgent:
         return pkg
 
     def _build_from_public_data(self, county: str, area: str, year: int = 2025) -> ResearchPackage:
-        """Load Pike ingestion/ caches + optional Gateway download (legacy rich path)."""
+        """Load Pike ingestion/ caches + optional Gateway download. Pike County ONLY."""
+        from tools.county_isolation import is_pike
+
+        if not is_pike(county):
+            raise ValueError(f"_build_from_public_data is Pike-only; got {county}")
         sources: list[SourceRef] = []
         budgets: list[BudgetData] = []
         salaries: list[SalaryEntry] = []

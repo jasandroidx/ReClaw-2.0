@@ -81,16 +81,38 @@ def fetch_county_data(
     if not budgets:
         bundle.gaps.append("Gateway certified budget rows missing for this county/year")
 
+    salary_year = max(years)
     salaries, s_src, records = load_county_salaries(
-        name, gateway_code=gateway_code, year=max(years)
+        name, gateway_code=gateway_code, year=salary_year
     )
+    if not records:
+        try:
+            from tools.gateway_salary_export import export_county_salary
+
+            _, export_msg = export_county_salary(
+                name, gateway_code=gateway_code, year=salary_year
+            )
+            salaries, s_src, records = load_county_salaries(
+                name, gateway_code=gateway_code, year=salary_year
+            )
+            if records:
+                bundle.sources.append(
+                    SourceRef(
+                        kind="web",
+                        url="https://gateway.ifionline.org/report_builder/Default3a.aspx",
+                        note=export_msg,
+                    )
+                )
+        except Exception as e:
+            bundle.gaps.append(f"Gateway salary auto-export failed: {e}")
+
     bundle.salaries = salaries
     bundle.salary_records = records
     bundle.sources.extend(s_src)
     if not records:
         bundle.gaps.append(
-            f"Salary export not cached — export from Gateway Employee Compensation "
-            f"→ data/cache/salaries/salary_{gateway_code}_{max(years)}.csv"
+            f"Salary export missing for {name} — "
+            f"data/cache/salaries/salary_{gateway_code}_{salary_year}.csv"
         )
 
     cache_dir = REPO_ROOT / "data" / "cache"

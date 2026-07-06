@@ -100,15 +100,18 @@ def _dogegpt_flags(county: str) -> tuple[list[RedFlag], list[str], int]:
                     angles.append(row["script_line"])
         return flags, angles, n
     except Exception:
-        # Fallback: pre-computed anomalies.csv filtered by county
+        from tools.county_isolation import anomalies_csv_for
+
         excerpts, _ = load_budget_anomaly_excerpts(county=county)
+        evidence_file = anomalies_csv_for(county)
+        evidence = evidence_file.name if evidence_file else f"anomalies_{county.lower()}.csv (missing)"
         for line in excerpts:
             flags.append(
                 RedFlag(
                     severity="high" if "ECOD" in line or "IsolationForest" in line else "medium",
                     category="statistical_anomaly",
                     description=line,
-                    evidence="ingestion/anomalies.csv",
+                    evidence=f"DOGEGPT → {evidence}",
                     recommended_action="Verify fund lines in Gateway budget export.",
                 )
             )

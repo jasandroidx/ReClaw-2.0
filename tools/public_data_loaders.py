@@ -147,10 +147,12 @@ def load_multi_year_budget_totals(
     gateway_code: int | None = None,
 ) -> list[dict]:
     """
-    Year-by-year certified totals. Prefers Gateway budget file (all counties);
-    falls back to ingestion/pike_county_totals_2022_2025.csv for Pike.
+    Year-by-year certified totals from statewide Gateway cache (all 92 counties).
+    Pike ingestion/pike_county_totals_2022_2025.csv is used ONLY when county is Pike.
     """
-    short = county_label.replace(" County, IN", "").replace(" County", "").strip()
+    from tools.county_isolation import is_pike, normalize_county
+
+    short = normalize_county(county_label.replace(", IN", ""))
     try:
         from tools.indiana_county_budget import load_county_budget_totals_series
 
@@ -160,15 +162,19 @@ def load_multi_year_budget_totals(
     except Exception:
         pass
 
+    if not is_pike(short):
+        return []
+
     dept = department or f"{short.upper()} COUNTY"
     path = INGESTION / "pike_county_totals_2022_2025.csv"
     if not path.exists():
         return []
 
+    label = f"{short} County, IN"
     rows: list[dict] = []
     with path.open(encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            if row.get("county") != county_label or row.get("department") != dept:
+            if row.get("county") != label or row.get("department") != dept:
                 continue
             rows.append({"year": int(row["fiscal_year"]), "amount": int(float(row["amount"]))})
 
@@ -237,7 +243,7 @@ def load_pike_budgets_multi_year(
 
 
 def load_salary_detail_records() -> list[dict]:
-    """Individual compensation rows from SalarySearch.csv (public record)."""
+    """Pike-only: ingestion/SalarySearch.csv. Other counties must use load_salary_detail_records_for_county."""
     path = INGESTION / "SalarySearch.csv"
     if not path.exists():
         return []
@@ -333,10 +339,14 @@ def load_pike_salaries_from_gateway_export(
 
 
 def load_budget_anomaly_excerpts(county: str = "Pike") -> tuple[list[str], list[SourceRef]]:
-    """Pull pre-computed anomaly script lines from county or global anomalies CSV."""
-    county_path = INGESTION / f"anomalies_{county.lower()}.csv"
-    path = county_path if county_path.exists() else INGESTION / "anomalies.csv"
-    if not path.exists():
+    """Pull anomaly script lines from anomalies_{county}.csv only (never Pike global for others)."""
+    from tools.county_isolation import anomalies_csv_for, is_pike, normalize_county
+
+    name = normalize_county(county)
+    path = anomalies_csv_for(name)
+    if not path and is_pike(name):
+        path = INGESTION / "anomalies.csv"
+    if not path or not path.exists():
         return [], []
 
     excerpts: list[str] = []

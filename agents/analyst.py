@@ -218,7 +218,13 @@ class AnalystAgent:
                 )
             )
 
-        trend = load_multi_year_budget_totals()
+        from tools.county_data_fetch import resolve_county
+
+        _meta = resolve_county(county) or {}
+        trend = load_multi_year_budget_totals(
+            county_label=f"{county} County, IN",
+            gateway_code=_meta.get("gateway_code"),
+        )
         if trend and len(trend) >= 2:
             y0, y1 = trend[0], trend[-1]
             if y0["amount"] > 0:
@@ -228,11 +234,8 @@ class AnalystAgent:
                 )
 
         # Salary shock titles for Shorts (county-specific cache only — no cross-county fallback)
-        from tools.county_data_fetch import resolve_county
-
-        meta = resolve_county(county) or {}
         salary_records = load_salary_detail_records_for_county(
-            county, gateway_code=meta.get("gateway_code")
+            county, gateway_code=_meta.get("gateway_code")
         )
         if salary_records:
             top = sorted(salary_records, key=lambda r: r["compensation"], reverse=True)[:5]

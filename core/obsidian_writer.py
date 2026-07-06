@@ -126,7 +126,7 @@ class ObsidianWriter:
                 for b in hist_budgets
             ]
             lines.append(render_table(trend_rows, ["Year", "Certified Total", "Notes"]))
-            lines.append("_Source: DOR budget certification / pike_county_totals_2022_2025.csv_\n\n")
+            lines.append("_Source: Indiana Gateway certified budget totals_\n\n")
 
         # Budget snapshot
         if r.budgets:
@@ -170,7 +170,12 @@ class ObsidianWriter:
         try:
             from tools.public_data_loaders import load_salary_detail_records_for_county
 
-            detail = load_salary_detail_records_for_county(pkg.county)
+            from tools.county_data_fetch import resolve_county
+
+            _meta = resolve_county(pkg.county) or {}
+            detail = load_salary_detail_records_for_county(
+                pkg.county, gateway_code=_meta.get("gateway_code")
+            )
             if detail:
                 top = sorted(detail, key=lambda x: x["compensation"], reverse=True)[:12]
                 lines.append("## Salary Shock — Top Taxpayer Talking Points\n")

@@ -32,15 +32,18 @@ def _salary_cache_path(gateway_code: int, year: int) -> Path:
 
 
 def _candidate_paths(county_name: str, gateway_code: int, year: int) -> list[Path]:
-    name = county_name.replace(" County", "").strip()
-    return [
+    from tools.county_isolation import is_pike, normalize_county, salary_inbox_candidates
+
+    name = normalize_county(county_name)
+    paths: list[Path] = [
         _salary_cache_path(gateway_code, year),
         INGESTION / f"{name}_SalarySearch.csv",
         INGESTION / f"{name.lower()}_salary_{year}.csv",
-        INGESTION / "SalarySearch.csv" if name.lower() == "pike" else Path("/nonexistent"),
-        REPO_ROOT / "data" / "inbox" / f"{name}_SalarySearch.csv",
-        REPO_ROOT / "data" / "inbox" / "SalarySearch.csv",
     ]
+    paths.extend(salary_inbox_candidates(name))
+    if is_pike(name):
+        paths.append(INGESTION / "SalarySearch.csv")
+    return paths
 
 
 def parse_salary_export(path: Path) -> list[dict]:
