@@ -98,10 +98,15 @@ def run_county_anomalies(
     if not csv_path:
         return None, 0
 
-    repo = REPO_ROOT
-    sys.path.insert(0, str(repo / "ingestion"))
-    from pipeline_budget_anomalies import run_pipeline
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "pipeline_budget_anomalies",
+        INGESTION / "pipeline_budget_anomalies.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
 
     out = out_path or (INGESTION / f"anomalies_{county.lower()}.csv")
-    n = run_pipeline(csv_path, out, county=county)
+    n = mod.run_pipeline(csv_path, out, county=county)
     return out, n

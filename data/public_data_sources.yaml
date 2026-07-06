@@ -83,9 +83,23 @@ indiana:
     output: handoffs/silent_auditor.json
     detectors: [robust_zscore, IsolationForest, benford_chi_sq, vendor_concentration, vendor_fragmentation, cross_source_contrast]
 
+  dogegpt_upload:
+    name: DOGEGPT user kit (Jason upload 2026-06-15)
+    upload_path: /root/DOGEGPT-20260615T020114Z-3-001
+    symlink: ingestion/dogegpt_upload
+    manifest: data/dogegpt_ingest_manifest.json
+    ingest_script: scripts/ingest_dogegpt_upload.sh
+    notes: Selective ingest only — credentials and reference books excluded
+
+  pike_budget_pdfs:
+    name: Pike County DOR budget orders + audit PDF
+    local_path: data/sources/indiana/pike/
+    extractor: ingestion/extract_pike_budget.py
+
 corruption_detection:
   pipeline: ingestion/pipeline_budget_anomalies.py
   taxpayer_scan: tools/taxpayer_red_flags.py
+  red_flag_engine: tools/red_flag_engine.py
   output: ingestion/anomalies.csv
   methods: [robust_zscore, IsolationForest, ECOD, ADTK, YoY_spike, salary_shock, double_dip]
   prefetch: scripts/prefetch_gateway_years.sh  # 2022-2025 disbursements → data/cache/

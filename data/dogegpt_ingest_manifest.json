@@ -1,0 +1,39 @@
+{
+  "reviewed_at": "2026-07-06T02:40:38.491724+00:00",
+  "upload_path": "/root/DOGEGPT-20260615T020114Z-3-001",
+  "upload_size_bytes": 93635707,
+  "file_count": 40,
+  "ingested": {
+    "pike_csvs": [
+      "ingestion/pike_budget_textmode.csv",
+      "ingestion/pike_county_totals_2022_2025.csv"
+    ],
+    "pipeline": "ingestion/pipeline_budget_anomalies.py",
+    "extractor": "ingestion/extract_pike_budget.py",
+    "templates": [
+      "ingestion/video_script_template.md",
+      "ingestion/budget_anomaly_video_strategy.txt",
+      "ingestion/data_schema.csv"
+    ],
+    "pike_pdfs": "data/sources/indiana/pike/",
+    "anomalies": [
+      "ingestion/anomalies.csv",
+      "ingestion/anomalies_pike_funds.csv"
+    ],
+    "upload_symlink": "ingestion/dogegpt_upload"
+  },
+  "skipped": {
+    "credentials": "Data/.ebaycreds \u2014 never ingest",
+    "reference_books": "Context/Pertinant Info/ \u2014 copyright bloat, duplicates in ingestion/",
+    "duplicates": [
+      "DOGEGPT_AD_STARTER/ (copy of root kit)",
+      "anomaly-detection-resources-master/ (already in ingestion/)"
+    ],
+    "empty_dirs": [
+      "Scripts/",
+      "Context/Watchdog Reports/",
+      "Data/Indiana/Pike/Estimates/"
+    ]
+  },
+  "pipeline_note": "Full AD_STARTER pipeline (ECOD, IsolationForest, robust z, ADTK) replaces simplified ReClaw stub; county-equal Gateway build via --county"
+}
