@@ -1,0 +1,40 @@
+# Known audit / content pipeline mistakes — fix one by one, never repeat.
+# Each entry: what happened, root cause, fix status, content rule learned.
+
+mistakes:
+  - id: bleed-pike-salary-2026-07-06
+    county_affected: [Spencer, Warrick, all non-Pike before fix]
+    symptom: "Wood Brett paramedic $92K" or lifeguard vs sheriff contrast on wrong county
+    root_cause: load_salary_detail_records_for_county fell back to ingestion/SalarySearch.csv (Pike only)
+    fix: tools/county_isolation.py + no cross-county fallback (e9f087c)
+    status: fixed
+    content_rule: Never publish salary hook without salary_{gateway_code}_{year}.csv cache hit
+
+  - id: dominant-disbursement-category-hook
+    county_example: Spencer
+    symptom: "Spencer spent $41.3 MILLION on ONE line item" — sounds like one payee
+    root_cause: scriptwriter aggregates disburse_name (e.g. Other Capital Outlays) = sum of 72 rows
+    fix: pending — block category-only hooks or require named vendor/fund
+    status: open
+    content_rule: >
+      "One line item" hooks only when ent_name or fund_name identifies ONE payee
+      (person, company, bond, lawsuit fund). Category totals are not scandal hooks.
+
+  - id: lifeguard-sheriff-contrast-bleed
+    symptom: Lifeguard vs sheriff/director big-number contrast in wrong county package
+    root_cause: Pike salary bleed OR detector fires on part-time seasonal pay framed as shock
+    fix: partial (bleed fixed); detector still emits low-dollar lifeguard insights
+    status: open
+    content_rule: >
+      Lifeguard rows are real but $2-5K seasonal — B-story only. Spencer has no lifeguards.
+      Prioritize jail, probation, judge, sheriff, work release titles for outrage.
+
+content_priorities:
+  high_viability:
+    - salary_shock named person (sheriff, judge, referee, probation, jail, work release)
+    - double_dip same name multiple compensation lines
+    - fund-specific YoY spike with fund name (E911, jail, probation user fees)
+  low_viability:
+    - dominant_disbursement on disburse_name category only
+    - lifeguard vs director contrast under $10K seasonal pay
+    - generic "Other Capital Outlays" totals without vendor drill-down
