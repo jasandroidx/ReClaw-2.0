@@ -19,7 +19,7 @@ curl -sf http://127.0.0.1:11434/api/tags | python3 -c "import sys,json; d=json.l
   || curl -sf http://127.0.0.1:8080/ | head -c 80; echo
 
 echo "[+] fortress dashboard on 8081"
-curl -sf http://127.0.0.1:8081/ | head -c 120; echo
+curl -sf http://127.0.0.1:8081/ | head -c 120 || true; echo
 echo "[+] dashboard castle_map.json"
 curl -sf http://127.0.0.1:8081/data/castle_map.json | python3 -c "import sys,json; d=json.load(sys.stdin); print('rooms:', len(d.get('rooms',[])))"
 
