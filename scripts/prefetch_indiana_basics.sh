@@ -24,4 +24,5 @@ print('  →', '$OUT')
 done
 
 echo "[done] Indiana basics in $CACHE"
-echo "[note] Per-county salary exports: Gateway Employee Compensation → data/cache/salaries/salary_{code}_{year}.csv"
+echo "[note] Per-county salary exports: python scripts/export_county_salaries.py --all"
+echo "       (httpx ReportViewer — no browser) → data/cache/salaries/salary_{code}_{year}.csv"

@@ -28,7 +28,11 @@ from core.handoff import (
 )
 from core.security import SecurityManager
 from core.session import Session
-from tools.public_data_loaders import REPO_ROOT, load_multi_year_budget_totals, load_salary_detail_records
+from tools.public_data_loaders import (
+    REPO_ROOT,
+    load_multi_year_budget_totals,
+    load_salary_detail_records_for_county,
+)
 from tools.red_flag_engine import scan_all_red_flags
 from tools.taxpayer_red_flags import scan_taxpayer_red_flags
 
@@ -223,8 +227,13 @@ class AnalystAgent:
                     f"Certified spending {y0['year']}→{y1['year']}: {cum:+.1f}% — taxpayers should compare to their property tax bills."
                 )
 
-        # Salary shock titles for Shorts
-        salary_records = load_salary_detail_records()
+        # Salary shock titles for Shorts (county-specific cache only — no cross-county fallback)
+        from tools.county_data_fetch import resolve_county
+
+        meta = resolve_county(county) or {}
+        salary_records = load_salary_detail_records_for_county(
+            county, gateway_code=meta.get("gateway_code")
+        )
         if salary_records:
             top = sorted(salary_records, key=lambda r: r["compensation"], reverse=True)[:5]
             for rec in top:

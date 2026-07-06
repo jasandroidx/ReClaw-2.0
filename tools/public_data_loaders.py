@@ -186,7 +186,10 @@ def load_salary_detail_records_for_county(
     gateway_code: int | None = None,
     year: int = 2025,
 ) -> list[dict]:
-    """County-aware salary detail records (Gateway export cache or inbox)."""
+    """County-aware salary detail records (Gateway export cache or inbox).
+
+    Never falls back to another county's export — missing cache returns [].
+    """
     from tools.indiana_gateway_salary import load_county_salary_records
 
     if gateway_code is None:
@@ -194,11 +197,10 @@ def load_salary_detail_records_for_county(
 
         meta = resolve_county(county) or {}
         gateway_code = meta.get("gateway_code")
-    if gateway_code:
-        records, _, _ = load_county_salary_records(county, gateway_code=gateway_code, year=year)
-        if records:
-            return records
-    return load_salary_detail_records()
+    if not gateway_code:
+        return []
+    records, _, _ = load_county_salary_records(county, gateway_code=gateway_code, year=year)
+    return records
 
 
 def load_pike_budgets_multi_year(
