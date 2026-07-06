@@ -14,8 +14,9 @@ bash scripts/ensure-single-openclaw.sh
 echo "[+] openclaw gateway health (18789)"
 curl -sf http://127.0.0.1:18789/health | python3 -m json.tool
 
-echo "[+] ollama on 8080"
-curl -sf http://127.0.0.1:8080/ | head -c 80; echo
+echo "[+] ollama"
+curl -sf http://127.0.0.1:11434/api/tags | python3 -c "import sys,json; d=json.load(sys.stdin); print('models:', len(d.get('models',[])))" 2>/dev/null \
+  || curl -sf http://127.0.0.1:8080/ | head -c 80; echo
 
 echo "[+] fortress dashboard on 8081"
 curl -sf http://127.0.0.1:8081/ | head -c 120; echo
