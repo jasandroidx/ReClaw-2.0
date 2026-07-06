@@ -1,2 +1,2 @@
-Last generated: pkg-28303f7c8762
-See: [[2026-06-11-pike-winslow.md]]
+Last generated: pkg-5f684b0c11de
+See: [[2026-07-05-warrick-warrick.md]]

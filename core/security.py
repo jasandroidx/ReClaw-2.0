@@ -258,3 +258,14 @@ def get_capability(name: str) -> Capability:
     if name not in DECLARED_CAPABILITIES:
         raise KeyError(f"Capability {name} not declared. Add it to DECLARED_CAPABILITIES in core/security.py")
     return DECLARED_CAPABILITIES[name]
+
+# MCP Phase 1 read-only capabilities only
+MCP_READ_ONLY = {
+    "github.search",
+    "llm.query",           # Grok primary
+    "hetzner.server.list",
+    "docker.compose.ps",
+    "tailscale.status",
+    "google.drive.read",
+}
+

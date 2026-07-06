@@ -18,6 +18,9 @@ dashboard/
 *.eradicating*
 secrets/
 credentials/
+.credentials.json
+**/google_token.json
+**/token.json
 # Ignore generated memory and session logs that may contain tokens
 memory/dreaming/
 memory/*.md  # keep only curated; runtime in rooms/
@@ -33,4 +36,6 @@ data/rag_embeddings/
 data/rag_state/
 data/runs/
 data/sessions/
+data/mcp_logs/
+data/mcp_queue.jsonl
 outputs/
