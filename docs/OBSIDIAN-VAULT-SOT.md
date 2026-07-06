@@ -97,3 +97,40 @@ Indexes `Ravenstack/` + vault notes for `query_knowledge` citations in scripts.
 ├── Ravenstack/           ← ORACLE, architecture, backlog
 └── Rooms/                ← agent forge notes
 ```
+
+---
+
+## Fix later (backlog — do not block auditor work)
+
+Tracked in `data/obsidian_fix_backlog.yaml`. Current pipeline works via filesystem; these are enhancements.
+
+| Priority | Item | Why later |
+|----------|------|-----------|
+| P1 | **Docker API vault path** — confirm `reclaw-api` container has `RECLAW_OBSIDIAN_VAULT_PATH=/vault` after `.env` fix; restart compose if `/run-sync` still writes Pike defaults | Host `.env` fixed; container may need bounce |
+| P1 | **PC ↔ Hetzner sync** — choose git-pull vs Syncthing so Jason's Obsidian app sees `Rural Data/` in real time | Requires your machine setup |
+| P2 | **obsidian-mcp-server on Windows** — Local REST API plugin + `OBSIDIAN_API_KEY` in Cursor local config | Only for editing from PC; server uses bridge |
+| P2 | **Auto RAG sync** — call `rag_sync_vault` after each county publish | Not wired in orchestrator yet |
+| P2 | **`obsidian_filename` null** in some session JSON — ensure ContentPackage always sets filename before handoff | Cosmetic / county-queue links |
+| P3 | **Omnisearch** — install community plugin for BM25 vault search via obsidian MCP | Optional; reclaw-platform RAG covers most |
+| P3 | **Dataview queries** — add template queries to County Audit Index for risk/flag sorting | Polish |
+
+### Resume checklist (when you're ready)
+
+```bash
+# 1. Verify vault writes land correctly
+cd /root/ReClaw-2.0 && PYTHONPATH=. .venv/bin/python -c "from tools.obsidian_bridge import vault_health; print(vault_health())"
+
+# 2. Bounce API if docker still pointed at outputs/obsidian
+cd /root/ReClaw-2.0 && docker compose restart reclaw-api 2>/dev/null || true
+
+# 3. On Windows Obsidian: git pull obsidian-vault repo (or Syncthing)
+
+# 4. Optional PC MCP: install Local REST API → set OBSIDIAN_API_KEY → enable obsidian in config.toml
+```
+
+### What already works (don't re-fix)
+
+- `tools/obsidian_bridge.py` — package + audit-flags + index
+- `RECLAW_OBSIDIAN_VAULT_PATH=/root/obsidian_vault` in host `.env`
+- Vault git push to `jasandroidx/obsidian-vault`
+- `reclaw-platform__read_vault_file` / `write_vault_file`
