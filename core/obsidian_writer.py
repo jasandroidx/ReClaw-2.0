@@ -168,9 +168,9 @@ class ObsidianWriter:
 
         # Salary shock list (individual public records)
         try:
-            from tools.public_data_loaders import load_salary_detail_records
+            from tools.public_data_loaders import load_salary_detail_records_for_county
 
-            detail = load_salary_detail_records()
+            detail = load_salary_detail_records_for_county(pkg.county)
             if detail:
                 top = sorted(detail, key=lambda x: x["compensation"], reverse=True)[:12]
                 lines.append("## Salary Shock — Top Taxpayer Talking Points\n")

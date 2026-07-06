@@ -107,7 +107,14 @@ class Orchestrator:
 
         # 4. Channel write (Obsidian is the primary durable channel)
         if write_to_obsidian:
-            md_path = self.writer.write_package(pkg, dry_run=dry_run)
+            if dry_run:
+                md_path = self.writer.write_package(pkg, dry_run=True)
+            else:
+                from tools.obsidian_bridge import publish_package_to_vault
+
+                pub = publish_package_to_vault(pkg)
+                md_path = Path(pub["package_md"])
+                print(f"[Orchestrator] Vault publish: {pub}")
             print(f"[Orchestrator] Obsidian package written: {md_path}")
             if self.session:
                 self.session.log(f"Published to Obsidian: {md_path}")
