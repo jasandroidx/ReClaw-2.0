@@ -1,8 +1,7 @@
 """
-Indiana Gateway (IFI Online) — download public disbursement flat files.
+Indiana Gateway (IFI Online) — download public flat files for all IN counties.
 
 Source: https://gateway.ifionline.org/public/download.aspx
-Report: Annual Financial Reports → Disbursements by Fund
 """
 
 from __future__ import annotations
@@ -30,10 +29,21 @@ def _form_values(html: str) -> dict[str, str]:
     }
 
 
-def download_disbursements(year: int, target_path: Path, timeout: int = 90) -> Path:
+def download_gateway_file(
+    *,
+    dataset: str,
+    file_type: str,
+    year: int,
+    unit_type: str = "All",
+    target_path: Path,
+    timeout: int = 180,
+) -> Path:
     """
-    Download Indiana Gateway 'Disbursements by Fund' flat file for `year`.
-    Saves pipe-delimited text to target_path.
+    Generic Gateway download (pipe-delimited flat file).
+
+    Examples:
+      dataset="Annual Financial Reports", file_type="Disbursements by Fund"
+      dataset="Budget Data", file_type="Disbursements by Fund"  # statewide certified budgets
     """
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -43,9 +53,9 @@ def download_disbursements(year: int, target_path: Path, timeout: int = 90) -> P
 
         payload = {
             **_form_values(response.text),
-            "ctl00$ContentPlaceHolder1$RadComboBox1": "Annual Financial Reports",
-            "ctl00$ContentPlaceHolder1$RadComboBox2": "Disbursements by Fund",
-            "ctl00$ContentPlaceHolder1$DropDownListUnitType": "All",
+            "ctl00$ContentPlaceHolder1$RadComboBox1": dataset,
+            "ctl00$ContentPlaceHolder1$RadComboBox2": file_type,
+            "ctl00$ContentPlaceHolder1$DropDownListUnitType": unit_type,
             "ctl00$ContentPlaceHolder1$DropDownListYear": str(year),
             "ctl00$ContentPlaceHolder1$button_download1": "Download",
         }
@@ -60,9 +70,37 @@ def download_disbursements(year: int, target_path: Path, timeout: int = 90) -> P
         content = res.content
         if len(content) < 500 or b"<!DOCTYPE" in content[:200].upper():
             raise RuntimeError(
-                f"Gateway returned HTML or tiny payload ({len(content)} bytes) for year {year}"
+                f"Gateway returned HTML or tiny payload ({len(content)} bytes) "
+                f"for {dataset}/{file_type} year={year}"
             )
 
         target_path.write_bytes(content)
 
     return target_path
+
+
+def download_disbursements(year: int, target_path: Path, timeout: int = 90) -> Path:
+    """Download statewide 'Disbursements by Fund' flat file for `year`."""
+    return download_gateway_file(
+        dataset="Annual Financial Reports",
+        file_type="Disbursements by Fund",
+        year=year,
+        target_path=target_path,
+        timeout=timeout,
+    )
+
+
+def download_budget_data(year: int, target_path: Path, timeout: int = 180) -> Path:
+    """
+    Download statewide certified Gateway budget data for `year`.
+
+    Note: Gateway UI labels this dataset 'Budget Data'; file layout matches
+    DLGF budget certification (fund-level adopted estimates for every unit).
+    """
+    return download_gateway_file(
+        dataset="Budget Data",
+        file_type="Disbursements by Fund",
+        year=year,
+        target_path=target_path,
+        timeout=timeout,
+    )

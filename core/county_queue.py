@@ -182,10 +182,12 @@ class CountyQueue:
         path.write_text("\n".join(lines), encoding="utf-8")
         return path
 
-    def _run_pike_full_pipeline(self, item: CountyWorkItem) -> tuple[ContentPackage, Session]:
-        sess, _ = create_session(item.name, "Winslow", write_to_obsidian=True)
+    def _run_full_county_pipeline(self, item: CountyWorkItem) -> tuple[ContentPackage, Session]:
+        """Full researcher → auditor → analyst → content studio for any county."""
+        area = item.name if item.name != "Pike" else "Winslow"
+        sess, _ = create_session(item.name, area, write_to_obsidian=True)
         pkg = Orchestrator(self.settings, session=sess).run_county(
-            county=item.name, area="Winslow", write_to_obsidian=True
+            county=item.name, area=area, write_to_obsidian=True
         )
         return pkg, sess
 
@@ -274,39 +276,27 @@ class CountyQueue:
         self.save_state(state)
 
         try:
-            if item.name == "Pike":
-                pkg, sess = self._run_pike_full_pipeline(item)
-                studio_summary = (
-                    f"{len(pkg.short_scripts)} shorts"
-                    + (
-                        f" + long-form ~{pkg.long_form.runtime_min}min"
-                        if pkg.long_form and pkg.long_form.worthy
-                        else ""
-                    )
+            pkg, sess = self._run_full_county_pipeline(item)
+            studio_summary = (
+                f"{len(pkg.short_scripts)} shorts"
+                + (
+                    f" + long-form ~{pkg.long_form.runtime_min}min"
+                    if pkg.long_form and pkg.long_form.worthy
+                    else ""
                 )
-                worthy = bool(pkg.long_form and pkg.long_form.worthy)
-                runtime = pkg.long_form.runtime_min if pkg.long_form else None
-                reasons = pkg.long_form.worthiness_reasons if pkg.long_form else []
-                wscore = pkg.long_form.worthiness_score if pkg.long_form else 0
-                top_hook = pkg.short_scripts[0].hook if pkg.short_scripts else None
-                top_cat = pkg.short_scripts[0].source_flag_category if pkg.short_scripts else None
-                top_find = pkg.analysis.red_flags[0].description if pkg.analysis.red_flags else ""
-                recommendation = (
-                    f"STRONG long-form (~{runtime} min) + {len(pkg.short_scripts)} shorts"
-                    if worthy
-                    else f"Shorts focus — {len(pkg.short_scripts)} hooks"
-                )
-            else:
-                pkg, sess, studio = self._run_gateway_county(item)
-                worthy = bool(pkg.long_form and pkg.long_form.worthy)
-                runtime = pkg.long_form.runtime_min if pkg.long_form else None
-                reasons = pkg.long_form.worthiness_reasons if pkg.long_form else []
-                wscore = pkg.long_form.worthiness_score if pkg.long_form else 0
-                top_hook = pkg.short_scripts[0].hook if pkg.short_scripts else None
-                top_cat = pkg.short_scripts[0].source_flag_category if pkg.short_scripts else None
-                top_find = pkg.analysis.red_flags[0].description if pkg.analysis.red_flags else ""
-                recommendation = studio.summary
-                studio_summary = studio.summary
+            )
+            worthy = bool(pkg.long_form and pkg.long_form.worthy)
+            runtime = pkg.long_form.runtime_min if pkg.long_form else None
+            reasons = pkg.long_form.worthiness_reasons if pkg.long_form else []
+            wscore = pkg.long_form.worthiness_score if pkg.long_form else 0
+            top_hook = pkg.short_scripts[0].hook if pkg.short_scripts else None
+            top_cat = pkg.short_scripts[0].source_flag_category if pkg.short_scripts else None
+            top_find = pkg.analysis.red_flags[0].description if pkg.analysis.red_flags else ""
+            recommendation = (
+                f"STRONG long-form (~{runtime} min) + {len(pkg.short_scripts)} shorts"
+                if worthy
+                else f"Shorts focus — {len(pkg.short_scripts)} hooks"
+            )
 
             card = ReviewCard(
                 county=item.name,

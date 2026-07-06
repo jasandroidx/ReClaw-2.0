@@ -25,3 +25,5 @@ watchdog>=3.0
 pandas>=2.0  # Silent Auditor + DOGEGPT budget anomaly pipeline
 numpy>=1.26
 scikit-learn>=1.4  # local_auditor_live IsolationForest ensemble
+pyod>=2.0  # DOGEGPT ECOD outlier detection
+adtk>=0.6  # DOGEGPT time-series level-shift (when monthly data present)

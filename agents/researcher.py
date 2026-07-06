@@ -225,17 +225,25 @@ class ResearcherAgent:
         Main entry. Returns a validated ResearchPackage.
         Priority: real public data (ingestion/) → live Gateway download → seeds (last resort).
         """
-        if not force_seed and county.lower() == "pike":
-            pkg = self._build_from_public_data(county, area)
-            if pkg.budgets:
-                if self.session:
-                    self.session.write_handoff("researcher", pkg)
-                    if self.security:
-                        self.security.record_action(
-                            "public_data_live_fetch",
-                            {"county": county, "mode": "public_cache", "budgets": len(pkg.budgets)},
-                        )
-                return pkg
+        if not force_seed:
+            from tools.county_data_fetch import resolve_county
+
+            if resolve_county(county) or county.lower() == "pike":
+                pkg = self._build_from_county_data(county, area)
+                if pkg.budgets or pkg.salaries or pkg.raw_excerpts:
+                    if self.session:
+                        self.session.write_handoff("researcher", pkg)
+                        if self.security:
+                            self.security.record_action(
+                                "public_data_live_fetch",
+                                {
+                                    "county": county,
+                                    "mode": "county_data_fetch",
+                                    "budgets": len(pkg.budgets),
+                                    "salaries": len(pkg.salaries),
+                                },
+                            )
+                    return pkg
 
         use_live = self.settings.use_live_fetch and not force_seed
         if use_live:
@@ -271,8 +279,127 @@ class ResearcherAgent:
                 self.security.record_action("public_data_seed", {"county": county, "records": len(pkg.property_records)})
         return pkg
 
+    def _build_from_county_data(self, county: str, area: str, year: int = 2025) -> ResearchPackage:
+        """Load real public data for any Indiana county via county_data_fetch."""
+        from tools.county_data_fetch import fetch_county_data, resolve_county
+
+        meta = resolve_county(county) or {}
+        bundle = fetch_county_data(
+            county,
+            gateway_code=meta.get("gateway_code"),
+            fips=meta.get("fips"),
+        )
+        sources: list[SourceRef] = list(bundle.sources)
+        budgets: list[BudgetData] = list(bundle.budgets)
+        salaries: list[SalaryEntry] = list(bundle.salaries)
+        excerpts: list[str] = []
+
+        for t in bundle.budget_series:
+            line = f"FY{t['year']} certified total: ${t['amount']:,}"
+            if t.get("yoy_pct") is not None:
+                line += f" ({t['yoy_pct']:+.1f}% YoY)"
+            excerpts.append(line)
+
+        if bundle.gateway_stats:
+            s = bundle.gateway_stats
+            excerpts.append(
+                f"Gateway disbursements: {s.get('transaction_lines', 0)} lines, "
+                f"${s.get('total_disbursed', 0):,.0f} total."
+            )
+
+        if bundle.salary_records:
+            top3 = sorted(bundle.salary_records, key=lambda r: r["compensation"], reverse=True)[:3]
+            for rec in top3:
+                excerpts.append(
+                    f"Top pay: {rec['name']} — {rec['job_title']} (${rec['compensation']:,})"
+                )
+
+        try:
+            from tools.dogegpt_budget import run_county_anomalies
+
+            run_county_anomalies(county)
+            anom_ex, anom_src = load_budget_anomaly_excerpts(county=county)
+            excerpts.extend(anom_ex[:10])
+            sources.extend(anom_src)
+        except Exception:
+            anom_ex, anom_src = load_budget_anomaly_excerpts(county=county)
+            excerpts.extend(anom_ex)
+            sources.extend(anom_src)
+
+        for gap in bundle.gaps:
+            excerpts.append(f"DATA GAP: {gap}")
+
+        # Pike ingestion CSVs still supplement when present (richer fund detail)
+        if county.lower() == "pike":
+            return self._merge_pike_ingestion(county, area, year, budgets, salaries, sources, excerpts)
+
+        seed = self._build_from_seed(county, area)
+        props = seed.property_records
+        for p in props:
+            p.notes = (p.notes or "") + " [GIS: verify at beacon.schneidercorp.com — seed until live GIS wired]"
+        sources.append(
+            SourceRef(
+                kind="web",
+                url="https://beacon.schneidercorp.com/",
+                note="Parcel examples from seed until county GIS automated",
+            )
+        )
+
+        summary_parts = [
+            f"{county} County FY{year} research from Indiana public sources "
+            f"(Gateway certified budgets, disbursements, federal/demographic context)."
+        ]
+        if budgets:
+            top = budgets[0]
+            summary_parts.append(
+                f"Certified budget total FY{top.fiscal_year}: ${top.total_expenditures:,}."
+            )
+        if salaries:
+            top = max(salaries, key=lambda x: x.max_salary or 0)
+            summary_parts.append(
+                f"Public payroll sample: {top.department} max ${top.max_salary:,}."
+            )
+        if bundle.gaps:
+            summary_parts.append(f"Gaps: {len(bundle.gaps)} (see raw_excerpts).")
+
+        return ResearchPackage(
+            county=county,
+            primary_area=area,
+            state="IN",
+            sources=sources,
+            property_records=props[: self.settings.max_properties_per_county],
+            budgets=budgets,
+            salaries=salaries,
+            summary=" ".join(summary_parts),
+            raw_excerpts=excerpts,
+        )
+
+    def _merge_pike_ingestion(
+        self,
+        county: str,
+        area: str,
+        year: int,
+        budgets: list[BudgetData],
+        salaries: list[SalaryEntry],
+        sources: list[SourceRef],
+        excerpts: list[str],
+    ) -> ResearchPackage:
+        """Pike: merge Gateway fetch with legacy ingestion/ detail when on disk."""
+        pkg = self._build_from_public_data(county, area, year)
+        if budgets and not pkg.budgets:
+            pkg.budgets = budgets
+        elif budgets:
+            pkg.budgets = budgets + [b for b in pkg.budgets if b not in budgets]
+        if salaries and not pkg.salaries:
+            pkg.salaries = salaries
+        pkg.raw_excerpts = excerpts + pkg.raw_excerpts
+        for s in sources:
+            if not any(x.note == s.note for x in pkg.sources):
+                pkg.sources.append(s)
+        return pkg
+
     def _build_from_public_data(self, county: str, area: str, year: int = 2025) -> ResearchPackage:
-        """Load real Indiana public data from ingestion/ caches + optional Gateway download."""
+        """Load Pike ingestion/ caches + optional Gateway download (legacy rich path)."""
         sources: list[SourceRef] = []
         budgets: list[BudgetData] = []
         salaries: list[SalaryEntry] = []

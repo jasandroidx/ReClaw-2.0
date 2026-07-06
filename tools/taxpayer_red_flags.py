@@ -16,11 +16,26 @@ from tools.public_data_loaders import (
     REPO_ROOT,
     gateway_disbursement_stats,
     load_multi_year_budget_totals,
-    load_salary_detail_records,
+    load_salary_detail_records_for_county,
 )
 
-# Rural IN county — rough thresholds for "would taxpayers care?"
-COUNTY_POP_APPROX = 12_200
+# Default rural IN county pop (Pike) — overridden per county via Census
+COUNTY_POP_DEFAULT = 12_200
+
+
+def county_population(county: str) -> int:
+    """Census ACS population for any IN county (cache-first)."""
+    from tools.county_data_fetch import resolve_county
+    from tools.local_auditor_live import fetch_census
+
+    meta = resolve_county(county) or {}
+    fips = meta.get("fips", "")
+    if fips and len(fips) >= 5:
+        census = fetch_census(state_fips=fips[:2], county_fips3=fips[2:])
+        pop = census.get("population")
+        if pop and not census.get("_error"):
+            return int(pop)
+    return COUNTY_POP_DEFAULT
 SALARY_SHOCK_FULL_TIME = 75_000
 SALARY_SHOCK_ANY = 90_000
 BUDGET_YOY_WARN_PCT = 8.0
@@ -46,8 +61,15 @@ def detect_budget_trend_flags(county: str = "Pike") -> tuple[list[RedFlag], list
     flags: list[RedFlag] = []
     insights: list[Insight] = []
     angles: list[str] = []
+    pop = county_population(county)
 
-    series = load_multi_year_budget_totals(county_label=f"{county} County, IN")
+    from tools.county_data_fetch import resolve_county
+
+    meta = resolve_county(county) or {}
+    series = load_multi_year_budget_totals(
+        county_label=f"{county} County, IN",
+        gateway_code=meta.get("gateway_code"),
+    )
     if len(series) < 2:
         return flags, insights, angles
 
@@ -86,9 +108,9 @@ def detect_budget_trend_flags(county: str = "Pike") -> tuple[list[RedFlag], list
                 category="budget_growth",
                 description=(
                     f"Certified county budget up {cumulative_pct:.1f}% over {span_years} years "
-                    f"(${first['amount']:,} → ${last['amount']:,}) while population is ~{COUNTY_POP_APPROX:,}."
+                    f"(${first['amount']:,} → ${last['amount']:,}) while population is ~{pop:,}."
                 ),
-                evidence="ingestion/pike_county_totals_2022_2025.csv (DOR certified totals)",
+                evidence="Gateway certified budget totals (DLGF)",
                 recommended_action="Compare to property tax bills and levy hearings; strong watchdog video hook.",
             )
         )
@@ -126,8 +148,12 @@ def detect_fund_imbalance_flags(research: ResearchPackage) -> tuple[list[RedFlag
     """Current-year fund mix oddities from textmode certification."""
     flags: list[RedFlag] = []
     angles: list[str] = []
+    county = research.county
 
-    county_budget = next((b for b in research.budgets if b.entity == "Pike County"), None)
+    county_budget = next(
+        (b for b in research.budgets if county.lower() in b.entity.lower()),
+        None,
+    )
     if not county_budget or not county_budget.major_funds:
         return flags, angles
 
@@ -150,7 +176,9 @@ def detect_fund_imbalance_flags(research: ResearchPackage) -> tuple[list[RedFlag
                 recommended_action="Ask whether parks spending matches voter priorities vs road decay.",
             )
         )
-        angles.append(f"Pike County spends ${parks:,} on parks vs ${highway:,} on roads — taxpayers decide if that's fair")
+        angles.append(
+            f"{county} County spends ${parks:,} on parks vs ${highway:,} on roads — taxpayers decide if that's fair"
+        )
 
     if reassess and total and reassess / total > 0.02:
         flags.append(
@@ -165,20 +193,28 @@ def detect_fund_imbalance_flags(research: ResearchPackage) -> tuple[list[RedFlag
                 recommended_action="Tie to homeowner tax shock stories; cite certified rate in CSV.",
             )
         )
-        angles.append("Pike County's reassessment line item — what it means for your property tax bill")
+        angles.append(f"{county} County's reassessment line item — what it means for your property tax bill")
 
     return flags, angles
 
 
-def detect_salary_flags(county: str = "Pike", year: int = 2025) -> TaxpayerScanResult:
+def detect_salary_flags(
+    county: str = "Pike",
+    year: int = 2025,
+    *,
+    records: list[dict] | None = None,
+    gateway_code: int | None = None,
+) -> TaxpayerScanResult:
     """Individual salary records — shock list, double-dips, part-time anomalies."""
     flags: list[RedFlag] = []
     insights: list[Insight] = []
     angles: list[str] = []
     titles: list[str] = []
     implications: list[str] = []
+    pop = county_population(county)
 
-    records = load_salary_detail_records()
+    if records is None:
+        records = load_salary_detail_records_for_county(county, gateway_code=gateway_code, year=year)
     if not records:
         return TaxpayerScanResult(flags, insights, angles, implications, titles)
 
@@ -197,9 +233,9 @@ def detect_salary_flags(county: str = "Pike", year: int = 2025) -> TaxpayerScanR
                     category="salary_shock",
                     description=(
                         f"{name} — {title} ({dept}): ${comp:,} in {year} public compensation. "
-                        f"In a county of ~{COUNTY_POP_APPROX:,}, that's a taxpayer talking-point."
+                        f"In a county of ~{pop:,}, that's a taxpayer talking-point."
                     ),
-                    evidence="gateway.ifionline.org Salary Search export → ingestion/SalarySearch.csv",
+                    evidence="gateway.ifionline.org Employee Compensation export",
                     recommended_action="Verify full-time vs part-time; compare to IN rural averages for role.",
                 )
             )
@@ -207,7 +243,7 @@ def detect_salary_flags(county: str = "Pike", year: int = 2025) -> TaxpayerScanR
                 titles.append(f"{county} County pays {title} ${comp:,} — here's what taxpayers should know")
                 angles.append(f"#{i+1} highest paid: {name} (${comp:,}) — {title}")
 
-        elif comp >= SALARY_SHOCK_FULL_TIME and "deputy" in title.lower() or "sheriff" in title.lower():
+        elif comp >= SALARY_SHOCK_FULL_TIME and ("deputy" in title.lower() or "sheriff" in title.lower()):
             flags.append(
                 RedFlag(
                     severity="medium",
@@ -240,7 +276,9 @@ def detect_salary_flags(county: str = "Pike", year: int = 2025) -> TaxpayerScanR
                     recommended_action="Classic taxpayer fury angle: one person, multiple public paychecks.",
                 )
             )
-            angles.append(f"One name, multiple checks: {name} collected ${total:,} from Pike County taxpayers")
+            angles.append(
+                f"One name, multiple checks: {name} collected ${total:,} from {county} County taxpayers"
+            )
 
     # Low vs high contrast (video gold)
     lifeguards = [r for r in records if "lifeguard" in r["job_title"].lower()]
@@ -257,7 +295,7 @@ def detect_salary_flags(county: str = "Pike", year: int = 2025) -> TaxpayerScanR
                     f"({dir_max['name']}). Taxpayers love this contrast for Shorts."
                 ),
                 supporting_numbers=[f"Lifeguards: {len(lifeguards)} records", f"Top director: ${dir_max['compensation']:,}"],
-                suggested_angle="What Pike County pays a lifeguard vs what it pays the EMS director",
+                suggested_angle=f"What {county} County pays a lifeguard vs what it pays the EMS director",
             )
         )
         angles.append(insights[-1].suggested_angle or "")
@@ -329,7 +367,7 @@ def detect_gateway_yoy_flags(
                     recommended_action="Drill into fund_name spikes (Education, Settlement, General).",
                 )
             )
-            angles.append(f"Pike County public spending swung {pct:+.0f}% between {y0} and {y1}")
+            angles.append(f"{county} County public spending swung {pct:+.0f}% between {y0} and {y1}")
 
     return flags, angles
 
@@ -355,7 +393,10 @@ def scan_taxpayer_red_flags(
     all_flags.extend(ff)
     all_angles.extend(fa)
 
-    salary_result = detect_salary_flags(county)
+    from tools.county_data_fetch import resolve_county
+
+    meta = resolve_county(county) or {}
+    salary_result = detect_salary_flags(county, gateway_code=meta.get("gateway_code"))
     all_flags.extend(salary_result.red_flags)
     all_insights.extend(salary_result.insights)
     all_angles.extend(salary_result.content_angles)

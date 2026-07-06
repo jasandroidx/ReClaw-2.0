@@ -142,12 +142,25 @@ def load_pike_budgets_from_textmode(
 
 def load_multi_year_budget_totals(
     county_label: str = "Pike County, IN",
-    department: str = "PIKE COUNTY",
+    department: str | None = None,
+    *,
+    gateway_code: int | None = None,
 ) -> list[dict]:
     """
-    Year-by-year certified totals from ingestion/pike_county_totals_2022_2025.csv.
-    Returns [{year, amount, yoy_pct}, ...] sorted by year.
+    Year-by-year certified totals. Prefers Gateway budget file (all counties);
+    falls back to ingestion/pike_county_totals_2022_2025.csv for Pike.
     """
+    short = county_label.replace(" County, IN", "").replace(" County", "").strip()
+    try:
+        from tools.indiana_county_budget import load_county_budget_totals_series
+
+        series = load_county_budget_totals_series(short, gateway_code=gateway_code)
+        if series:
+            return series
+    except Exception:
+        pass
+
+    dept = department or f"{short.upper()} COUNTY"
     path = INGESTION / "pike_county_totals_2022_2025.csv"
     if not path.exists():
         return []
@@ -155,7 +168,7 @@ def load_multi_year_budget_totals(
     rows: list[dict] = []
     with path.open(encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            if row.get("county") != county_label or row.get("department") != department:
+            if row.get("county") != county_label or row.get("department") != dept:
                 continue
             rows.append({"year": int(row["fiscal_year"]), "amount": int(float(row["amount"]))})
 
@@ -165,6 +178,27 @@ def load_multi_year_budget_totals(
         if prev > 0:
             rows[i]["yoy_pct"] = round((rows[i]["amount"] - prev) / prev * 100, 1)
     return rows
+
+
+def load_salary_detail_records_for_county(
+    county: str = "Pike",
+    *,
+    gateway_code: int | None = None,
+    year: int = 2025,
+) -> list[dict]:
+    """County-aware salary detail records (Gateway export cache or inbox)."""
+    from tools.indiana_gateway_salary import load_county_salary_records
+
+    if gateway_code is None:
+        from tools.county_data_fetch import resolve_county
+
+        meta = resolve_county(county) or {}
+        gateway_code = meta.get("gateway_code")
+    if gateway_code:
+        records, _, _ = load_county_salary_records(county, gateway_code=gateway_code, year=year)
+        if records:
+            return records
+    return load_salary_detail_records()
 
 
 def load_pike_budgets_multi_year(
@@ -297,8 +331,9 @@ def load_pike_salaries_from_gateway_export(
 
 
 def load_budget_anomaly_excerpts(county: str = "Pike") -> tuple[list[str], list[SourceRef]]:
-    """Pull pre-computed anomaly script lines from ingestion/anomalies.csv."""
-    path = INGESTION / "anomalies.csv"
+    """Pull pre-computed anomaly script lines from county or global anomalies CSV."""
+    county_path = INGESTION / f"anomalies_{county.lower()}.csv"
+    path = county_path if county_path.exists() else INGESTION / "anomalies.csv"
     if not path.exists():
         return [], []
 
