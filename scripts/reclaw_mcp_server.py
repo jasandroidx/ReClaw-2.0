@@ -35,9 +35,12 @@ if _env_file.exists():
         os.environ.setdefault(_k.strip(), _v.strip())
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 from core.mcp_connector import ConnectorRegistry
 from core.oracle_mcp import WRITE_ACTIONS, mcp as oracle
+
+_TSNET_HOST = os.environ.get("TAILSCALE_HOST", "openclaw.tail20a090.ts.net")
 
 # Connectors safe for generic query (read-oriented)
 ALLOWED_CONNECTORS = {
@@ -67,6 +70,15 @@ mcp_server = FastMCP(
     ),
     host=os.environ.get("FASTMCP_HOST", "127.0.0.1"),
     port=int(os.environ.get("FASTMCP_PORT", "8101")),
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=[
+            "127.0.0.1:8101",
+            "localhost:8101",
+            f"{_TSNET_HOST}",
+            f"{_TSNET_HOST}:443",
+        ],
+    ),
 )
 
 

@@ -1,42 +1,8 @@
-# ReClaw 2.0 project-scoped Grok Build config (commit with repo)
+# Project-scoped Grok Build config for ReClaw county-audit factory.
+# Skills: .grok/skills/ (county-audit, reclaw-build)
 
 [skills]
-paths = [".grok/skills"]
-bundled_skill_dirs = ["/root/.grok/bundled/skills"]
-
-[plugins]
-paths = [".grok/plugins"]
-
-[mcp_servers.ravenstack]
-command = "/root/ReClaw-2.0/.venv/bin/python"
-args = ["/root/ReClaw-2.0/scripts/ravenstack_mcp_server.py"]
-startup_timeout_sec = 45
-
-[mcp_servers.ravenstack.env]
-RECLAW_KNOWLEDGE_PATH = "/root/obsidian_vault/Ravenstack"
-RECLAW_OBSIDIAN_VAULT_PATH = "/root/obsidian_vault"
-RECLAW_GATEWAY_URL = "http://127.0.0.1:8000"
-RECLAW_GATEWAY_TOKEN = "${RECLAW_GATEWAY_TOKEN}"
-
-[mcp_servers.reclaw-api]
-command = "/root/ReClaw-2.0/.venv/bin/python"
-args = ["/root/ReClaw-2.0/scripts/reclaw_api_mcp_server.py"]
-startup_timeout_sec = 30
-
-[mcp_servers.reclaw-api.env]
-RECLAW_GATEWAY_URL = "http://127.0.0.1:8000"
-RECLAW_GATEWAY_TOKEN = "${RECLAW_GATEWAY_TOKEN}"
-
-[mcp_servers.obsidian]
-enabled = false
-command = "npx"
-args = ["-y", "obsidian-mcp-server"]
-startup_timeout_sec = 60
-
-[mcp_servers.obsidian.env]
-OBSIDIAN_API_KEY = "${OBSIDIAN_API_KEY}"
-OBSIDIAN_BASE_URL = "http://127.0.0.1:27123"
-MCP_TRANSPORT_TYPE = "stdio"
+paths = ["/root/ReClaw-2.0/.grok/skills"]
 
 [mcp_servers.firecrawl]
 command = "npx"
@@ -44,25 +10,4 @@ args = ["-y", "firecrawl-mcp"]
 startup_timeout_sec = 60
 
 [mcp_servers.firecrawl.env]
-FIRECRAWL_API_KEY = "${FIRECRAWL_API_KEY}"
-
-[mcp_servers.playwright]
-enabled = true
-command = "npx"
-args = ["-y", "@playwright/mcp@latest", "--headless"]
-startup_timeout_sec = 90
-
-[mcp_servers.reclaw-fs]
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-filesystem", "/root/ReClaw-2.0", "/root/obsidian_vault"]
-startup_timeout_sec = 45
-
-[mcp_servers.brave-search]
-enabled = false
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-brave-search"]
-startup_timeout_sec = 45
-
-[mcp_servers.brave-search.env]
-BRAVE_API_KEY = "${BRAVE_API_KEY}"
-
+FIRECRAWL_API_KEY = "fc-60ebaa5a4d66472cbf8035c203522041"

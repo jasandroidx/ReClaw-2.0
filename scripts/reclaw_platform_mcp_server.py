@@ -27,10 +27,14 @@ os.environ.setdefault("RECLAW_KNOWLEDGE_PATH", str(VAULT / "Ravenstack"))
 os.environ.setdefault("RECLAW_OBSIDIAN_VAULT_PATH", str(VAULT))
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 from core.config import get_settings
 from core.knowledge import KnowledgeManager
 
+_TSNET_HOST = os.environ.get("TAILSCALE_HOST", "openclaw.tail20a090.ts.net")
+_extra_hosts = [h.strip() for h in os.environ.get("MCP_EXTRA_ALLOWED_HOSTS", "").split(",") if h.strip()]
+_public_mode = os.environ.get("MCP_PUBLIC_MODE", "").lower() in ("1", "true", "yes")
 mcp = FastMCP(
     "reclaw-platform",
     instructions=(
@@ -39,6 +43,16 @@ mcp = FastMCP(
     ),
     host=os.environ.get("FASTMCP_HOST", "127.0.0.1"),
     port=int(os.environ.get("FASTMCP_PORT", "8100")),
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=not _public_mode,
+        allowed_hosts=[
+            "127.0.0.1:8100",
+            "localhost:8100",
+            _TSNET_HOST,
+            f"{_TSNET_HOST}:443",
+            *_extra_hosts,
+        ],
+    ),
 )
 GATEWAY = os.environ.get("RECLAW_GATEWAY_URL", "http://127.0.0.1:8000")
 OPENCLAW = os.environ.get("OPENCLAW_GATEWAY_URL", "http://127.0.0.1:18789")

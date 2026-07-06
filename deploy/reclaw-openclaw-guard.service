@@ -1,0 +1,10 @@
+[Unit]
+Description=ReClaw OpenClaw single-gateway guard
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/root/ReClaw-2.0/scripts/ensure-single-openclaw.sh
+
+[Install]
+WantedBy=multi-user.target

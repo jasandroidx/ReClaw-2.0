@@ -52,6 +52,19 @@ Also: `ravenstack__*`, `reclaw-api__*`, `reclaw-fs__*`, `obsidian__*`. Remote HT
 3. For marketplace skills: SkillScan + Skill Vetter before install; register in `core/security.py`.
 4. Distill findings → Ravenstack backlog Skill Card (never raw bloat).
 
+## OpenClaw gateway (Docker only — never host systemd)
+
+This server runs **one** OpenClaw gateway via `docker compose` on `:18789`. Do **not** run `openclaw gateway start|install|restart` on the host — it creates a duplicate and breaks the stack.
+
+```bash
+cd /root/ReClaw-2.0
+docker compose up -d openclaw-gateway
+docker compose restart openclaw-gateway
+bash scripts/ensure-single-openclaw.sh   # verify single listener
+```
+
+Guards: masked systemd unit, `reclaw-openclaw-guard.timer` (every 10 min), bash `openclaw()` wrapper blocks gateway start/install.
+
 ## Common commands
 
 ```bash

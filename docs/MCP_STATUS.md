@@ -37,16 +37,15 @@
 
 ## Grok Chat Connector
 
-Safe MCP bridge: `scripts/reclaw_mcp_server.py` (Grok Build tools: `reclaw-mcp__*`)
+**Grok Build (this server):** `reclaw-mcp` + `reclaw-platform` in `/root/.grok/config.toml`.
 
-```toml
-# ~/.grok/config.toml
-[mcp_servers.reclaw-mcp]
-command = "ssh"
-args = ["root@YOUR_HOST", "/root/ReClaw-2.0/.venv/bin/python", "/root/ReClaw-2.0/scripts/reclaw_mcp_server.py"]
-```
+**SuperGrok (grok.com):** [grok.com/connectors](https://grok.com/connectors) → Custom → URL from `data/mcp_public_url.txt` (cloudflared tunnel, MCP-only).
 
-Blocked at bridge: `github.create_comment`, `obsidian.write`. LLM queries respect `MAX_MCP_DAILY_BUDGET`.
+**Tailscale (phone/laptop):** `https://openclaw.tail20a090.ts.net/reclaw-mcp/mcp`
+
+**OpenClaw agents:** `openclaw mcp list` → `reclaw-platform` (17 tools), `reclaw-mcp` (8 tools).
+
+Blocked at `reclaw-mcp` bridge: `github.create_comment`, `obsidian.write`. LLM queries respect `MAX_MCP_DAILY_BUDGET`.
 
 ## Safety
 - Project is now under git
