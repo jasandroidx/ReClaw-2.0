@@ -76,6 +76,16 @@ mcp_integrations:
     - run_pike_winslow: daily content package
     - query_knowledge: RAG citations for script context
     - stack_health: deploy verification
-    - write_vault_file: obsidian durability
-  secondary: [reclaw-api, obsidian, github, grok_com_canva]
-  canva_use: thumbnail_and_short_visual_templates
+    - read_vault_file / write_vault_file: vault on Hetzner (replaces broken obsidian MCP)
+  tier2_playwright:
+    enabled: true
+    use_for: [gateway_salary_export, beacon_gis_parcel_search]
+  tier3_firecrawl:
+    module: tools/firecrawl_discovery.py
+    mcp: firecrawl-mcp
+    use_for: [county_site_pdfs, sboa_audit_index, dor_budget_order_links]
+    not_for: [gateway_disbursements, gateway_budgets]
+  secondary: [reclaw-api, reclaw-fs, github, grok_com_canva]
+  disabled_on_server:
+    - obsidian-mcp-server: needs Obsidian desktop Local REST API on same machine
+  setup_doc: docs/FIRECRAWL-AND-MCP-SETUP.md

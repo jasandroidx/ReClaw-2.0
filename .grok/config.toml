@@ -28,12 +28,29 @@ RECLAW_GATEWAY_URL = "http://127.0.0.1:8000"
 RECLAW_GATEWAY_TOKEN = "${RECLAW_GATEWAY_TOKEN}"
 
 [mcp_servers.obsidian]
+enabled = false
 command = "npx"
 args = ["-y", "obsidian-mcp-server"]
 startup_timeout_sec = 60
 
 [mcp_servers.obsidian.env]
-OBSIDIAN_VAULT_PATH = "/root/obsidian_vault"
+OBSIDIAN_API_KEY = "${OBSIDIAN_API_KEY}"
+OBSIDIAN_BASE_URL = "http://127.0.0.1:27123"
+MCP_TRANSPORT_TYPE = "stdio"
+
+[mcp_servers.firecrawl]
+command = "npx"
+args = ["-y", "firecrawl-mcp"]
+startup_timeout_sec = 60
+
+[mcp_servers.firecrawl.env]
+FIRECRAWL_API_KEY = "${FIRECRAWL_API_KEY}"
+
+[mcp_servers.playwright]
+enabled = true
+command = "npx"
+args = ["-y", "@playwright/mcp@latest", "--headless"]
+startup_timeout_sec = 90
 
 [mcp_servers.reclaw-fs]
 command = "npx"
@@ -49,8 +66,3 @@ startup_timeout_sec = 45
 [mcp_servers.brave-search.env]
 BRAVE_API_KEY = "${BRAVE_API_KEY}"
 
-[mcp_servers.playwright]
-enabled = false
-command = "npx"
-args = ["-y", "@playwright/mcp@latest"]
-startup_timeout_sec = 60

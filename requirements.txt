@@ -27,3 +27,4 @@ numpy>=1.26
 scikit-learn>=1.4  # local_auditor_live IsolationForest ensemble
 pyod>=2.0  # DOGEGPT ECOD outlier detection
 adtk>=0.6  # DOGEGPT time-series level-shift (when monthly data present)
+firecrawl-py>=1.0  # Tier-3 county site / SBOA / DOR discovery
