@@ -209,6 +209,48 @@ def scan_all_red_flags(
     except Exception:
         pass
 
+    # Layer 3e: Procurement detectors (sf-vendor / audit-analytics port, Gateway-aware)
+    try:
+        from tools.procurement_detectors import detect_all_procurement
+
+        all_flags.extend(detect_all_procurement(county, year=2025, cache_dir=cache_dir))
+    except Exception:
+        pass
+
+    # Layer 3f: MSU-style fiscal stress (Gateway certified budget ratios)
+    try:
+        from tools.fiscal_health import detect_fiscal_stress
+
+        all_flags.extend(
+            detect_fiscal_stress(county, gateway_code=meta.get("gateway_code"), year=2025)
+        )
+        sources.append("gateway_budget_fiscal_health")
+    except Exception:
+        pass
+
+    # Layer 3g: Inbox AP register — transaction rules + Isolation Forest when CSV present
+    try:
+        from tools.inbox_ap_register import best_ap_register
+        from tools.transaction_anomaly import detect_all_transactions
+
+        ap_path = best_ap_register(county)
+        if ap_path:
+            _, tx_flags = detect_all_transactions(ap_path, county=county)
+            all_flags.extend(tx_flags)
+            sources.append(f"inbox_ap_register:{ap_path.name}")
+    except Exception:
+        pass
+
+    # Layer 3h: SBOA narrative findings (cached manifest only — discover via tools/sboa_ingest.py)
+    try:
+        from tools.sboa_ingest import manifest_path, sboa_red_flags
+
+        if manifest_path(county).exists():
+            all_flags.extend(sboa_red_flags(county))
+            sources.append("sboa_ingest")
+    except Exception:
+        pass
+
     # Layer 4: data gaps
     all_flags.extend(_gap_flags(bundle.gaps))
 

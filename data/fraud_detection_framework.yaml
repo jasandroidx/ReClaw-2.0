@@ -1,0 +1,67 @@
+# Integrated Fraud Detection & Public Accountability — ReClaw mapping
+# Source: external framework report (2026-07-06) → deployed vs backlog
+
+governance:
+  human_in_the_loop: county_queue approve/reject before publish
+  fair_report: show_ask_cite_never_convict
+  local_llm: Ollama :8080 for sensitive ledger context
+  feedback_loop: tools/total_reclaw_memory.py on high-severity flags
+
+section_I_detection:
+  isolation_forest:
+    status: deployed
+    modules:
+      - ingestion/pipeline_budget_anomalies.py
+      - tools/local_auditor_live.py
+      - tools/transaction_anomaly.py
+  benford:
+    status: deployed
+    module: tools/benford_analysis.py
+    note: smoke_test_only — digit prioritization not standalone headline
+  rule_jets:
+    status: deployed
+    modules:
+      - tools/split_purchase_detector.py
+      - tools/transaction_anomaly.py
+      - tools/fiscal_health.py
+      - tools/taxpayer_red_flags.py
+  graph_gnn:
+    status: backlog
+    blocker: vendor graph edges need payee + payment_date
+
+section_II_llm:
+  auditcopilot:
+    status: deployed
+    module: tools/audit_copilot.py
+    method: statistical_anchors + algorithm scores in prompt — never raw full ledger
+    models: [ollama/llama3, mistral, deepseek via local endpoint]
+  shap_graphlime:
+    status: backlog
+    use_when: isolation_forest flags need feature-level "why"
+  rag:
+    status: deployed
+    modules: [rag/embeddings.py, rag/vectorstore.py]
+    note: Chroma + sentence-transformers (FAISS optional)
+
+section_III_schemes:
+  taxonomy: data/fraud_scheme_taxonomy.yaml
+  indiana_gateway_gap: ent_name is rollup not vendor — vendor schemes need check register
+
+section_IV_accountability:
+  pafr_narrative: non_technical language via scriptwriter + audit_copilot
+  video_concepts:
+    math_behind_audit: benford_analysis + HHVCTA manifest
+    zero_dollar_default: backlog — SBOA materiality education short
+    no_show_job: salary_shock + double_dip detectors
+  manifests: tools/video_manifest.py v2 scenes → Remotion
+
+section_V_stack:
+  python: [pandas, scikit-learn, pyod, httpx]
+  storage: [sqlite total_reclaw_memory, chroma rag, obsidian vault]
+  dashboard: scratch/county-anomaly-lab (streamlit optional)
+  plotly: optional lab dep only
+
+continuous_improvement:
+  - memory_save on high/critical flags
+  - data/audit_pipeline_mistakes.yaml lessons
+  - county_queue rejections logged for revisit

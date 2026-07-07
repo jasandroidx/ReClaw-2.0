@@ -20,6 +20,9 @@ MIN_COMBINED = 50_000
 MIN_TX_COUNT = 2
 SRC = "https://gateway.ifionline.org/public/download.aspx"
 
+# Gateway ent_name is often a rollup, not a payee vendor.
+ROLLUP_VENDORS = frozenset({"governmental activities", "business-type activities", "0", ""})
+
 
 def _float(val: str) -> float:
     try:
@@ -75,6 +78,9 @@ def detect_split_purchases(
 
     by_vendor: dict[str, list[dict]] = defaultdict(list)
     for r in rows:
+        vendor_key = (r["vendor"] or "").strip().lower()
+        if vendor_key in ROLLUP_VENDORS:
+            continue
         if r["amount"] < SINGLE_TX_MAX:
             by_vendor[r["vendor"]].append(r)
 

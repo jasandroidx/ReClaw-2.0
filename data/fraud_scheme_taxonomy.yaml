@@ -1,0 +1,55 @@
+# Fraud scheme → detector mapping (government / municipal)
+
+schemes:
+  bill_padding:
+    description: Invoice for goods/services never ordered or not received
+    detectors: [iqr_outlier, vendor_concentration]
+    data_required: [vendor_payee, invoice_id]
+    gateway_ready: partial
+
+  phantom_vendor:
+    description: Fictitious payee on disbursement register
+    detectors: [vendor_concentration, round_number_cluster]
+    data_required: [vendor_master, address]
+    gateway_ready: partial
+
+  duplicate_invoice:
+    description: Same vendor + amount (+ date) paid twice
+    detectors: [transaction_anomaly.detect_rule_flags]
+    data_required: [payment_date, vendor, amount]
+    gateway_ready: false
+
+  split_purchase:
+    description: Sub-threshold payments summing above bid limit
+    detectors: [split_purchase_detector, transaction_anomaly]
+    statute: IC 36-1-12-19
+    gateway_ready: true  # FY-level vendor rollup only
+
+  ghost_employee:
+    description: Payroll to non-working or duplicate identity
+    detectors: [salary_shock, double_dip]
+    data_required: [salary_export, timesheets]
+    gateway_ready: true  # salary export cached 92/92
+
+  bid_rigging:
+    description: Winning bid just under next-lowest; sole-source favoritism
+    detectors: [vendor_concentration, composition_outlier]
+    data_required: [bid_tabulation, vendor_id]
+    gateway_ready: partial
+
+  benford_manipulation:
+    description: Unnatural leading-digit distribution in payment amounts
+    detectors: [benford_analysis, benford_mad]
+    gateway_ready: true
+    video_hook: math_behind_audit
+
+  liquidity_stress:
+    description: Thin reserves vs expenditures
+    detectors: [fiscal_health.detect_fiscal_stress]
+    gateway_ready: true
+
+  constructive_denial:
+    description: Agency FOIA delay pattern
+    detectors: []
+    status: backlog
+    module: muckrock_foia

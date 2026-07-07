@@ -110,11 +110,22 @@ def scan_inbox(*, copy: bool = True) -> dict:
         else:
             action = "registered_inbox_only"
 
+        file_kind = "generic"
+        if path.suffix.lower() in {".csv", ".xlsx", ".xls"}:
+            try:
+                from tools.inbox_ap_register import looks_like_ap_register
+
+                if looks_like_ap_register(path):
+                    file_kind = "ap_register"
+            except Exception:
+                pass
+
         entry = {
             "name": path.name,
             "size_bytes": path.stat().st_size,
             "ingestion_path": str(dest) if dest.exists() else None,
             "inbox_path": str(path),
+            "file_kind": file_kind,
             "action": action,
             "registered_at": datetime.now(timezone.utc).isoformat(),
         }

@@ -1,0 +1,115 @@
+# ReClaw Orchestration Map — Grok primary orchestrator on Hetzner
+# Maps external orchestration spec → deployed capabilities vs backlog
+# Default jurisdiction: Indiana 92-county queue (NOT Socrata/SODA — different data regime)
+
+status: active
+orchestrator: grok
+deployment: hetzner_dedicated
+default_mode: indiana_county_queue
+
+stack_health:
+  reclaw_api: http://127.0.0.1:8000
+  openclaw_gateway: http://127.0.0.1:18789
+  ollama: http://127.0.0.1:8080
+  memory_db: data/memory/reclaw_memory.db
+  manifest_dir: data/manifests/
+  obsidian_vault: /root/obsidian_vault/Rural Data/
+
+phase_1_ingestion:
+  deployed:
+    - id: indiana_gateway
+      tool: tools/indiana_gateway.py
+      data: [budgets, disbursements, salaries]
+    - id: census_acs
+      tool: tools/local_auditor_live.fetch_census
+    - id: usaspending
+      tool: tools/local_auditor_live
+    - id: sboa_pdf_discovery
+      tool: tools/sboa_ingest.py
+    - id: firecrawl_tier3
+      tool: tools/firecrawl_discovery.py
+    - id: inbox_ap_register
+      tool: tools/inbox_ap_register.py + tools/transaction_anomaly.py
+    - id: pdf_text
+      tool: pypdf2 + firecrawl scrape
+  backlog:
+    - socrata_soda_checkbooks  # scaffolded: tools/socrata_scraper.py
+  socrata:
+    module: tools/socrata_scraper.py
+    cli: scripts/run_socrata_scrape.py
+    catalog: data/socrata_sources.yaml
+    inbox_flow: data/inbox/ → transaction_anomaly + benford_analysis
+    - emma_bond_scraper
+    - doctr_ocr
+    - docling_layout
+    - muckrock_foia
+    - census_govs_timeseries
+
+phase_2_forensics:
+  deployed:
+    - benford_mad: tools/procurement_detectors.detect_benford_mad
+    - isolation_forest: ingestion/pipeline_budget_anomalies.py
+    - ecod: tools/county_peer_audit.py
+    - split_purchase: tools/split_purchase_detector.py
+    - iqr_outliers: tools/procurement_detectors.detect_iqr_outliers
+    - fiscal_stress: tools/fiscal_health.py
+    - salary_shock: tools/taxpayer_red_flags.detect_salary_flags
+    - transaction_rules: tools/transaction_anomaly.py
+  backlog:
+    - sql_ghost_employee_fuzzy_match
+    - liquidity_rate_3q_trend
+    - sliding_30d_split_purchase  # needs payment_date
+
+phase_3_memory:
+  deployed:
+    - total_reclaw_sqlite: tools/total_reclaw_memory.py
+    - chroma_rag: rag/vectorstore.py
+    - obsidian_sot: /root/obsidian_vault
+  functions:
+    memory_save: tools.total_reclaw_memory.memory_save
+    memory_recall: tools.total_reclaw_memory.memory_recall
+    vault_tag: <vault-memories>
+
+phase_4_media:
+  deployed:
+    - scriptwriter: tools/scriptwriter.py
+    - viral_scribe: tools/viral_scribe.py
+    - viral_scribe_directive: data/viral_scribe_directive.yaml
+    - hhvcta_manifest: tools/video_manifest.py
+    - manifest_cli: scripts/run_video_manifest.py
+    - schema: reclaw.video_manifest.v2
+    - human_gate: POST /county-queue/approve
+    - remotion_render: render/remotion/
+    - render_cli: scripts/run_remotion_render.sh
+  backlog:
+    - elevenlabs_tts
+    - whisper_cpp_timestamps
+    - wav2lip_avatar
+
+county_queue:
+  cursor_field: data/county_queue/state.json
+  commands:
+    run_next: POST /county-queue/run-next
+    refresh: POST /county-queue/refresh
+    approve: POST /county-queue/approve
+    reject: POST /county-queue/reject
+  current_pending: Gibson
+
+execution_directive:
+  primary_loop: >
+    Gateway/scrape → red_flag_engine (Benford, split-purchase, salary shock) →
+    viral_scribe + video_manifest JSON → Obsidian review card → human approve →
+    remotion_orchestrator.py → 1080x1920 MP4 (data/renders/{county}/)
+  render:
+    tool: tools/remotion_orchestrator.py
+    cli: scripts/run_remotion_orchestrator.py
+    project: render/remotion/
+    composition: ReclawAudit
+    auto_on_approve: true
+    env_disable: RECLAW_AUTO_RENDER=0
+  do_not: duplicate_jabonsote_streamlit_as_production
+
+ui:
+  architectural_registry_html: scratch/reclaw-registry/index.html
+  architectural_registry_yaml: data/architectural_registry.yaml
+  serve: python -m http.server 8090 --directory scratch/reclaw-registry

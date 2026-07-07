@@ -1,0 +1,29 @@
+# Socrata SODA datasets — municipal checkbooks outside Indiana Gateway.
+# Primary Indiana county pipeline still uses gateway.ifionline.org flat files.
+
+meta:
+  api_docs: https://dev.socrata.com/docs/
+  token_env: SOCRATA_APP_TOKEN
+  output_dir: data/inbox/
+
+datasets:
+  - id: bloomington_payments
+    domain: data.bloomington.in.gov
+    dataset_id: checkbook  # replace with 4x4 ID after discovery via portal UI
+    label: bloomington_checkbook
+    notes: Monroe County seat — verify dataset ID on portal Export → API
+    jurisdiction: Bloomington, IN
+
+  - id: chicago_payments_ref
+    domain: data.cityofchicago.org
+    dataset_id: s4vu-giwb
+    label: chicago_payments_reference
+    notes: Reference implementation for SODA scraper tests (not Indiana county queue)
+    jurisdiction: Chicago, IL
+
+  - id: indiana_hub_vendors
+    domain: hub.mph.in.gov
+    dataset_id: vendors-data
+    label: mph_vendors
+    notes: May not be classic Socrata JSON — test before batch; state-level vendor index
+    jurisdiction: Indiana (state)

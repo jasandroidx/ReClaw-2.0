@@ -60,8 +60,17 @@ video_format:
   automation_chain:
     - anomalies.csv
     - scriptwriter.build_package
+    - audit_copilot.explain_top_flags
+    - video_manifest.v2
     - content_studio
     - human_approval_gate
+
+audit_copilot:
+  module: tools/audit_copilot.py
+  method: statistical_anchors + flag JSON — never full ledger to LLM
+  llm: ollama @ 127.0.0.1:8080 when enable_llm_analysis=true
+  fallback: deterministic fair-report template
+  governance: human_in_the_loop before publish
 
 data_layers_per_county:
   automated_all_92: [gateway_budgets, gateway_disbursements, usaspending, census]
@@ -89,3 +98,6 @@ mcp_integrations:
   disabled_on_server:
     - obsidian-mcp-server: needs Obsidian desktop Local REST API on same machine
   setup_doc: docs/FIRECRAWL-AND-MCP-SETUP.md
+  tool_backlog: data/audit_tool_candidates.yaml
+  discovery_script: scripts/run_audit_discovery.sh
+  skill: .grok/skills/county-audit/SKILL.md

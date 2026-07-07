@@ -170,3 +170,19 @@ Grok Build on this server is the primary infra operator. MCP connectors:
 
 Remote clients (Gemini, another Grok session): SSH stdio bridge —
 `ssh root@178.156.235.36 '/root/ReClaw-2.0/.venv/bin/python /root/ReClaw-2.0/scripts/ravenstack_mcp_server.py'`
+
+## Agent skills
+
+Matt Pocock engineering skills (`mattpocock/skills`) are installed under `~/.agents/skills/`. Grok discovers them via `[skills].paths` in `~/.grok/config.toml`.
+
+### Issue tracker
+
+GitHub Issues on `jasandroidx/ReClaw-2.0` via `gh` CLI. External PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout; platform truth in Obsidian vault + `data/reclaw_orchestration.yaml`. See `docs/agents/domain.md`.

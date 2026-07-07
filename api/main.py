@@ -464,6 +464,17 @@ def county_queue_run_next(force: bool = False):
     return CountyQueue(settings).run_next(force=force)
 
 
+@app.post("/county-queue/refresh")
+def county_queue_refresh():
+    """Re-run current pending county (e.g. after scriptwriter/detector updates)."""
+    from core.county_queue import CountyQueue
+
+    try:
+        return CountyQueue(settings).refresh_pending()
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
 @app.post("/county-queue/approve")
 def county_queue_approve(body: CountyApproveBody | None = None):
     from core.county_queue import CountyQueue

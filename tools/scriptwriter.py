@@ -20,7 +20,29 @@ from __future__ import annotations
 import json
 import re
 
+from tools.viral_hooks import build_viral_hook, get_playbook_visual, headline_options
+
 WPM = 150  # spoken words per minute (documentary pace)
+
+# Generic disburse_name buckets — weak hooks without vendor/fund drill-down.
+_WEAK_DISBURSE_LINES = frozenset(
+    {
+        "other capital outlays",
+        "other disbursements",
+        "capital outlays",
+        "other operating disbursements",
+        "other",
+        "transfers out",
+        "debt service",
+    }
+)
+
+# Salary titles that outperform category-only budget lines on Shorts.
+_HIGH_IMPACT_TITLE_RE = re.compile(
+    r"\b(referee|sheriff|judge|probation|jail|work\s*release|prosecutor|coroner|clerk|"
+    r"circuit\s+court|superior\s+court|commissioner|auditor|treasurer)\b",
+    re.I,
+)
 
 DISCLAIMER = (
     "This video analyzes patterns in public financial records. It does not "
@@ -64,43 +86,133 @@ def _short_dollars(x):
     return f"${x:,.0f}"
 
 
+def _evidence_dict(f) -> dict:
+    ev = getattr(f, "evidence", "") or ""
+    if not ev.strip().startswith("{"):
+        return {}
+    try:
+        return json.loads(ev)
+    except Exception:
+        return {}
+
+
+def _dominant_line_label(f) -> str:
+    ev = _evidence_dict(f)
+    if ev.get("line"):
+        return str(ev["line"]).strip()
+    m = re.search(r"'([^']+)'", getattr(f, "description", "") or "")
+    return m.group(1).strip() if m else ""
+
+
+def _is_weak_dominant(f) -> bool:
+    """Category-only disburse_name totals — not publish-worthy cold opens."""
+    if f.category != "dominant_disbursement":
+        return False
+    line = _dominant_line_label(f).lower()
+    if not line:
+        return True
+    return line in _WEAK_DISBURSE_LINES or any(w in line for w in _WEAK_DISBURSE_LINES)
+
+
+def _parse_salary_parts(f) -> tuple[str | None, str | None]:
+    """Extract name + title from taxpayer_red_flags salary_shock description."""
+    desc = getattr(f, "description", "") or ""
+    m = re.match(r"^([^—]+)—\s*([^(]+)", desc)
+    if not m:
+        m = re.match(r"^([^—]+)—\s*(.+?):\s*\$", desc)
+    if not m:
+        return None, None
+    return m.group(1).strip().rstrip(","), m.group(2).strip()
+
+
+def _salary_impact_score(f) -> int:
+    if f.category != "salary_shock":
+        return 0
+    _, title = _parse_salary_parts(f)
+    if not title:
+        return 1
+    return 3 if _HIGH_IMPACT_TITLE_RE.search(title) else 1
+
+
+def _is_publishable(f) -> bool:
+    if f.category == "dominant_disbursement" and _is_weak_dominant(f):
+        return False
+    if f.category in ("benford_violation", "benford_deviation") and f.severity == "low":
+        return False
+    return True
+
+
+def _flag_hook_rank(f) -> tuple:
+    """Lower tuple = stronger cold-open candidate."""
+    impact = {
+        "salary_shock": 0,
+        "double_dip": 1,
+        "composition_outlier": 2,
+        "vendor_concentration": 3,
+        "dominant_disbursement": 4,
+        "split_purchase": 5,
+        "statistical_anomaly": 6,
+        "peer_outlier": 7,
+        "federal_spending_spike": 8,
+        "budget_spike": 9,
+        "disbursement_swing": 10,
+        "benford_violation": 11,
+        "benford_deviation": 12,
+        "composition_break": 13,
+        "collective_anomaly": 14,
+    }.get(f.category, 20)
+    if f.category == "salary_shock":
+        impact -= _salary_impact_score(f)
+    if f.category == "dominant_disbursement" and not _is_weak_dominant(f):
+        impact -= 1
+    if f.category == "composition_outlier" and _evidence_dict(f).get("fund"):
+        impact -= 1
+    return (_sev_rank(f), impact, -(_amt_from_flag(f) or 0))
+
+
+def _pick_lead_flag(flags):
+    """Best flag for hook, lead beat, shorts opener — provenance-first."""
+    pool = [f for f in flags if _is_publishable(f)]
+    if not pool:
+        pool = list(flags)
+    return min(pool, key=_flag_hook_rank) if pool else None
+
+
 def _pick_hook(flags, county):
     """Choose the single most shocking finding as the cold-open hook."""
-    priority = [
-        "dominant_disbursement",
-        "salary_shock",
-        "split_purchase",
-        "peer_outlier",
-        "benford_violation",
-        "vendor_concentration",
-        "composition_break",
-        "collective_anomaly",
-        "federal_spending_spike",
-        "budget_spike",
-        "double_dip",
-        "disbursement_swing",
-    ]
-    hi = sorted([f for f in flags if f.severity in ("critical", "high")], key=_sev_rank)
-    pool = hi or sorted(flags, key=_sev_rank)
-    if not pool:
+    f = _pick_lead_flag(flags)
+    if not f:
         return f"{county} spent millions last year. Here's where it actually went."
-    f = pool[0]
-    for cat in priority:
-        match = next((x for x in flags if x.category == cat), None)
-        if match:
-            f = match
-            break
-    if f.category == "dominant_disbursement":
-        return (
-            f"One single line in {county}'s budget last year was bigger than the "
-            f"county's entire payroll. {f.description.split(':', 1)[0]}. "
-            f"Nobody's talking about it. Let's fix that."
-        )
+    viral = build_viral_hook(f, county, short=False)
+    if viral:
+        return viral
     if f.category == "salary_shock":
+        name, title = _parse_salary_parts(f)
+        amt = _short_dollars(_amt_from_flag(f))
+        if name and title:
+            return (
+                f"Public records show {name} — {title} — paid {amt or 'six figures'} "
+                f"by {county} taxpayers last year. Let's talk about it fairly."
+            )
+        return (
+            f"Public records show one paycheck in {county} at {amt or 'six figures'}. "
+            f"Let's talk about it fairly."
+        )
+    if f.category == "dominant_disbursement":
+        label = _dominant_line_label(f) or f.description.split(":", 1)[0]
         amt = _short_dollars(_amt_from_flag(f))
         return (
-            f"Public records show one paycheck in {county} at {amt or 'six figures'} — "
-            f"in a county of twelve thousand people. Let's talk about it fairly."
+            f"One named line in {county}'s books — '{label}' — totaled {amt or 'millions'} "
+            f"last year. Nobody's explaining it in plain language. Let's fix that."
+        )
+    if f.category == "composition_outlier":
+        ev = _evidence_dict(f)
+        fund = ev.get("fund") or "one fund"
+        line = ev.get("line") or _dominant_line_label(f)
+        amt = _short_dollars(_amt_from_flag(f))
+        return (
+            f"In {county}, the '{fund}' fund sent {amt or 'a huge share'} to '{line}'. "
+            f"That's a named fund — not a vague category total."
         )
     if f.category == "double_dip":
         return (
@@ -141,10 +253,11 @@ def long_form_worthiness(result):
     Returns (is_worthy: bool, score: int, reasons: list[str]).
     """
     flags = getattr(result, "red_flags", result)
-    high = [f for f in flags if f.severity in ("critical", "high")]
-    distinct_cats = {f.category for f in flags}
-    has_dominant = any(f.category == "dominant_disbursement" for f in flags)
-    biggest = max((_amt_from_flag(f) or 0) for f in flags) if flags else 0
+    publishable = [f for f in flags if _is_publishable(f)]
+    high = [f for f in publishable if f.severity in ("critical", "high")]
+    distinct_cats = {f.category for f in publishable}
+    lead = _pick_lead_flag(flags)
+    biggest = max((_amt_from_flag(f) or 0) for f in publishable) if publishable else 0
 
     score, reasons = 0, []
     if len(high) >= 2:
@@ -159,9 +272,16 @@ def long_form_worthiness(result):
     elif len(distinct_cats) >= 3:
         score += 1
         reasons.append(f"{len(distinct_cats)} distinct anomaly types")
-    if has_dominant and biggest >= 1_000_000:
+    if lead and lead.category == "salary_shock" and _salary_impact_score(lead) >= 3:
         score += 2
-        reasons.append(f"a {_short_dollars(biggest)} dominant line (visual hook)")
+        _, title = _parse_salary_parts(lead)
+        reasons.append(f"named salary hook ({title or 'public employee'})")
+    elif lead and lead.category in ("composition_outlier", "dominant_disbursement"):
+        score += 2
+        reasons.append(f"named fund/line hook ({_short_dollars(_amt_from_flag(lead))})")
+    elif biggest >= 1_000_000:
+        score += 2
+        reasons.append(f"a {_short_dollars(biggest)} standout number")
     elif biggest >= 250_000:
         score += 1
         reasons.append(f"a {_short_dollars(biggest)} standout number")
@@ -187,19 +307,10 @@ def build_shorts(result, channel="The Local Auditor", county=None, max_shorts=5)
     base, tags, fb = _geo_terms(county)
     earn = census.get("median_earnings") or census.get("median_hh_income")
 
-    _cat_rank = {
-        "dominant_disbursement": 0,
-        "salary_shock": 1,
-        "double_dip": 2,
-        "vendor_concentration": 3,
-        "composition_outlier": 4,
-        "budget_spike": 5,
-        "disbursement_swing": 6,
-        "benford_deviation": 7,
-        "round_number_cluster": 8,
-        "federal_spending_spike": 9,
-    }
-    flags = sorted(flags, key=lambda f: (_cat_rank.get(f.category, 8), _sev_rank(f)))
+    flags = sorted(
+        [f for f in flags if _is_publishable(f)],
+        key=_flag_hook_rank,
+    )
 
     shorts, seen_cats = [], set()
     for f in flags:
@@ -209,10 +320,24 @@ def build_shorts(result, channel="The Local Auditor", county=None, max_shorts=5)
             continue
         amt = _amt_from_flag(f)
         dollars = _short_dollars(amt)
-        if f.category == "dominant_disbursement" and dollars:
-            open_line = f"{base} County, Indiana spent {dollars} on ONE line item."
+        viral_short = build_viral_hook(f, county, short=True)
+        if viral_short:
+            open_line = viral_short
         elif f.category == "salary_shock" and dollars:
-            open_line = f"{base} County taxpayers paid {dollars} on ONE public paycheck."
+            name, title = _parse_salary_parts(f)
+            if name and title:
+                open_line = (
+                    f"{base} County paid {name} ({title}) {dollars} — public record."
+                )
+            else:
+                open_line = f"{base} County taxpayers paid {dollars} on ONE public paycheck."
+        elif f.category == "dominant_disbursement" and dollars:
+            label = _dominant_line_label(f) or "one budget line"
+            open_line = f"{base} County: '{label}' totaled {dollars} in public disbursements."
+        elif f.category == "composition_outlier" and dollars:
+            ev = _evidence_dict(f)
+            fund = ev.get("fund") or "one fund"
+            open_line = f"{base} County '{fund}' fund — {dollars} concentrated in one line."
         elif f.category == "double_dip":
             open_line = f"ONE person, TWO paychecks — {base} County public records."
         elif f.category == "budget_spike":
@@ -257,6 +382,7 @@ def build_shorts(result, channel="The Local Auditor", county=None, max_shorts=5)
                 "caption": caption,
                 "hashtags": tags,
                 "disclaimer": DISCLAIMER,
+                "playbook": get_playbook_visual(f),
             }
         )
         seen_cats.add(f.category)
@@ -321,11 +447,7 @@ def build_script(result, channel="The Local Auditor", county=None):
     )
 
     L.append("## BEAT 3 — THE BIG NUMBER  (1:30-4:00)")
-    lead = (
-        next((f for f in flags if f.category == "dominant_disbursement"), None)
-        or next((f for f in flags if f.category == "salary_shock"), None)
-        or (high[0] if high else None)
-    )
+    lead = _pick_lead_flag(flags) or (high[0] if high else None)
     if lead:
         L.append("**[VO]** Let's start with the one that stopped me cold.")
         L.append(f"**[VO]** {lead.description}.")
@@ -447,12 +569,31 @@ def build_script(result, channel="The Local Auditor", county=None):
 
 
 def _titles(county, flags):
-    cats = {f.category for f in flags}
+    lead = _pick_lead_flag(flags)
+    cats = {f.category for f in flags if _is_publishable(f)}
     out = []
-    if "dominant_disbursement" in cats:
-        out.append(f"{county} Spent $19 MILLION on ONE Line — And No One Noticed")
-    if "salary_shock" in cats:
+    if lead:
+        out.extend(headline_options(lead, county, limit=2))
+    if lead and lead.category == "salary_shock":
+        name, title = _parse_salary_parts(lead)
+        amt = _short_dollars(_amt_from_flag(lead))
+        if name and title:
+            out.append(f"{county}: {title} Paid {amt} — Public Salary Records")
+        else:
+            out.append(f"What {county} Pays Its Top Public Employees (Public Records)")
+    elif lead and lead.category == "dominant_disbursement":
+        label = _dominant_line_label(lead)
+        amt = _short_dollars(_amt_from_flag(lead))
+        out.append(f"{county} Spent {amt} on '{label}' — Public Records")
+    elif "salary_shock" in cats:
         out.append(f"What {county} Pays Its Top Public Employees (Public Records)")
+    elif "dominant_disbursement" in cats:
+        dom = next((f for f in flags if f.category == "dominant_disbursement" and not _is_weak_dominant(f)), None)
+        if dom:
+            out.append(
+                f"{county} Spent {_short_dollars(_amt_from_flag(dom))} on "
+                f"'{_dominant_line_label(dom)}' — Public Records"
+            )
     if "double_dip" in cats:
         out.append(f"Same Name, Two Paychecks — {county} Public Salary Search")
     if "federal_spending_spike" in cats:
@@ -482,7 +623,7 @@ def build_package(
     if worthy:
         long_md, long_meta = build_script(result, channel=channel, county=county)
     shorts, dist = build_shorts(result, channel=channel, county=county, max_shorts=max_shorts)
-    hook_flag = sorted(flags, key=_sev_rank)[0] if flags else None
+    hook_flag = _pick_lead_flag(flags)
     top_finding = hook_flag.description if hook_flag else "No flags surfaced"
     return {
         "county": county,

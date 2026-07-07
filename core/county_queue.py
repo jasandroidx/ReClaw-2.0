@@ -131,6 +131,68 @@ class CountyQueue:
             "remaining": max(0, len(self.worklist) - state.cursor),
         }
 
+    def _persist_orchestration_artifacts(
+        self,
+        item: CountyWorkItem,
+        pkg: ContentPackage,
+        card: ReviewCard,
+    ) -> dict[str, Any]:
+        """Total-ReClaw memory + Remotion HHVCTA manifests for atomic findings."""
+        from tools.total_reclaw_memory import memory_recall, save_atomic_finding
+        from tools.video_manifest import write_manifests_for_package
+
+        recalled = memory_recall(item.name, county=item.name, limit=5)
+        saved = 0
+        for f in pkg.analysis.red_flags:
+            if save_atomic_finding(
+                item.name,
+                f.description,
+                category=f.category,
+                evidence=f.evidence or "",
+                severity=f.severity,
+            ):
+                saved += 1
+
+        top_ev = ""
+        if pkg.analysis.red_flags:
+            top_ev = str(pkg.analysis.red_flags[0].evidence or "")
+        manifest_paths = write_manifests_for_package(
+            item.name,
+            pkg.short_scripts,
+            review_id=card.id,
+            top_finding=card.top_finding,
+            top_evidence=top_ev,
+            red_flags=pkg.analysis.red_flags,
+        )
+        copilot_explanations: list[dict] = []
+        try:
+            from tools.audit_copilot import county_disbursement_amounts, explain_top_flags
+
+            amounts = county_disbursement_amounts(item.name)
+            copilot_explanations = explain_top_flags(
+                pkg.analysis.red_flags,
+                county=item.name,
+                amounts=amounts,
+                limit=2,
+            )
+            manifest_paths_with_copilot = []
+            for i, path in enumerate(manifest_paths):
+                if i < len(copilot_explanations) and path.exists():
+                    data = json.loads(path.read_text(encoding="utf-8"))
+                    data["audit_copilot"] = copilot_explanations[i]
+                    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+                manifest_paths_with_copilot.append(path)
+            manifest_paths = manifest_paths_with_copilot
+        except Exception:
+            pass
+
+        return {
+            "memories_recalled": len(recalled),
+            "memories_saved": saved,
+            "manifests": [str(p) for p in manifest_paths],
+            "audit_copilot": copilot_explanations,
+        }
+
     def _write_review_obsidian(self, card: ReviewCard, pkg: ContentPackage | None = None) -> Path:
         vault = self.settings.effective_obsidian_path
         vault.mkdir(parents=True, exist_ok=True)
@@ -291,7 +353,12 @@ class CountyQueue:
             wscore = pkg.long_form.worthiness_score if pkg.long_form else 0
             top_hook = pkg.short_scripts[0].hook if pkg.short_scripts else None
             top_cat = pkg.short_scripts[0].source_flag_category if pkg.short_scripts else None
-            top_find = pkg.analysis.red_flags[0].description if pkg.analysis.red_flags else ""
+            audit_result = build_audit_result(pkg.analysis, pkg.research)
+            pkg_meta = build_package(audit_result, county=item.name)
+            top_find = pkg_meta.get("top_finding") or (
+                pkg.analysis.red_flags[0].description if pkg.analysis.red_flags else ""
+            )
+            top_cat = pkg_meta.get("top_category") or top_cat
             recommendation = (
                 f"STRONG long-form (~{runtime} min) + {len(pkg.short_scripts)} shorts"
                 if worthy
@@ -323,6 +390,7 @@ class CountyQueue:
             )
             review_path = self._write_review_obsidian(card, pkg)
             card.obsidian_file = review_path.name
+            orch = self._persist_orchestration_artifacts(item, pkg, card)
 
             state.pending_review = card
             state.status = "awaiting_approval"
@@ -334,11 +402,90 @@ class CountyQueue:
                 "review_card": card.model_dump(mode="json"),
                 "worklist_position": state.cursor,
                 "review_obsidian": str(review_path),
+                "orchestration": orch,
             }
         except Exception as e:
             state.status = "idle"
             self.save_state(state)
             raise RuntimeError(f"County queue run failed for {item.name}: {e}") from e
+
+    def refresh_pending(self) -> dict[str, Any]:
+        """Re-run pipeline for the county awaiting approval (new scripts, same queue position)."""
+        state = self.load_state()
+        if not state.pending_review:
+            raise ValueError("No pending review to refresh.")
+        old = state.pending_review
+        item = next((w for w in self.worklist if w.name == old.county), None)
+        if not item:
+            item = CountyWorkItem(
+                gateway_code=old.gateway_code,
+                name=old.county,
+                fips=old.fips,
+                worklist_position=state.cursor,
+            )
+
+        state.status = "processing"
+        self.save_state(state)
+
+        try:
+            pkg, sess = self._run_full_county_pipeline(item)
+            worthy = bool(pkg.long_form and pkg.long_form.worthy)
+            runtime = pkg.long_form.runtime_min if pkg.long_form else None
+            reasons = pkg.long_form.worthiness_reasons if pkg.long_form else []
+            wscore = pkg.long_form.worthiness_score if pkg.long_form else 0
+            top_hook = pkg.short_scripts[0].hook if pkg.short_scripts else None
+            audit_result = build_audit_result(pkg.analysis, pkg.research)
+            pkg_meta = build_package(audit_result, county=item.name)
+            top_find = pkg_meta.get("top_finding") or ""
+            top_cat = pkg_meta.get("top_category")
+            recommendation = (
+                f"STRONG long-form (~{runtime} min) + {len(pkg.short_scripts)} shorts"
+                if worthy
+                else f"Shorts focus — {len(pkg.short_scripts)} shorts"
+            )
+
+            card = ReviewCard(
+                id=old.id,
+                county=item.name,
+                gateway_code=item.gateway_code,
+                fips=item.fips,
+                created_at=old.created_at,
+                risk_score=pkg.analysis.overall_risk_score,
+                flag_count=len(pkg.analysis.red_flags),
+                top_finding=top_find,
+                top_category=top_cat,
+                recommendation=recommendation,
+                long_form_worthy=worthy,
+                long_form_runtime_min=runtime,
+                worthiness_score=wscore,
+                worthiness_reasons=reasons,
+                geo_push=item.geo_push or old.geo_push,
+                short_count=len(pkg.short_scripts),
+                top_short_hook=top_hook,
+                package_id=pkg.id,
+                session_id=sess.session_id,
+                obsidian_file=pkg.obsidian_filename,
+                publish_formats=old.publish_formats,
+            )
+            review_path = self._write_review_obsidian(card, pkg)
+            card.obsidian_file = review_path.name
+            orch = self._persist_orchestration_artifacts(item, pkg, card)
+            state.pending_review = card
+            state.status = "awaiting_approval"
+            self.save_state(state)
+            return {
+                "ok": True,
+                "message": f"Refreshed {item.name} review card with updated scripts.",
+                "review_card": card.model_dump(mode="json"),
+                "review_obsidian": str(review_path),
+                "top_short_hook": top_hook,
+                "orchestration": orch,
+            }
+        except Exception as e:
+            state.status = "awaiting_approval"
+            state.pending_review = old
+            self.save_state(state)
+            raise RuntimeError(f"Refresh failed for {old.county}: {e}") from e
 
     def approve(
         self,
@@ -377,11 +524,20 @@ class CountyQueue:
             if state.cursor < len(self.worklist)
             else None
         )
+        render_info: dict[str, Any] = {}
+        try:
+            from tools.remotion_orchestrator import render_on_approve
+
+            render_info = render_on_approve(card.county, review_id=card.id)
+        except Exception as e:
+            render_info = {"skipped": True, "error": str(e)}
+
         return {
             "ok": True,
             "message": f"Approved {card.county}. Cursor advanced to position {state.cursor}.",
             "next_county": next_item,
             "approved": entry,
+            "video_render": render_info,
         }
 
     def reject(self, reason: str, *, granted_by: str = "human") -> dict[str, Any]:

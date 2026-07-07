@@ -1,0 +1,6 @@
+# Optional lab deps — not required for ReClaw API / county queue
+streamlit>=1.32
+plotly>=5.20
+openpyxl>=3.1
+# Core ML already in /root/ReClaw-2.0/requirements.txt:
+# pandas numpy scikit-learn pyod sentence-transformers
