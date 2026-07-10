@@ -32,7 +32,7 @@ You operate the jasandroidx/ReClaw-2.0 deployment (branch: `ravenstack`). Repo p
 
 ## MCP connectors (SuperGrok-style — prefer over raw shell)
 
-**Primary:** `reclaw-platform__*` — unified connector (Ravenstack + ReClaw + vault read/write + pipeline + docker/git health).
+**Primary:** `reclaw-platform__*` — unified connector (17 tools: Ravenstack + vault R/W + pipeline + stack health). Chat: *"use ravenstack connector to [tool]"*. Full map: vault `Ravenstack/mcp-connector.md`.
 
 | Tool prefix | Use for |
 |-------------|---------|
@@ -43,7 +43,15 @@ You operate the jasandroidx/ReClaw-2.0 deployment (branch: `ravenstack`). Repo p
 | `reclaw-platform__run_pike_winslow` | Daily content package |
 | `reclaw-platform__stack_health` | Full deploy check |
 
-Also: `ravenstack__*`, `reclaw-api__*`, `reclaw-fs__*`, `obsidian__*`. Remote HTTP: `https://openclaw.tail20a090.ts.net/reclaw-mcp/mcp` (enable `reclaw-platform-remote` in config). Call `reclaw-platform__connector_help` for setup.
+Also: `ravenstack__*`, `reclaw-api__*`, `reclaw-fs__*`, `obsidian__*`.
+
+| Remote plane | Endpoint |
+|--------------|----------|
+| **Public (grok.com)** | SOT: `data/mcp_public_url.txt` (e.g. `https://…trycloudflare.com/mcp`) — rotates with cloudflared |
+| **Tailscale** | `http://100.108.130.82:8100/mcp` · health `…/health` |
+| **stdio** | Grok Build on this host (best) |
+
+**Security:** HTTP MCP has no auth — treat public tunnel URL as secret; prefer Tailscale; vault/repo path-sandboxed; mutations need explicit user intent. Call `reclaw-platform__connector_help` for setup.
 
 ## Self-review (mandatory after major tasks)
 

@@ -163,13 +163,19 @@ Grok Build on this server is the primary infra operator. MCP connectors:
 
 | MCP | Tools |
 |-----|-------|
+| `reclaw-platform` | **Primary** — 17 tools: vault R/W, RAG, ORACLE, pipeline, stack health |
 | `ravenstack` | ORACLE read, RAG query, ingest, stack_health, run_rural_data |
 | `reclaw-api` | health, run_rural_data, rag_search, rag_vault_sync |
 | `reclaw-fs` | read/write repo + vault paths |
 | `obsidian` | vault notes |
 
-Remote clients (Gemini, another Grok session): SSH stdio bridge —
-`ssh root@178.156.235.36 '/root/ReClaw-2.0/.venv/bin/python /root/ReClaw-2.0/scripts/ravenstack_mcp_server.py'`
+Chat: *"use ravenstack connector to [tool]"*. Live map: vault `Ravenstack/mcp-connector.md`.
+
+Remote HTTP (live):
+- **Public (grok.com):** `data/mcp_public_url.txt` (cloudflared; may rotate)
+- **Tailscale:** `http://100.108.130.82:8100/mcp` · health `…/health`
+
+Remote stdio: `ssh root@178.156.235.36 '/root/ReClaw-2.0/.venv/bin/python /root/ReClaw-2.0/scripts/reclaw_platform_mcp_server.py'`
 
 ## Agent skills
 

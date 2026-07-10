@@ -33,23 +33,29 @@ from core.config import get_settings
 from core.knowledge import KnowledgeManager
 
 _TSNET_HOST = os.environ.get("TAILSCALE_HOST", "openclaw.tail20a090.ts.net")
+_TS_IP = os.environ.get("TAILSCALE_IP", "100.108.130.82")
 _extra_hosts = [h.strip() for h in os.environ.get("MCP_EXTRA_ALLOWED_HOSTS", "").split(",") if h.strip()]
 _public_mode = os.environ.get("MCP_PUBLIC_MODE", "").lower() in ("1", "true", "yes")
+_port = int(os.environ.get("FASTMCP_PORT", "8100"))
 mcp = FastMCP(
     "reclaw-platform",
     instructions=(
         "ReClaw 2.0 + Ravenstack connector. Read ORACLE, search RAG, read/write Obsidian vault, "
         "run Pike/Winslow pipeline, inspect Docker/Tailscale health. Truth + provenance only."
     ),
-    host=os.environ.get("FASTMCP_HOST", "127.0.0.1"),
-    port=int(os.environ.get("FASTMCP_PORT", "8100")),
+    # Option 2: clients hit this host's Tailscale IP directly.
+    host=os.environ.get("FASTMCP_HOST", _TS_IP),
+    port=_port,
     transport_security=TransportSecuritySettings(
         enable_dns_rebinding_protection=not _public_mode,
         allowed_hosts=[
             "127.0.0.1:8100",
             "localhost:8100",
+            f"{_TS_IP}:{_port}",
+            _TS_IP,
             _TSNET_HOST,
             f"{_TSNET_HOST}:443",
+            f"{_TSNET_HOST}:{_port}",
             *_extra_hosts,
         ],
     ),
@@ -57,6 +63,21 @@ mcp = FastMCP(
 GATEWAY = os.environ.get("RECLAW_GATEWAY_URL", "http://127.0.0.1:8000")
 OPENCLAW = os.environ.get("OPENCLAW_GATEWAY_URL", "http://127.0.0.1:18789")
 TOKEN = os.environ.get("RECLAW_GATEWAY_TOKEN", "")
+
+
+@mcp.custom_route("/health", methods=["GET"], name="health")
+async def health_check(request):  # type: ignore[no-untyped-def]
+    """Simple liveness for Tailscale / load checks (not MCP protocol)."""
+    from starlette.responses import JSONResponse
+
+    return JSONResponse(
+        {
+            "status": "ok",
+            "service": "reclaw-platform",
+            "transport": os.environ.get("MCP_TRANSPORT", "stdio"),
+            "port": _port,
+        }
+    )
 
 
 def _km() -> KnowledgeManager:
@@ -251,18 +272,26 @@ GROK BUILD (this server — best experience):
   Tools appear as: reclaw-platform__read_vault_file, reclaw-platform__run_pike_winslow, etc.
   Set XAI_API_KEY in /root/.env for xAI models.
 
-REMOTE (Grok/Gemini from your PC):
-  HTTP MCP on tailnet: https://openclaw.tail20a090.ts.net/reclaw-mcp/mcp
-  Grok config:
-    [mcp_servers.reclaw-platform]
-    url = "https://openclaw.tail20a090.ts.net/reclaw-mcp/mcp"
+REMOTE — Grok.com Connectors (xAI cloud; needs PUBLIC HTTPS, not Tailscale IP):
+  URL file: /root/ReClaw-2.0/data/mcp_public_url.txt  (cloudflared quick tunnel; hostnames rotate)
+  Refresh:  systemctl restart reclaw-mcp-tunnel
+  Path MUST end with /mcp
+  Chat: "use ravenstack connector to [tool]"
+
+TAILNET only (phone/laptop with Tailscale; NOT grok.com):
+  Health: http://{_TS_IP}:8100/health
+  MCP:    http://{_TS_IP}:8100/mcp
+  Or:     https://openclaw.tail20a090.ts.net/reclaw-mcp/mcp
 
 STDIO over SSH:
   ssh root@178.156.235.36 '{ROOT}/.venv/bin/python {ROOT}/scripts/reclaw_platform_mcp_server.py'
 
+SECURITY: HTTP MCP has no auth — treat public tunnel URL as secret; prefer Tailscale;
+  vault/repo path-sandboxed; mutations need explicit user intent. Full map: vault Ravenstack/mcp-connector.md
+
 WRITE TOOLS: write_vault_file, save_ravenstack_note, ingest_to_ravenstack, run_pike_winslow
 READ TOOLS: read_vault_file, read_repo_file, query_knowledge, read_oracle
-OPS: stack_health, docker_status, git_status
+OPS: stack_health, docker_status, git_status (17 tools total)
 
 Also available separately: ravenstack, reclaw-api, reclaw-fs, obsidian MCPs.
 """

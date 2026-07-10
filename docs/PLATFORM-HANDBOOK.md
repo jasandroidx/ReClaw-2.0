@@ -695,16 +695,18 @@ Enable `reclaw-platform-remote` in config or add the URL block above.
 
 xAI supports custom MCP at **[grok.com/connectors](https://grok.com/connectors)** → **New Connector** → **Custom**.
 
-**Important:** Grok's servers must reach your MCP over the **public internet**. Tailscale-only URLs (`openclaw.tail20a090.ts.net`) work only on your tailnet — **not** from grok.com unless you use **Tailscale Funnel** or a tunnel.
+**Important:** Grok's servers must reach your MCP over the **public internet**. Tailscale-only URLs (`openclaw.tail20a090.ts.net` / `100.108.130.82:8100`) work only on your tailnet — **not** from grok.com unless you use **Tailscale Funnel** or a tunnel.
 
 | Step | Action |
 |------|--------|
-| 1 | Ensure MCP bridge is running: `./scripts/run-reclaw-mcp-bridge.sh` (listens on `:8100`) |
-| 2 | Expose port 8100 publicly. Options: **ngrok** `ngrok http 8100`, **cloudflared** `cloudflared tunnel --url http://127.0.0.1:8100`, or **Tailscale Funnel** `tailscale funnel --bg 8100` |
-| 3 | In grok.com Custom Connector, enter: **Name** `ReClaw Platform` · **URL** `https://YOUR-PUBLIC-TUNNEL/mcp` |
-| 4 | Test in chat: *"Use ReClaw to run stack_health and query knowledge for Pike County"* |
+| 1 | Ensure MCP bridge is running: `systemctl status reclaw-mcp-bridge` (listens on `:8100`) |
+| 2 | Public tunnel: `systemctl status reclaw-mcp-tunnel` (cloudflared → localhost:8100). URL SOT: `data/mcp_public_url.txt` |
+| 3 | In grok.com Custom Connector: **Name** `ReClaw Platform` · **URL** = contents of `data/mcp_public_url.txt` (must end `/mcp`) |
+| 4 | Test: *"use ravenstack connector to stack_health"* or *"Use ReClaw to query knowledge for Pike County"* |
 
-**Security:** The MCP HTTP endpoint has no auth today. If you tunnel publicly, treat the URL like a secret or add auth later.
+**Live planes (2026-07-10):** Public URL SOT `data/mcp_public_url.txt` (may rotate) · Tailnet `http://100.108.130.82:8100/mcp`. Full rules: vault `Ravenstack/mcp-connector.md` + repo `docs/MCP_CONNECTOR.md`.
+
+**Security:** The MCP HTTP endpoint has **no auth** today. Treat the public tunnel URL like a secret. Prefer Tailscale for private ops. Path-sandbox on vault/repo tools. Mutations require explicit user intent.
 
 ### GitHub MCP (enabled)
 

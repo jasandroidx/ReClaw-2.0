@@ -37,6 +37,16 @@
 
 ## Grok Chat Connector
 
+**Last verified:** 2026-07-10 — bridge + cloudflared live.
+
+| Plane | Endpoint |
+|-------|----------|
+| Public | `data/mcp_public_url.txt` → e.g. `https://locate-retailer-dana-les.trycloudflare.com/mcp` |
+| Tailscale | `http://100.108.130.82:8100/mcp` · `…/health` |
+| Knowledge | Vault `Ravenstack/mcp-connector.md` + ORACLE MCP section |
+
+**Chat:** *"use ravenstack connector to [tool]"* → `reclaw-platform__*` / `ravenstack__*` (17+ tools).
+
 **Grok Build (this server):** `reclaw-mcp` + `reclaw-platform` in `/root/.grok/config.toml`.
 
 **SuperGrok (grok.com):** [grok.com/connectors](https://grok.com/connectors) → Custom → URL from `data/mcp_public_url.txt` (cloudflared tunnel, MCP-only).

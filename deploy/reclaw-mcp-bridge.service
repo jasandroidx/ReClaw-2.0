@@ -1,14 +1,25 @@
 [Unit]
-Description=ReClaw MCP HTTP Bridge (streamable-http on :8100)
-After=network.target docker.service
+Description=ReClaw MCP HTTP Bridge (streamable-http on :8100, Tailscale 100.108.130.82)
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/root/ReClaw-2.0
+Environment=TAILSCALE_IP=100.108.130.82
+Environment=FASTMCP_HOST=0.0.0.0
+Environment=FASTMCP_PORT=8100
+Environment=MCP_TRANSPORT=streamable-http
+Environment=MCP_PUBLIC_MODE=1
+# Free stale listeners before start (manual nohup leftovers)
+ExecStartPre=-/usr/bin/fuser -k 8100/tcp
+ExecStartPre=/bin/sleep 1
 ExecStart=/root/ReClaw-2.0/scripts/run-reclaw-mcp-bridge.sh
-Restart=on-failure
-RestartSec=5
+Restart=always
+RestartSec=3
+KillMode=mixed
+TimeoutStopSec=10
 
 [Install]
 WantedBy=multi-user.target
