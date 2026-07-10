@@ -126,24 +126,20 @@ class Orchestrator:
         return pkg
 
     def _run_local_auditor(self, county: str):
-        """Run live Gateway forensic audit; write silent_auditor handoff when session exists."""
-        from tools.local_auditor_live import audit_county_by_name, to_compliance_package
-
+        """Run SilentAuditorAgent (real agent with gates + detectors)."""
         try:
-            result = audit_county_by_name(county)
-            pkg = to_compliance_package(result)
-            if self.session:
-                self.session.write_handoff("silent_auditor", pkg)
-                self.session.log(
-                    f"Local auditor: {len(pkg.red_flags)} compliance flags for {county}"
+            from agents.silent_auditor import SilentAuditorAgent
+
+            auditor = SilentAuditorAgent(self.settings, session=self.session)
+            pkg = auditor.run(county)
+            if pkg:
+                print(
+                    f"[Orchestrator] SilentAuditorAgent: {len(pkg.red_flags)} flags "
+                    f"(risk={pkg.overall_risk_score})"
                 )
-            print(
-                f"[Orchestrator] Local auditor: {len(pkg.red_flags)} flags "
-                f"(risk={pkg.overall_risk_score})"
-            )
             return pkg
         except Exception as e:
-            msg = f"Local auditor skipped for {county}: {e}"
+            msg = f"SilentAuditorAgent skipped for {county}: {e}"
             print(f"[Orchestrator] {msg}")
             if self.session:
                 self.session.log(msg, level="WARN")

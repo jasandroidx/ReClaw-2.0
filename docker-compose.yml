@@ -50,17 +50,58 @@ services:
 
   openclaw-gateway:
     image: ghcr.io/openclaw/openclaw:latest
+    container_name: openclaw-gateway
     restart: unless-stopped
     env_file:
       - .env
     environment:
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
       - OLLAMA_API_KEY=${OLLAMA_API_KEY}
-      - OLLAMA_HOST=http://127.0.0.1:8080
+      # Ollama chat API (tags/models). Coder GGUF stays on :8080 separately if needed.
+      - OLLAMA_HOST=http://127.0.0.1:11434
+      - OLLAMA_API_BASE=http://127.0.0.1:11434
       - XAI_API_KEY=${XAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - HOME=/home/node
     volumes:
       - /root/.openclaw:/home/node/.openclaw
+      # Host Tailscale CLI + daemon socket (Serve is host-managed; mounts for ops/debug).
+      - /usr/bin/tailscale:/usr/bin/tailscale:ro
+      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock
+    # Shared netns: gateway + host Tailscale (no Docker NAT). Required for Serve→loopback.
     network_mode: host
-    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789", "--allow-unconfigured"]
+    # Dual path (PDANet-safe):
+    #   1) PRIMARY  — Tailscale Serve → wss://openclaw.tail20a090.ts.net
+    #   2) FALLBACK — bind lan → :18789 on all ifaces incl. 100.108.130.82 (tailnet TCP)
+    # Serve still proxies to 127.0.0.1:18789 (lan bind includes loopback).
+    # Host multi-path: bash scripts/ensure-tailscale-mcp-funnel.sh
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--bind",
+        "lan",
+        "--port",
+        "18789",
+        "--allow-unconfigured",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:18789/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

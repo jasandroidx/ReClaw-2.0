@@ -1,117 +1,108 @@
 ---
 name: ravenstack-sitrep
 description: >
-  Full Ravenstack/ReClaw project sitrep via MCP connectors. Live stack health,
-  git, knowledge, pipeline sessions, blockers, and next actions — distilled only.
-  Use when the user says "use ravenstack-sitrep", /ravenstack-sitrep, sitrep,
-  stack status, fortress status, or full project analysis.
+  FULL live ReClaw/Ravenstack project status analysis via MCP connector: Docker,
+  Tailscale, OpenClaw gateway, ReClaw API, MCP bridge/tunnel, Ollama, fortress
+  dashboard, county queue, sessions, packages, git (repo+vault), GitHub, Obsidian
+  knowledge, RAG, gaps, and next actions. Use when the user says
+  "use ravenstack-sitrep", /ravenstack-sitrep, sitrep, full project status,
+  fortress status, stack status, full analyze, or "status update on ReClaw".
 ---
 
-# Ravenstack Sitrep
+# Ravenstack Sitrep — Full Project Live Status
 
-One-shot **situation report** for ReClaw 2.0 + Ravenstack Fortress. Always live from MCP — never invent health, never dump raw tool JSON.
+When this skill is invoked you run a **complete live audit of the entire ReClaw / Ravenstack fortress**. Not a partial health ping. Cover every layer below. Prefer MCP. Never invent status.
 
 ## Non-negotiables
 
-1. **MCP first** — prefer `ravenstack__*` (fallback: `reclaw-platform__*`). Shell only if MCP is down.
-2. **Live every run** — re-query tools; do not reuse prior sitrep text as truth.
-3. **Distill** — bullets, not logs. Cap each section; no full ORACLE paste.
-4. **Mandatory sections** — use the template below, every time, in order. Empty → `none`.
-5. **No mutations** unless the user explicitly asks (no ingest, no reload, no pipeline run).
+1. **Always live** — call tools now; never reuse prior sitrep text as truth.
+2. **MCP first** — `reclaw-platform__*` preferred (fallback `ravenstack__*`). Shell only if MCP down.
+3. **One-shot full pass** — call `project_sitrep` first (covers everything). Supplement if any section is thin.
+4. **Distill for chat** — structured report from live data; no multi-KB raw dumps. Facts only.
+5. **No mutations** — no ingest, reload, pipeline run, approve, or write unless user explicitly asks after the sitrep.
+6. **Gaps are mandatory** — every missing/degraded layer goes in Blockers & gaps with severity.
 
-## Procedure (run in parallel where possible)
+## Procedure (mandatory)
 
-Call `search_tool` first if schemas are unknown, then:
+### Step A — Primary (always)
 
-| Step | MCP tool | Purpose |
-|------|----------|---------|
-| 1 | `ravenstack__stack_health` | Full health snapshot |
-| 2 | `ravenstack__git_status` | Branch / dirty state |
-| 3 | `ravenstack__list_pipeline_sessions` (`limit`: 5) | Recent work |
-| 4 | `ravenstack__list_knowledge_topics` | Knowledge surface |
-| 5 | `ravenstack__query_knowledge` (`query`: `"current blockers OR open backlog OR known issues"`, `top_k`: 4) | Context for risks |
-| 6 | Optional if step 1 incomplete | `docker_status`, `reclaw_health`, `openclaw_health` |
+```
+reclaw-platform__project_sitrep
+```
+(or `ravenstack__project_sitrep` / `sitrep`)
 
-Fallback prefix: `reclaw-platform__` with the same tool names.
+**The tool returns a full plain-English markdown report** (all 16 sections already written).  
+In chat: **show that report to the user**. Do not invent status; light rephrase only if needed.
 
-If MCP is unavailable: one shell pass only —
+### Step B — Fill holes (parallel if needed)
+
+Only if Step A failed or a section is empty/error:
+
+| Layer | Tool / action |
+|-------|----------------|
+| Stack shell snapshot | `stack_health` |
+| Docker only | `docker_status` |
+| OpenClaw | `openclaw_health` |
+| Pipeline | `pipeline_status` |
+| Session deep | `inspect_session` (empty = latest) |
+| Repo dirty | `git_status` |
+| Knowledge list | `list_knowledge_topics` |
+| ORACLE | `read_oracle` section `MCP Connector` |
+| RAG | `query_knowledge` query `MCP connector blockers` |
+| Vault file | `read_vault_file` `Rural Data/_latest.md` |
+
+### Step C — Shell fallback (only if MCP unavailable)
 
 ```bash
-cd /root/ReClaw-2.0 && ./scripts/post-deploy-healthcheck.sh 2>/dev/null; git status -sb; ls -1 data/sessions 2>/dev/null | tail -5
+cd /root/ReClaw-2.0
+./scripts/post-deploy-healthcheck.sh
+docker compose ps
+tailscale serve status; tailscale ip -4
+systemctl is-active reclaw-mcp-bridge reclaw-mcp-tunnel
+git -C /root/ReClaw-2.0 status -sb
+git -C /root/obsidian_vault status -sb
+gh repo view jasandroidx/ReClaw-2.0 --json name,updatedAt,url 2>/dev/null
+curl -sf http://127.0.0.1:8000/health; curl -sf http://127.0.0.1:18789/health
+curl -sf http://127.0.0.1:8000/county-queue/status | head -c 800
 ```
 
-Mark the sitrep **DEGRADED (shell fallback)**.
+Mark sitrep **DEGRADED (shell fallback)**.
 
-## Output template (mandatory — fill every section)
+## Output (mandatory)
 
-```markdown
-# Ravenstack Sitrep
-**As of:** <ISO timestamp UTC> · **Overall:** 🟢 healthy | 🟡 degraded | 🔴 down
-
-## 1. Stack health
-- ReClaw API:
-- OpenClaw gateway:
-- Ollama / LLM:
-- Docker compose:
-- Other (Tailscale, dashboard):
-
-## 2. Repo
-- Branch:
-- Dirty?:
-- Note: (1 line max)
-
-## 3. Knowledge / vault
-- Topics count or key anchors:
-- ORACLE reachable?: yes/no
-- RAG signal: (1 line from query, or none)
-
-## 4. Recent pipeline
-- Last N sessions (id · age · county if known):
-- Stuck / failed:
-
-## 5. Blockers & red flags
-- (severity · fact · source). Or: none
-
-## 6. Next actions
-1. …
-2. …
-3. …  (max 3, actionable, ordered)
-
-## 7. Provenance
-- Tools used: (list)
-- Fallback used?: no | shell
-```
+1. Call `project_sitrep` (or `sitrep`).
+2. **Present the tool result as the answer** — it is already plain English with sections 1–16.
+3. Only if the tool failed: use Step B/C and then fill the same section list yourself.
 
 ### Distill rules
 
-- Status emoji from worst live signal only.
-- Health: `up` / `down` / `unknown` + one number or phrase (latency, exit, version) — no multi-line dumps.
-- Sessions: max 5 lines.
-- Blockers: only confirmed from tools or cited knowledge hits.
-- Next actions: revenue/ops first; skip fluff.
-- Total sitrep target: **≤ 40 lines**.
+- Prefer the tool’s markdown as-is.
+- Secrets: never print gateway tokens or API keys.
+- No mutations after sitrep unless the user asks.
 
-## Optional follow-ups (only if user asks)
+## Chat triggers (seamless)
+
+| User says | You do |
+|-----------|--------|
+| use ravenstack-sitrep | Full template from `project_sitrep` |
+| /ravenstack-sitrep | same |
+| full project status / fortress status / sitrep | same |
+| use ravenstack connector to project_sitrep | Call tool; still render full template |
+| use ravenstack connector to stack_health | Health only unless they asked for full sitrep |
+
+## After sitrep (only if asked)
 
 | Ask | Tool |
 |-----|------|
-| Deep ORACLE | `ravenstack__read_oracle` (section optional) |
-| Save sitrep to vault | distill → `ravenstack__save_ravenstack_note` (`source`: `sitrep`, `potential_for`: `ops`) |
-| Reload after fixes | `ravenstack__reload_ritual` |
-| Run pipeline | do **not** auto-run; hand off to reclaw-build / explicit command |
-
-## Paths (reference only)
-
-| Path | Role |
-|------|------|
-| `/root/ReClaw-2.0` | Repo |
-| `/root/obsidian_vault/Ravenstack/` | Knowledge SOT |
-| `data/sessions/` | Pipeline isolation |
-| `data/reclaw_orchestration.yaml` | Deployed vs backlog map |
+| Save to vault | `save_ravenstack_note` source=`sitrep` |
+| Reload | `reload_ritual` / `python -m core.cell` |
+| Run pipeline | explicit user command only |
+| Approve county queue | explicit human gate only |
 
 ## Anti-patterns
 
-- Pasting full `stack_health` JSON into chat
-- Treating skill file text as live status
-- Running rural_data / ingest during a sitrep
-- Skipping sections or inventing green health
+- Partial “API is fine” without Docker/Tailscale/MCP/queue/git/vault
+- Treating skill text as live status
+- Dumping raw multi-page JSON into chat (summarize `project_sitrep`)
+- Auto-running pipeline or writes
+- Skipping gaps when queue is `awaiting_approval`

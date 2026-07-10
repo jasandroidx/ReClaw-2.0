@@ -1,24 +1,25 @@
-# Silent Auditor rule configuration — procurement / compliance domains
+# Silent Auditor rule configuration — detector domains
 domains:
+  benford:
+    enabled: true
+    params: {}
+  split_purchase:
+    enabled: true
+    params:
+      min_combined: 50000
+      single_tx_max: 49999
   procurement:
-    rules:
-      - id: SPLIT_PURCHASE
-        severity: high
-        description: Purchases split to avoid bid thresholds (IC 36-1-12-19 pattern)
-        data_source: gateway_disbursements
-        params:
-          window_days: 30
-          min_combined_amount: 50000
-          single_tx_max: 49999
-  claims:
-    rules: []
-  payroll:
-    rules: []
-  revenues:
-    rules: []
-  grants:
-    rules: []
-  transparency:
-    rules: []
-  control_environment:
-    rules: []
+    enabled: true
+    params: {}
+  federal_audit:
+    enabled: true
+    params: {}
+  cross_source:
+    enabled: true
+    params: {}
+  taxpayer_flags:
+    enabled: false
+    params: {}
+  transaction_anomaly:
+    enabled: false
+    params: {}

@@ -27,29 +27,56 @@ tailscale status
 
 ## Hardened Tailscale Exposure (current production on Openclaw box)
 
-**Current docker-compose.yml** uses `ports: "8000:8000"` (binds 0.0.0.0 on host for Tailscale IP compatibility) + healthcheck/restart. Tailscale runs **on the host** (recommended systemd unit for 24/7).
+**OpenClaw gateway (Docker compose only, host network) — dual path:**
 
-Recommended commands (run yourself):
+| Path | Role | URL |
+|------|------|-----|
+| **PRIMARY** | Tailscale Serve (HTTPS/WSS MagicDNS) | **`wss://openclaw.tail20a090.ts.net`** |
+| **FALLBACK** | Direct bind `lan` on tailnet IP | `ws://100.108.130.82:18789` (debug / non-mobile) |
+| Control UI | Serve | `https://openclaw.tail20a090.ts.net/` |
+| Health | loopback / Serve | `http://127.0.0.1:18789/health` · `https://openclaw.tail20a090.ts.net/health` |
+| ReClaw API | Serve path | `https://openclaw.tail20a090.ts.net/reclaw/health` |
+
+Config (`~/.openclaw/openclaw.json`):
+- `gateway.bind: lan` — listens `0.0.0.0:18789` (includes loopback for Serve + Tailscale IP fallback)
+- `gateway.controlUi.allowedOrigins` — must include **`https://localhost`** (Android okhttp over wss) and MagicDNS
+- `gateway.trustedProxies: ["127.0.0.1","::1"]` — Tailscale Serve proxy headers
+- Host multi-path Serve via `scripts/ensure-tailscale-mcp-funnel.sh` (not in-container serve — permission)
+
+Stable URL SOT: `data/openclaw_android_url.txt` (rewritten by ensure script).
+
+### PDANet USB tethering (common timeout cause)
+
+PDANet / USB tethering rewrites routes on the **phone and/or tethered PC** and breaks Tailscale (timeouts, DERP-only, wrong egress). It does **not** mean the Hetzner gateway is down.
+
+**When pairing Android:**
+1. **Disconnect PDANet USB tether** (stop USB tethering / PDANet share).
+2. Phone on **cellular or normal Wi‑Fi** with **Tailscale connected**.
+3. Server URL on phone: **`wss://openclaw.tail20a090.ts.net`** only (never public IP, never stale `100.119.x.x`).
+4. Paste gateway token; if “pairing required”, approve from Control UI or `openclaw devices list`.
+
+**Why timeouts looked like “gateway down”:** Serve + health can be live on the server while the phone’s Tailscale path is broken by tether.
 
 ```bash
 # Ensure Tailscale is active
 tailscale status
-tailscale ip -4
+tailscale ip -4   # must be 100.108.130.82 on this host
 
-# Dual-path serve: OpenClaw gateway + ReClaw API (background; survives reboots if in systemd)
-tailscale serve reset
-tailscale serve --bg --set-path=/ http://127.0.0.1:18789
-tailscale serve --bg --set-path=/reclaw http://127.0.0.1:8000
-tailscale serve status
+# Gateway (Docker only — never host systemd openclaw)
+cd /root/ReClaw-2.0
+docker compose up -d openclaw-gateway
+bash scripts/ensure-tailscale-mcp-funnel.sh
+bash scripts/ensure-single-openclaw.sh
+bash scripts/verify-openclaw-android-path.sh
 ```
 
 Test from this box or any Tailscale peer:
 ```bash
-curl -f http://127.0.0.1:8000/health
-curl -f http://127.0.0.1:18789/health
-# or via magic DNS (ReClaw API under /reclaw path)
-curl -f https://openclaw.your-tailnet.ts.net/reclaw/health
-curl -f https://openclaw.your-tailnet.ts.net/health
+curl -sf http://127.0.0.1:18789/health
+curl -sf http://100.108.130.82:18789/health          # lan fallback
+curl -sfk https://openclaw.tail20a090.ts.net/health  # Serve primary
+curl -sfk https://openclaw.tail20a090.ts.net/reclaw/health
+tailscale ping -c 2 galaxy-a15-5g
 ```
 
 **Hardening notes** (reflected in updated docker-compose.yml + SETUP.md):

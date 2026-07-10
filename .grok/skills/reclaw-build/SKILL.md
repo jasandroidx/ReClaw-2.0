@@ -32,7 +32,7 @@ You operate the jasandroidx/ReClaw-2.0 deployment (branch: `ravenstack`). Repo p
 
 ## MCP connectors (SuperGrok-style — prefer over raw shell)
 
-**Primary:** `reclaw-platform__*` — unified connector (17 tools: Ravenstack + vault R/W + pipeline + stack health). Chat: *"use ravenstack connector to [tool]"*. Full map: vault `Ravenstack/mcp-connector.md`.
+**Primary:** `reclaw-platform__*` — unified connector (20 tools: vault, pipeline, **`project_sitrep`**, stack health). Chat: *"use ravenstack-sitrep"* or *"use ravenstack connector to project_sitrep"*. Full map: vault `Ravenstack/mcp-connector.md`.
 
 | Tool prefix | Use for |
 |-------------|---------|
@@ -42,6 +42,9 @@ You operate the jasandroidx/ReClaw-2.0 deployment (branch: `ravenstack`). Repo p
 | `reclaw-platform__read_repo_file` | ReClaw code/config |
 | `reclaw-platform__run_pike_winslow` | Daily content package |
 | `reclaw-platform__stack_health` | Full deploy check |
+| `reclaw-platform__pipeline_status` | Distilled queue + packages + sessions |
+| `reclaw-platform__inspect_session` | Session audit (empty id = latest; no handoff dumps) |
+| `reclaw-platform__project_sitrep` | **FULL** live project status (docker→vault→gaps) — skill `ravenstack-sitrep` |
 
 Also: `ravenstack__*`, `reclaw-api__*`, `reclaw-fs__*`, `obsidian__*`.
 

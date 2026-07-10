@@ -6,7 +6,7 @@
 
 ## What it is
 
-One MCP server so agents can **see and change** the stack in real time: vault R/W, RAG/ORACLE, rural_data pipeline, Docker/git/health. **17 tools**. Prefer MCP over raw shell for these actions.
+One MCP server so agents can **see and change** the stack in real time: vault R/W, RAG/ORACLE, rural_data pipeline, Docker/git/health. **20 tools** (incl. `project_sitrep`). Prefer MCP over raw shell for these actions.
 
 Chat trigger: **"use ravenstack connector to [tool]"** → call `reclaw-platform__*` or `ravenstack__*`.
 
@@ -42,14 +42,18 @@ Health JSON example:
 
 > trycloudflare quick-tunnel hostnames **rotate** when cloudflared restarts. Never hardcode a stale host as permanent truth — re-read the URL file.
 
-## Tools (17)
+## Tools (20)
 
 | Group | Tools |
 |-------|--------|
 | Knowledge | `query_knowledge`, `read_oracle`, `list_knowledge_topics`, `ingest_to_ravenstack`, `save_ravenstack_note` |
 | Vault / repo | `read_vault_file`, `write_vault_file`, `read_repo_file` |
-| Pipeline | `reclaw_health`, `run_pike_winslow`, `rag_sync_vault`, `list_pipeline_sessions` |
+| Pipeline | `reclaw_health`, `run_pike_winslow`, `rag_sync_vault`, `list_pipeline_sessions`, `inspect_session`, `pipeline_status` |
+| **Full status** | **`project_sitrep`** — docker, Tailscale, OpenClaw, MCP, pipeline, git, GitHub, Obsidian, RAG, gaps |
 | Ops | `stack_health`, `docker_status`, `openclaw_health`, `git_status`, `connector_help` |
+
+**Chat full analyze:** skill `ravenstack-sitrep` or tool `project_sitrep`.  
+**Safe reads:** `inspect_session` (validated id; no handoff dumps). `pipeline_status` (queue + packages).
 
 ## Security
 
@@ -83,7 +87,7 @@ systemctl restart reclaw-mcp-tunnel
 cat /root/ReClaw-2.0/data/mcp_public_url.txt
 
 # Grok doctor
-cd /root/ReClaw-2.0 && grok mcp doctor reclaw-platform   # expect 17 tools
+cd /root/ReClaw-2.0 && grok mcp doctor reclaw-platform   # expect 20 tools
 ```
 
 ## Client config sketches

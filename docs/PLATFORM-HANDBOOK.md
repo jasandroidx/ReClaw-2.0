@@ -49,7 +49,7 @@
 | **Search vault knowledge (RAG)** | `curl -sf -X POST http://127.0.0.1:8000/rag/search -H 'Content-Type: application/json' -d '{"query":"your question","top_k":5}'` |
 | **Re-index vault into RAG** | `curl -sf -X POST http://127.0.0.1:8000/rag/vault/sync` |
 | **Access API remotely (tailnet)** | `https://openclaw.tail20a090.ts.net/reclaw/health` |
-| **Use Ravenstack from Grok Build** | MCP tools: `reclaw-platform__*` (17 tools). Run `grok mcp doctor reclaw-platform` |
+| **Use Ravenstack from Grok Build** | MCP tools: `reclaw-platform__*` (20 tools, incl. `project_sitrep`). Skill: `ravenstack-sitrep` |
 | **Use GitHub from Grok Build** | MCP tools: `github__*` (26 tools). Account: `jasandroidx` (authenticated) |
 | **Connect Grok.com web UI** | [grok.com/connectors](https://grok.com/connectors) → Custom → public tunnel URL (see §12) |
 | **Read/write Obsidian vault** | Vault path: `/root/obsidian_vault`. MCP: `reclaw-platform__read_vault_file` / `write_vault_file` |
@@ -254,7 +254,7 @@ flowchart TB
 │   ├── vault_sync.py       # Obsidian auto-sync
 │   └── extractors/         # PDF, DOCX, CSV, web, image OCR
 ├── scripts/                # Ops + MCP servers
-│   ├── reclaw_platform_mcp_server.py   # Unified connector (17 tools)
+│   ├── reclaw_platform_mcp_server.py   # Unified connector (20 tools + project_sitrep)
 │   ├── ravenstack_mcp_server.py
 │   ├── reclaw_api_mcp_server.py
 │   ├── post-deploy-healthcheck.sh
@@ -639,10 +639,11 @@ Grok Build is the preferred operator for Hetzner server work (vs Cursor for loca
 | brave-search | disabled | — | Needs API key |
 | playwright | disabled | — | Browser automation |
 
-### reclaw-platform tools (17)
+### reclaw-platform tools (20)
 
 | Tool | Description |
 |------|-------------|
+| `project_sitrep` | **FULL** live project status (docker→Tailscale→MCP→pipeline→git→vault→gaps) |
 | `query_knowledge` | RAG semantic search with citations |
 | `read_oracle` | Read RAVENSTACK-ORACLE.md (optional section) |
 | `list_knowledge_topics` | List Ravenstack markdown files |
@@ -655,6 +656,8 @@ Grok Build is the preferred operator for Hetzner server work (vs Cursor for loca
 | `run_pike_winslow` | Run rural_data pipeline |
 | `rag_sync_vault` | Re-index vault into RAG |
 | `list_pipeline_sessions` | Recent session folders |
+| `inspect_session` | Distilled session audit (safe session_id; no handoff dumps) |
+| `pipeline_status` | Distilled queue + packages + sessions snapshot |
 | `stack_health` | Full post-deploy healthcheck |
 | `docker_status` | `docker compose ps` |
 | `openclaw_health` | OpenClaw gateway health |
@@ -665,7 +668,7 @@ Grok Build is the preferred operator for Hetzner server work (vs Cursor for loca
 
 ```bash
 cd /root/ReClaw-2.0
-grok mcp doctor reclaw-platform   # expect 17 tools
+grok mcp doctor reclaw-platform   # expect 20 tools
 ```
 
 ### Remote MCP (Grok/Gemini from your PC)

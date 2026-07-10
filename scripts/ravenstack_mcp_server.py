@@ -151,6 +151,131 @@ def list_recent_sessions(limit: int = 5) -> str:
     return "\n".join(d.name for d in dirs[:limit])
 
 
+def _safe_session_id(session_id: str) -> str | None:
+    sid = (session_id or "").strip()
+    if not sid or len(sid) > 128:
+        return None
+    if any(c in sid for c in ("/", "\\", "..", "\0", "?", "#", "&")):
+        return None
+    if not all(c.isalnum() or c in "-_" for c in sid):
+        return None
+    return sid
+
+
+@mcp.tool()
+def inspect_session(session_id: str = "") -> str:
+    """Distilled session audit via gateway. Empty session_id = latest. No full handoff dumps."""
+    raw_sid = (session_id or "").strip()
+    if raw_sid:
+        sid = _safe_session_id(raw_sid)
+        if not sid:
+            return "invalid session_id (use alphanumeric, dash, underscore only)"
+    else:
+        listed = _curl_json("GET", "/sessions?limit=1")
+        try:
+            items = json.loads(listed).get("sessions") or []
+            if not items:
+                return "no sessions"
+            sid = _safe_session_id(items[0].get("session_id", ""))
+        except (json.JSONDecodeError, IndexError, TypeError, AttributeError):
+            return listed[:500]
+        if not sid:
+            return "invalid session_id from list"
+
+    raw = _curl_json("GET", f"/sessions/{sid}")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return raw[:2000]
+
+    handoffs = data.get("handoffs") or {}
+    summary = {
+        "session_id": data.get("session_id"),
+        "has_task": data.get("has_task"),
+        "handoff_count": len(handoffs),
+        "handoffs": {
+            name: {
+                "keys": sorted(payload.keys())[:20] if isinstance(payload, dict) else [],
+                "status": (payload.get("status") or payload.get("result_status"))
+                if isinstance(payload, dict)
+                else None,
+            }
+            for name, payload in handoffs.items()
+        },
+    }
+    ap_raw = _curl_json("GET", f"/sessions/{sid}/approvals")
+    try:
+        ap = json.loads(ap_raw)
+        summary["approvals"] = {
+            "pending": len(ap.get("pending") or []),
+            "grants": len(ap.get("grants") or []),
+        }
+    except json.JSONDecodeError:
+        pass
+    return json.dumps(summary, indent=2)
+
+
+@mcp.tool()
+def pipeline_status() -> str:
+    """Distilled pipeline snapshot: health, county queue, packages, recent sessions."""
+    out: dict = {}
+    for key, path in (
+        ("api", "/health"),
+        ("county_queue", "/county-queue/status"),
+        ("latest_job", "/jobs/latest"),
+        ("packages", "/packages?limit=5"),
+        ("sessions", "/sessions?limit=5"),
+    ):
+        raw = _curl_json("GET", path)
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            out[key] = raw[:300]
+            continue
+        if key == "api":
+            out[key] = {"status": data.get("status"), "version": data.get("version"), "rag": data.get("rag")}
+        elif key == "county_queue":
+            cur = data.get("current_county") or {}
+            pending = data.get("pending_review") or {}
+            out[key] = {
+                "status": data.get("queue_status"),
+                "cursor": data.get("cursor"),
+                "total_counties": data.get("total_counties"),
+                "current": cur.get("name"),
+                "pending_review": {
+                    "county": pending.get("county"),
+                    "status": pending.get("status"),
+                    "risk_score": pending.get("risk_score"),
+                    "flag_count": pending.get("flag_count"),
+                    "top_finding": (pending.get("top_finding") or "")[:160],
+                }
+                if pending
+                else None,
+            }
+        elif key == "packages":
+            out["recent_packages"] = data.get("packages") or data
+        elif key == "sessions":
+            out["recent_sessions"] = [x.get("session_id") for x in (data.get("sessions") or [])]
+        else:
+            out[key] = data
+    return json.dumps(out, indent=2)
+
+
+@mcp.tool()
+def project_sitrep() -> str:
+    """FULL ReClaw/Ravenstack live status (docker, Tailscale, OpenClaw, MCP, pipeline, git, vault, gaps)."""
+    # Reuse platform implementation (single source of truth)
+    import importlib.util
+
+    path = ROOT / "scripts" / "reclaw_platform_mcp_server.py"
+    spec = importlib.util.spec_from_file_location("reclaw_platform_mcp_server", path)
+    if spec is None or spec.loader is None:
+        return "could not load platform sitrep"
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.project_sitrep()
+
+
 @mcp.tool()
 def connector_info() -> str:
     """How to attach Grok Build, Gemini, or other MCP clients to this server."""
@@ -170,7 +295,10 @@ Tailscale (preferred remote path):
   Same SSH command over tailnet hostname openclaw.tail20a090.ts.net
 
 Mutations: ingest_document, save_to_vault, run_rural_data, trigger_county_job
-Reads: query_knowledge, read_oracle, stack_health, list_knowledge_topics
+Reads: project_sitrep (FULL status), query_knowledge, read_oracle, stack_health,
+       inspect_session, pipeline_status, list_recent_sessions
+
+Chat: "use ravenstack-sitrep" or "use ravenstack connector to project_sitrep"
 
 Env: RECLAW_GATEWAY_URL, RECLAW_GATEWAY_TOKEN, RECLAW_OBSIDIAN_VAULT_PATH
 """

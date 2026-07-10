@@ -6,6 +6,7 @@ USER_UNIT_DIR="${HOME}/.config/systemd/user"
 USER_UNIT="${USER_UNIT_DIR}/openclaw-gateway.service"
 USER_UNIT_DISABLED="${USER_UNIT_DIR}/openclaw-gateway.service.disabled-by-reclaw"
 CANONICAL="docker:openclaw-gateway (compose)"
+COMPOSE_FILE="${COMPOSE_FILE:-/root/ReClaw-2.0/docker-compose.yml}"
 
 echo "[ensure-single-openclaw] canonical gateway: ${CANONICAL}"
 
@@ -24,28 +25,31 @@ if ! systemctl --user is-enabled openclaw-gateway 2>/dev/null | grep -q masked; 
   systemctl --user mask openclaw-gateway 2>/dev/null || true
 fi
 
-# Port 18789 must have exactly one listener.
+# Port 18789: dual-stack loopback (127.0.0.1 + ::1) from one process is OK.
+# Fail only when multiple distinct PIDs hold the port.
 listeners=$(ss -tlnp 2>/dev/null | grep ':18789 ' || true)
-count=$(echo "${listeners}" | grep -c ':18789 ' || true)
-if [[ "${count}" -eq 0 ]]; then
+if [[ -z "${listeners}" ]]; then
   echo "[!] Nothing listening on :18789 — start: cd /root/ReClaw-2.0 && docker compose up -d openclaw-gateway"
   exit 1
 fi
-if [[ "${count}" -gt 1 ]]; then
-  echo "[!] MULTIPLE listeners on :18789 — this breaks everything:"
+pids=$(echo "${listeners}" | grep -oE 'pid=[0-9]+' | sed 's/pid=//' | sort -u)
+pid_count=$(echo "${pids}" | grep -c '[0-9]' || true)
+if [[ "${pid_count}" -gt 1 ]]; then
+  echo "[!] MULTIPLE processes on :18789 — this breaks everything:"
   echo "${listeners}"
   exit 1
 fi
 
 # Docker container should own the port (host network).
-if ! docker compose -f /root/ReClaw-2.0/docker-compose.yml ps openclaw-gateway 2>/dev/null | grep -q 'Up'; then
+if ! docker compose -f "${COMPOSE_FILE}" ps openclaw-gateway 2>/dev/null | grep -qE 'Up|running'; then
   echo "[!] Docker openclaw-gateway is not Up but something holds :18789"
   echo "${listeners}"
   exit 1
 fi
 
 if curl -sf http://127.0.0.1:18789/health >/dev/null; then
-  echo "[+] Single OpenClaw gateway healthy on :18789 (${CANONICAL})"
+  echo "[+] Single OpenClaw gateway healthy on 127.0.0.1:18789 (${CANONICAL})"
+  echo "    Android URL: wss://openclaw.tail20a090.ts.net"
 else
   echo "[!] :18789 listener present but /health failed"
   exit 1
