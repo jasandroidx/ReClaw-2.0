@@ -298,6 +298,26 @@ curl -sS http://127.0.0.1:8100/health
 
 ---
 
+
+### Operator expansions (2026-07-10)
+
+| Tool | Purpose |
+|------|---------|
+| `morning_digest` | Phase B morning brief (sitrep + queue + suggested actions; optional vault write) |
+| `county_queue_card` | Read-only Gibson-style review card |
+| `pending_gates` | All human gates at a glance |
+| `connector_status` / `public_mcp_url` | Tunnel URL + health (after rotate) |
+| `openclaw_models` / `ollama_models` | Cost routing inventory |
+| `git_vault_status` | Repo + vault dirty |
+| `list_packages` / `package_summary` | Content packages |
+| `github_gap_suggestions` | Issue titles from gaps (does not file) |
+| `skill_stack_map` | Firecrawl / Chrome / CF / Superpowers map |
+| **GATED** `county_queue_approve` / `reject` / `run_next` | `confirm=true` only when you explicitly ask |
+| **GATED** `re_export_package` / `session_approve_capability` | Same gate rule |
+
+**40 tools** on reclaw-platform. Prefer reads. Never auto-approve from Automations.
+
+
 ## Security cheat sheet
 
 1. Public tunnel URL ≈ secret.  

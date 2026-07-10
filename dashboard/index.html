@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ravenstack Fortress | Live</title>
+  <style>
+    body, html { margin: 0; padding: 0; background: #110c1f; color: #00ffcc; font-family: 'Courier New', Courier, monospace; overflow: hidden; height: 100%; }
+    #game-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+    #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    .status-bar { position: absolute; top: 20px; left: 20px; padding: 15px; background: rgba(17, 12, 31, 0.9); border: 2px solid #ff00cc; box-shadow: 0 0 15px #ff00cc; max-width: 420px; }
+    .status-bar h2 { margin: 0 0 10px 0; color: #00ffcc; font-size: 18px; text-shadow: 0 0 5px #00ffcc; }
+    .status-bar p { margin: 5px 0; font-size: 13px; color: #fff; }
+    .highlight { color: #ff00cc; font-weight: bold; }
+    .ok { color: #00ffcc !important; }
+    .warn { color: #ffee88 !important; }
+    .bad { color: #ff4444 !important; }
+    
+    #modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #110c1f; border: 3px solid #00ffcc; box-shadow: 0 0 30px #00ffcc; padding: 20px; pointer-events: auto; z-index: 100; min-width: 300px; }
+    #modal h3 { margin-top: 0; color: #ff00cc; border-bottom: 1px solid #444; padding-bottom: 10px; }
+    #modal p { color: #fff; font-size: 14px; line-height: 1.5; }
+    #modal button { background: #ff00cc; color: #110c1f; border: none; padding: 10px 15px; cursor: pointer; font-family: monospace; font-weight: bold; margin-top: 10px; }
+    #modal button:hover { background: #00ffcc; }
+    #close-btn { background: #444 !important; color: #fff !important; margin-left: 10px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="ui-layer">
+    <div class="status-bar">
+      <h2>RAVENSTACK FORTRESS</h2>
+      <p>Network: <span id="ws-status" class="highlight">CONNECTING...</span></p>
+      <p>Data Source: <span id="data-source" class="highlight">…</span></p>
+      <p>Active Agents: <span id="agent-count" class="highlight">0</span></p>
+      <p>Queue: <span id="queue-line" class="highlight">…</span></p>
+      <p style="font-size:11px;color:#888">Updated: <span id="status-asof">—</span></p>
+    </div>
+  </div>
+
+  <div id="modal">
+    <h3 id="m-title">Room Name</h3>
+    <p id="m-desc">Description goes here.</p>
+    <p><strong>Agent:</strong> <span id="m-agent" style="color: #ffee88;">None</span></p>
+    <p><strong>Status:</strong> <span id="m-status">EMPTY</span></p>
+    <hr style="border:0; border-bottom:1px solid #333; margin:15px 0;">
+    <div id="m-actions"></div>
+    <button id="close-btn" onclick="document.getElementById('modal').style.display='none'">CLOSE</button>
+  </div>
+
+  <script>
+    const config = {
+      type: Phaser.AUTO,
+      parent: 'game-container',
+      width: 1024,
+      height: 768,
+      pixelArt: true,
+      backgroundColor: '#110c1f',
+      scene: {
+        preload: preload,
+        create: create,
+        update: update
+      }
+    };
+    
+    const game = new Phaser.Game(config);
+
+    function preload() {
+      this.load.image('tileset', 'assets/tiles/fortress_tileset.png');
+      this.load.spritesheet('agent_walk', 'assets/sprites/agent-tech-walk.png', { frameWidth: 48, frameHeight: 48 });
+      this.load.json('mapData', 'data/castle_map.json');
+    }
+
+    function create() {
+      const bg = this.add.tileSprite(512, 384, 1024, 768, 'tileset');
+      bg.setAlpha(0.3);
+      
+      const mapData = this.cache.json.get('mapData');
+      
+      this.anims.create({
+          key: 'idle',
+          frames: this.anims.generateFrameNumbers('agent_walk', { start: 0, end: 3 }),
+          frameRate: 4,
+          repeat: -1
+      });
+
+      const startX = 250;
+      const startY = 200;
+      const spacingX = 260;
+      const spacingY = 200;
+      
+      let activeAgents = 0;
+
+      if(mapData && mapData.rooms) {
+          mapData.rooms.forEach((room) => {
+              const [gx, gy] = room.position;
+              const px = startX + gx * spacingX;
+              const py = startY + gy * spacingY;
+
+              let boxColor = room.empty ? 0x332b44 : 0x00ffcc;
+              
+              let pad = this.add.rectangle(px, py, 220, 160, 0x000000, 0.7)
+                  .setStrokeStyle(3, boxColor);
+              
+              if(!room.empty) {
+                  this.add.circle(px, py, 70, 0x00ffcc, 0.1);
+                  activeAgents++;
+              }
+
+              this.add.text(px - 100, py - 65, room.name.toUpperCase(), { 
+                  fontFamily: 'Courier', fontSize: '14px', fill: room.empty ? '#888' : '#fff', fontStyle: 'bold' 
+              });
+
+              let statusText = room.empty ? 'UNFORGED' : room.agent.status;
+              let statusColor = room.empty ? '#555' : '#ffee88';
+              this.add.text(px - 100, py - 45, '[' + statusText + ']', { 
+                  fontFamily: 'Courier', fontSize: '12px', fill: statusColor 
+              });
+
+              if (!room.empty) {
+                  let sprite = this.add.sprite(px, py + 10, 'agent_walk');
+                  sprite.setScale(2);
+                  sprite.play('idle');
+              } else {
+                  this.add.text(px - 25, py, 'EMPTY', { fontFamily: 'Courier', fontSize: '16px', fill: '#444' });
+              }
+
+              pad.setInteractive({ useHandCursor: true });
+              pad.on('pointerdown', () => {
+                  pad.setStrokeStyle(3, 0xff00cc);
+                  setTimeout(() => pad.setStrokeStyle(3, boxColor), 200);
+                  
+                  document.getElementById('modal').style.display = 'block';
+                  document.getElementById('m-title').innerText = room.name;
+                  document.getElementById('m-desc').innerText = room.description;
+                  document.getElementById('m-agent').innerText = room.empty ? 'None' : room.agent.name;
+                  document.getElementById('m-status').innerText = statusText;
+                  
+                  let actionsDiv = document.getElementById('m-actions');
+                  actionsDiv.innerHTML = '';
+                  if(room.buttons && room.buttons.length > 0) {
+                      room.buttons.forEach(btnText => {
+                          let btn = document.createElement('button');
+                          btn.innerText = btnText;
+                          btn.onclick = () => alert("Command reserved: " + btnText + "\nWire to OpenClaw WS / MCP later.");
+                          actionsDiv.appendChild(btn);
+                          actionsDiv.appendChild(document.createTextNode(' '));
+                      });
+                  }
+              });
+              
+              pad.on('pointerover', () => pad.setFillStyle(0x111111, 0.9));
+              pad.on('pointerout', () => pad.setFillStyle(0x000000, 0.7));
+          });
+      }
+
+      document.getElementById('agent-count').innerText = activeAgents;
+
+      pollLiveStatus();
+      setInterval(pollLiveStatus, 15000);
+    }
+
+    function setNetClass(el, kind) {
+      el.classList.remove('ok', 'warn', 'bad');
+      if (kind) el.classList.add(kind);
+    }
+
+    async function pollLiveStatus() {
+      const el = document.getElementById('ws-status');
+      const ds = document.getElementById('data-source');
+      const ql = document.getElementById('queue-line');
+      const asof = document.getElementById('status-asof');
+      const ac = document.getElementById('agent-count');
+
+      // 1) Preferred: same-origin status.json (written by write_fortress_dashboard_status.py)
+      try {
+        const r = await fetch('status.json?_=' + Date.now(), { cache: 'no-store' });
+        if (r.ok) {
+          const s = await r.json();
+          el.innerText = s.network_detail || s.network || 'LIVE';
+          ds.innerText = s.data_source || 'LIVE status.json';
+          asof.innerText = s.generated_at || '—';
+          if (typeof s.agents_active === 'number') ac.innerText = s.agents_active;
+          const cq = s.county_queue;
+          if (cq) {
+            ql.innerText = [
+              cq.status || '?',
+              cq.pending_county ? cq.pending_county : '',
+              cq.cursor != null ? `(${cq.cursor}/${cq.total || '?'})` : ''
+            ].filter(Boolean).join(' · ');
+          } else {
+            ql.innerText = 'n/a';
+          }
+          if (s.network === 'CONNECTED') setNetClass(el, 'ok');
+          else if (s.network === 'PARTIAL' || s.network === 'DEGRADED') setNetClass(el, 'warn');
+          else setNetClass(el, 'bad');
+          return;
+        }
+      } catch (e) { /* fall through */ }
+
+      // 2) Fallback: direct API health (may fail cross-origin / remote browser)
+      const host = window.location.hostname;
+      try {
+        const [reclaw, openclaw] = await Promise.all([
+          fetch(`http://${host}:8000/health`).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(`http://${host}:18789/health`).then(r => r.ok ? r.json() : null).catch(() => null),
+        ]);
+        ds.innerText = 'DIRECT API POLL';
+        asof.innerText = new Date().toISOString();
+        if (reclaw?.status === 'ok' && (openclaw?.ok || openclaw?.status === 'live')) {
+          el.innerText = 'RECLAW + OPENCLAW OK';
+          setNetClass(el, 'ok');
+        } else if (reclaw?.status === 'ok') {
+          el.innerText = 'RECLAW OK / OPENCLAW DOWN';
+          setNetClass(el, 'warn');
+        } else {
+          el.innerText = 'DEGRADED';
+          setNetClass(el, 'bad');
+        }
+        ql.innerText = 'poll status.json for queue';
+      } catch (e) {
+        el.innerText = 'DISCONNECTED';
+        ds.innerText = 'NO LIVE DATA';
+        setNetClass(el, 'bad');
+      }
+    }
+
+    function update() {
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+[Unit]
+Description=Write ReClaw fortress dashboard status.json
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/ReClaw-2.0
+ExecStart=/root/ReClaw-2.0/.venv/bin/python /root/ReClaw-2.0/scripts/write_fortress_dashboard_status.py

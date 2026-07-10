@@ -17,7 +17,7 @@ When this skill is invoked you run a **complete live audit of the entire ReClaw 
 
 1. **Always live** — call tools now; never reuse prior sitrep text as truth.
 2. **MCP first** — `reclaw-platform__*` preferred (fallback `ravenstack__*`). Shell only if MCP down.
-3. **One-shot full pass** — call `project_sitrep` first (covers everything). Supplement if any section is thin.
+3. **One-shot full pass** — call `project_sitrep` first (covers everything). For SuperGrok morning brief, prefer `morning_digest`. Supplement if any section is thin.
 4. **Distill for chat** — structured report from live data; no multi-KB raw dumps. Facts only.
 5. **No mutations** — no ingest, reload, pipeline run, approve, or write unless user explicitly asks after the sitrep.
 6. **Gaps are mandatory** — every missing/degraded layer goes in Blockers & gaps with severity.

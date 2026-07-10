@@ -108,3 +108,8 @@ url = "http://100.108.130.82:8100/mcp"
 - Handbook: `docs/PLATFORM-HANDBOOK.md` §12
 - Status: `docs/MCP_STATUS.md`
 - Skill: `.grok/skills/ravenstack-sitrep/SKILL.md`
+
+
+## 2026-07-10 expansion
+
+40 tools on reclaw-platform including morning_digest, county_queue_card, gated approve/reject. See vault Ravenstack/mcp-connector.md.

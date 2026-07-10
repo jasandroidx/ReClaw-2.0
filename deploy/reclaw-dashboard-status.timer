@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh fortress dashboard status.json every 2 minutes
+
+[Timer]
+OnBootSec=30
+OnUnitActiveSec=2min
+AccuracySec=15s
+Unit=reclaw-dashboard-status.service
+
+[Install]
+WantedBy=timers.target

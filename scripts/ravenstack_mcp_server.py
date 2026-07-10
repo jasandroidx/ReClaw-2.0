@@ -58,11 +58,40 @@ def ingest_document(source: str, content_or_path: str, auto_categorize: bool = T
 @mcp.tool()
 def query_knowledge(query: str, top_k: int = 5) -> str:
     """Semantic RAG search over Obsidian vault + Ravenstack (citation-backed)."""
+    top_k = max(1, min(int(top_k or 5), 20))
+    q = (query or "").strip()
+    if not q:
+        return "query required"
+    # Gateway first (avoids Chroma filter bugs / heavy local load)
+    raw = _curl_json(
+        "POST",
+        "/rag/search",
+        body={"query": q, "top_k": top_k, "vault_only": True, "min_score": 0.2},
+        timeout=60,
+    )
+    if not raw.startswith("request failed:"):
+        try:
+            data = json.loads(raw)
+            results = data.get("results") or []
+            lines = []
+            for r in results:
+                chunk = r.get("chunk") or {}
+                cite = chunk.get("citation") or {}
+                text = (chunk.get("text") or "")[:400]
+                score = r.get("score", 0)
+                lines.append(
+                    f"[{score:.2f}] {text}...\n"
+                    f"  source: {cite.get('source_path')} ({cite.get('section_header') or 'n/a'})"
+                )
+            if lines:
+                return "\n\n".join(lines)
+        except json.JSONDecodeError:
+            pass
     try:
         from rag.client import RAGClient
 
         client = RAGClient()
-        response = client.search(query=query, top_k=top_k, vault_only=True, min_score=0.25)
+        response = client.search(query=q, top_k=top_k, vault_only=True, min_score=0.2)
         lines = []
         for r in response.results:
             cite = r.chunk.citation

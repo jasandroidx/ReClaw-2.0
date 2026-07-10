@@ -9,7 +9,15 @@ node_modules/
 dist/
 .env
 *.pid
-dashboard/
+# Dashboard: runtime assets ignored; ship static shell + status generator
+dashboard/**
+!dashboard/index.html
+!dashboard/data/
+!dashboard/data/castle_map.json
+!dashboard/assets/
+!dashboard/assets/**
+# never commit live status snapshot
+dashboard/status.json
 .DS_Store
 .idea/
 .vscode/

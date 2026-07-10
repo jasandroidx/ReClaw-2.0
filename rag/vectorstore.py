@@ -258,7 +258,9 @@ class VectorStore:
                 filters.append({"source_type": {"$in": source_types}})
 
         if vault_only:
-            filters.append({"vault_path": {"$ne": None}})
+            # Chroma rejects None in where operands. Non-vault rows use vault_path="".
+            # Prefer non-empty vault_path (vault sync sets "/vault" or a path string).
+            filters.append({"vault_path": {"$ne": ""}})
 
         if not filters:
             return None

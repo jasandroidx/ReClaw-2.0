@@ -44,11 +44,13 @@ mcp = FastMCP(
         "THIS chat can call tools and get results immediately. "
         "FORBIDDEN: telling the user to open Grok Build, paste into Build, SSH, or run terminal "
         "commands for anything these tools can do. That is wrong and frustrates the user. "
-        "STATUS: call project_sitrep or sitrep (plain-English full report) — show it. "
-        "OPERATOR GUIDE: call connector_guide (no args) — show the full document so they can save/copy. "
-        "Also: pipeline_status, inspect_session, query_knowledge, read_oracle, read_vault_file, "
-        "docker_status, openclaw_health, git_status, stack_health. "
-        "Truth + provenance only. Prefer reads; writes/pipeline only if user clearly asks."
+        "STATUS: call project_sitrep, sitrep, or morning_digest — show the result. "
+        "QUEUE: county_queue_card / pending_gates (read); approve/reject ONLY with confirm=true "
+        "when the human explicitly asks. "
+        "OPERATOR GUIDE: connector_guide or skill_stack_map. "
+        "Also: pipeline_status, inspect_session, query_knowledge, connector_status, "
+        "docker_status, openclaw_models, ollama_models, git_vault_status. "
+        "Truth + provenance only. Prefer reads; gated writes need explicit human intent."
     ),
     # Option 2: clients hit this host's Tailscale IP directly.
     host=os.environ.get("FASTMCP_HOST", _TS_IP),
@@ -178,12 +180,53 @@ def _distill_session(data: dict) -> dict:
 @mcp.tool()
 def query_knowledge(query: str, top_k: int = 5) -> str:
     """Semantic search over Obsidian vault + Ravenstack with citations."""
+    top_k = max(1, min(int(top_k or 5), 20))
+    q = (query or "").strip()
+    if not q:
+        return "query required"
+
+    # Prefer gateway (lighter process; same index as API). vault_only after Chroma fix.
+    raw = _curl(
+        f"{GATEWAY}/rag/search",
+        method="POST",
+        body={"query": q, "top_k": top_k, "vault_only": True, "min_score": 0.2},
+        timeout=60,
+    )
+    if not raw.startswith("request failed:"):
+        try:
+            data = json.loads(raw)
+            results = data.get("results") or []
+            lines = []
+            for r in results:
+                chunk = r.get("chunk") or {}
+                cite = chunk.get("citation") or {}
+                text = (chunk.get("text") or "")[:500]
+                score = r.get("score", 0)
+                path = cite.get("source_path") or "?"
+                sect = cite.get("section_header") or "-"
+                lines.append(f"[{score:.2f}] {text}\n  → {path} ({sect})")
+            if lines:
+                return "\n\n".join(lines)
+            # empty via API — try without vault filter once
+        except json.JSONDecodeError:
+            pass
+
+    # In-process client fallback
     try:
         from rag.client import RAGClient
 
         client = RAGClient()
-        response = client.search(query=query, top_k=top_k, vault_only=True, min_score=0.25)
+        response = client.search(query=q, top_k=top_k, vault_only=True, min_score=0.2)
         lines = []
+        for r in response.results:
+            c = r.chunk.citation
+            lines.append(
+                f"[{r.score:.2f}] {r.chunk.text[:500]}\n  → {c.source_path} ({c.section_header or '-'})"
+            )
+        if lines:
+            return "\n\n".join(lines)
+        # last resort: no vault filter
+        response = client.search(query=q, top_k=top_k, vault_only=False, min_score=0.15)
         for r in response.results:
             c = r.chunk.citation
             lines.append(
@@ -1025,44 +1068,62 @@ def connector_help() -> str:
 
 IMPORTANT FOR GROK APP / SUPERGROK CHAT:
   Call tools HERE. Never say "paste this into Grok Build".
-  Full status: call project_sitrep (or sitrep) → plain English report → show the user.
-  Operator guide: call connector_guide (no args) → full doc → user can copy/save.
-  NEVER say "paste into Grok Build" for tool-backed tasks.
+  Morning: morning_digest  |  Full status: project_sitrep / sitrep
+  Queue card: county_queue_card  |  Gates: pending_gates
+  Operator guide: connector_guide  |  Stack map: skill_stack_map
 
-WHAT IT IS (like SuperGrok → GitHub):
-  One MCP server exposing tools so the model can SEE and CHANGE your stack in real time.
+WHAT IT IS:
+  One MCP server so the model can SEE and CHANGE your stack in real time.
 
-FULL PROJECT STATUS (chat):
-  Tool: project_sitrep  (alias: sitrep)
-  Say: "Call project_sitrep and summarize every section"
+ENDPOINTS:
+  Public:  contents of data/mcp_public_url.txt (must end /mcp) — rotates with quick tunnel
+  Tool:    public_mcp_url / connector_status
+  Tailnet: http://{_TS_IP}:8100/mcp  · health …/health
+  Bridge:  systemctl status reclaw-mcp-bridge reclaw-mcp-tunnel
 
-GROK BUILD (this server — best experience):
-  Config: /root/ReClaw-2.0/.grok/config.toml → [mcp_servers.reclaw-platform] stdio
-  Tools: reclaw-platform__project_sitrep, __stack_health, __pipeline_status, etc.
+SECURITY:
+  HTTP MCP has no auth — treat public URL as secret; prefer Tailscale.
+  Path-sandboxed vault/repo. Gated tools require confirm=true + explicit human ask.
 
-REMOTE — Grok.com Connectors (xAI cloud; needs PUBLIC HTTPS, not Tailscale IP):
-  URL file: /root/ReClaw-2.0/data/mcp_public_url.txt  (cloudflared quick tunnel; hostnames rotate)
-  Refresh:  systemctl restart reclaw-mcp-tunnel
-  Path MUST end with /mcp
-  Chat: "use ravenstack connector to project_sitrep"
+TOOL GROUPS:
+  Status: project_sitrep, sitrep, morning_digest, stack_health, docker_status,
+          reclaw_health, openclaw_health, connector_status, public_mcp_url
+  Pipeline: pipeline_status, inspect_session, list_pipeline_sessions, list_packages,
+            package_summary, county_queue_card, pending_gates
+  Knowledge: query_knowledge, read_oracle, list_knowledge_topics, read_vault_file,
+             read_repo_file
+  Models: openclaw_models, ollama_models, git_vault_status, git_status
+  Writes (intent): write_vault_file, save_ravenstack_note, ingest_to_ravenstack,
+                   run_pike_winslow, rag_sync_vault, save_operator_decision,
+                   morning_digest(write_to_vault=true)
+  GATED (confirm=true): county_queue_approve, county_queue_reject, county_queue_run_next,
+                        re_export_package, session_approve_capability, file_github_gaps
+  Meta: connector_help, connector_guide, skill_stack_map, github_gap_suggestions
 
-TAILNET only (phone/laptop with Tailscale; NOT grok.com):
-  Health: http://{_TS_IP}:8100/health
-  MCP:    http://{_TS_IP}:8100/mcp
-  Or:     https://openclaw.tail20a090.ts.net/reclaw-mcp/mcp
-
-STDIO over SSH:
-  ssh root@178.156.235.36 '{ROOT}/.venv/bin/python {ROOT}/scripts/reclaw_platform_mcp_server.py'
-
-SECURITY: HTTP MCP has no auth — treat public tunnel URL as secret; prefer Tailscale;
-  vault/repo path-sandboxed; mutations need explicit user intent. Full map: vault Ravenstack/mcp-connector.md
-
-WRITE TOOLS: write_vault_file, save_ravenstack_note, ingest_to_ravenstack, run_pike_winslow
-READ TOOLS: project_sitrep, inspect_session, pipeline_status, read_vault_file, query_knowledge, read_oracle
-OPS: stack_health, docker_status, git_status (20 tools total)
-
-Also available separately: ravenstack, reclaw-api, reclaw-fs, obsidian MCPs.
+Also available separately: ravenstack, reclaw-api, reclaw-fs, obsidian,
+  Firecrawl, chrome-devtools, github, cloudflare-docs (stacked — not merged).
 """
+
+
+# Register Tier A–D operator tools (same package dir as this file)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from reclaw_platform_mcp_extensions import register_extensions  # noqa: E402
+
+register_extensions(
+    mcp,
+    root=ROOT,
+    vault=VAULT,
+    gateway=GATEWAY,
+    openclaw=OPENCLAW,
+    ts_ip=_TS_IP,
+    curl=_curl,
+    curl_json=_curl_json,
+    safe_path=_safe_path,
+    safe_session_id=_safe_session_id,
+    run=_run,
+    project_sitrep=project_sitrep,
+    pipeline_status=pipeline_status,
+)
 
 
 if __name__ == "__main__":
