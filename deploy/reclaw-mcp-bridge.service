@@ -6,9 +6,15 @@ After=network.target docker.service
 Type=simple
 User=root
 WorkingDirectory=/root/ReClaw-2.0
+EnvironmentFile=-/root/.env
 ExecStart=/root/ReClaw-2.0/scripts/run-reclaw-mcp-bridge.sh
 Restart=on-failure
-RestartSec=5
+RestartSec=10
+StartLimitIntervalSec=60
+StartLimitBurst=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=reclaw-mcp-bridge
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.target

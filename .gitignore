@@ -9,7 +9,11 @@ node_modules/
 dist/
 .env
 *.pid
-dashboard/
+# dashboard source is tracked; only ignore build artifacts
+dashboard/**/node_modules/
+dashboard/**/.next/
+dashboard/**/dist/
+dashboard/**/.turbo/
 .DS_Store
 .idea/
 .vscode/
