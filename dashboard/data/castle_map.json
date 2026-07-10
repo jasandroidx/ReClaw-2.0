@@ -1,1 +1,166 @@
-../../data/castle_map.json
+{
+  "$schema": "../Ravenstack/RAVENSTACK-ORACLE.md#dashboard-tie-in",
+  "theme": "blacksmith_castle",
+  "grid_size": [3, 3],
+  "title": "Ravenstack Fortress",
+  "ravenlord": {
+    "name": "Jason (Ravenlord)",
+    "title": "Overseer of the Mystical Hall",
+    "status": "commanding"
+  },
+  "rooms": [
+    {
+      "id": "orchestrator-throne",
+      "name": "Orchestrator's Throne",
+      "slug": "orchestrator",
+      "theme": "orchestrator",
+      "color": "#ff44dd",
+      "icon": "👑",
+      "sprite": "ravenlord_player_48x48",
+      "position": [1, 0],
+      "description": "Main command center. The Orchestrator + OpenClaw + YOU rule from here. Watches all rooms, dispatches tasks, runs the empire.",
+      "agent": {
+        "name": "The Orchestrator",
+        "type": "boss",
+        "status": "COMMANDING",
+        "personality": "raven-crowned strategist on a neon throne"
+      },
+      "capabilities": [
+        "session_create",
+        "soul_load",
+        "permission_gate",
+        "orchestrator_dispatch",
+        "obsidian_publish"
+      ],
+      "metrics": {
+        "sessions_today": 0,
+        "agents_active": 5
+      },
+      "buttons": ["Open Terminal", "Run Reload Ritual", "Trigger Pipeline"],
+      "visual": "ravenlord_throne_with_neon_throne",
+      "last_event": "2026-06-30T00:00:00Z"
+    },
+    {
+      "id": "clawforge-anvil",
+      "name": "Clawforge Anvil",
+      "slug": "clawforge",
+      "theme": "blacksmith_forge",
+      "color": "#ff7733",
+      "icon": "🔨",
+      "sprite": "clawsmith_hammer_48x48",
+      "position": [0, 1],
+      "description": "Clawsmith the Blacksmith's forge. *CLANG* The meta-room that creates new agents, rooms, and skills. Anvil status: hammering.",
+      "agent": {
+        "name": "Clawforge the Blacksmith",
+        "type": "meta",
+        "status": "HAMMERING",
+        "personality": "pixel blacksmith with a glowing hammer, sparks flying"
+      },
+      "capabilities": [
+        "cell_create",
+        "skill_forge",
+        "visual_event_emit",
+        "grant_scan",
+        "compliance_audit",
+        "memory_consolidate"
+      ],
+      "metrics": {
+        "rooms_forged": 3,
+        "skills_written": 5,
+        "anvil_status": "hammering"
+      },
+      "buttons": ["Forge New Agent", "Open Skill Forge", "View Castle Map"],
+      "visual": "pixel_anvil_with_sparks",
+      "forged_at": "2026-06-22T00:00:00Z",
+      "last_event": "2026-06-30T00:00:00Z"
+    },
+    {
+      "id": "grant-hall-empty",
+      "name": "Grant Hall",
+      "slug": "grant-hall",
+      "theme": "official",
+      "color": "#aa00ff",
+      "icon": "📜",
+      "sprite": "scribe_seat_48x48",
+      "position": [2, 1],
+      "description": "[Empty Slot] Future home of the Scribe Warden. Will track grants, funding, compliance scrolls. Clawforge will forge its chief agent when you're ready.",
+      "agent": {
+        "name": "Scribe Warden",
+        "type": "scribe",
+        "status": "UNFORGED",
+        "personality": "tall robed quill-master (not yet built)"
+      },
+      "capabilities": [],
+      "metrics": {
+        "grants_tracked": 0,
+        "funding_secured": "$0"
+      },
+      "buttons": ["Forge Scribe Warden"],
+      "visual": "scroll_desk_empty",
+      "empty": true,
+      "forged_at": null,
+      "last_event": null
+    },
+    {
+      "id": "oracle-chamber-empty",
+      "name": "Oracle Chamber",
+      "slug": "oracle",
+      "theme": "oracle",
+      "color": "#00ffaa",
+      "icon": "👁️",
+      "sprite": "oracle_eye_48x48",
+      "position": [0, 2],
+      "description": "[Empty Slot] The all-seeing Oracle's chamber. Will be the SOT for knowledge queries, validation, ingest. Has the Oracle eye sprite ready.",
+      "agent": {
+        "name": "The Oracle",
+        "type": "seer",
+        "status": "UNFORGED",
+        "personality": "ethereal chained eye with neon glow (not yet bound to an agent)"
+      },
+      "capabilities": [],
+      "metrics": {
+        "bible_queries": 0,
+        "validations_passed": "0%"
+      },
+      "buttons": ["Bind Oracle Agent", "Open Ingest"],
+      "visual": "oracle_eye_48x48",
+      "empty": true,
+      "forged_at": null,
+      "last_event": null
+    },
+    {
+      "id": "marketplace-forge-empty",
+      "name": "Marketplace Forge",
+      "slug": "marketplace",
+      "theme": "market",
+      "color": "#ffcc00",
+      "icon": "💰",
+      "sprite": "flipper_counter_48x48",
+      "position": [2, 2],
+      "description": "[Empty Slot] Future home of the Marketplace Flipper. Will handle eBay/FB Marketplace/Etsy flips, sourcing, listings. Your cashflow engine.",
+      "agent": {
+        "name": "Flipper",
+        "type": "merchant",
+        "status": "UNFORGED",
+        "personality": "pixel merchant with a golden ledger (not yet built)"
+      },
+      "capabilities": [],
+      "metrics": {
+        "flips_completed": 0,
+        "revenue": "$0"
+      },
+      "buttons": ["Forge Flipper"],
+      "visual": "market_counter_empty",
+      "empty": true,
+      "forged_at": null,
+      "last_event": null
+    }
+  ],
+  "orchestrator": {
+    "position": [1, 0],
+    "status": "overseeing"
+  },
+  "last_updated": "2026-06-30T00:00:00Z",
+  "version": 2,
+  "notes": "5-room vision: 2 active (Orchestrator + Clawforge) + 3 empty slots for Clawsmith to fill on demand. Layout: 3x3 grid. Center is Orchestrator's throne. Clawforge is the meta-room (meta). Empty slots are placeholders. Each room can be filled by invoking Clawsmith/Clawforge with a goal."
+}
