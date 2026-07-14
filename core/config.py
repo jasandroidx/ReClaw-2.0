@@ -8,6 +8,7 @@ Env-driven, works the same on:
 Never hardcode secrets or vault paths here.
 """
 
+import secrets
 from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -69,7 +70,7 @@ class Settings(BaseSettings):
 
     # API security (for cron, future Discord bot) — env: RECLAW_GATEWAY_TOKEN
     gateway_token: str = Field(
-        default="supersecretchangemeinproduction1234567890abcdef",
+        default_factory=lambda: secrets.token_urlsafe(32),
         description="Bearer token for /trigger endpoints (change in .env)"
     )
 
