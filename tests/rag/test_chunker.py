@@ -40,7 +40,7 @@ def test_chunker_basic():
 
 def test_chunker_respects_size():
     chunker = Chunker(chunk_size=50, chunk_overlap=10)
-    long_text = " ".join(["word"] * 100)  # 100 words
+    long_text = "\n\n".join(["word"] * 100)  # 100 words
     extracted = ExtractedContent(
         text=long_text,
         pages=[ExtractedPage(text=long_text)],

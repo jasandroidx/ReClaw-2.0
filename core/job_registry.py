@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import logging
 from pathlib import Path
 from typing import Any
@@ -74,16 +75,19 @@ class JobRegistry:
 
     def list(self, limit: int = 20) -> list[dict[str, Any]]:
         """Return up to `limit` most-recently-modified job records."""
-        status_files = sorted(
-            self._dir.glob("*.status.json"),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )
+        try:
+            entries = [e for e in os.scandir(self._dir) if e.name.endswith(".status.json") and e.is_file()]
+        except FileNotFoundError:
+            return []
+
+        # ⚡ Bolt: Use os.scandir to avoid Path instantiation and stat overhead per file
+        entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+
         results = []
-        for p in status_files[:limit]:
+        for e in entries[:limit]:
             try:
-                data = json.loads(p.read_text())
-                results.append(data)
+                with open(e.path, "r", encoding="utf-8") as f:
+                    results.append(json.load(f))
             except Exception:
                 continue
         return results
