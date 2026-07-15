@@ -22,6 +22,7 @@ Core endpoints:
 from __future__ import annotations
 
 import asyncio
+import os
 import json
 from datetime import datetime
 from pathlib import Path
@@ -268,10 +269,17 @@ def get_job(job_id: str):
 @app.get("/jobs/latest")
 def latest_job():
     """Return metadata for the most recent run on disk."""
-    runs = sorted(settings.runs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if not runs:
+    # ⚡ Bolt: Use os.scandir to avoid Path instantiation and stat overhead per file
+    try:
+        entries = [e for e in os.scandir(settings.runs_dir) if e.name.endswith(".json") and e.is_file()]
+    except FileNotFoundError:
+        entries = []
+
+    if not entries:
         return {"message": "No runs yet"}
-    latest_path = runs[0]
+
+    latest_entry = max(entries, key=lambda e: e.stat().st_mtime)
+    latest_path = Path(latest_entry.path)
     try:
         data = json.loads(latest_path.read_text())
         # lightweight summary
@@ -292,9 +300,18 @@ def latest_job():
 def list_packages(limit: int = 20):
     """List recent completed packages from disk (lightweight index)."""
     items = []
-    for p in sorted(settings.runs_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+    # ⚡ Bolt: Use os.scandir to avoid Path instantiation and stat overhead per file
+    try:
+        entries = [e for e in os.scandir(settings.runs_dir) if e.name.endswith(".json") and e.is_file()]
+    except FileNotFoundError:
+        entries = []
+
+    entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+
+    for e in entries[:limit]:
         try:
-            d = json.loads(p.read_text())
+            with open(e.path, "r", encoding="utf-8") as f:
+                d = json.load(f)
             items.append({
                 "id": d.get("id"),
                 "county": d.get("county"),
@@ -342,11 +359,14 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
-        sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )[:5]
+        # ⚡ Bolt: Use os.scandir to avoid Path instantiation and stat overhead per directory
+        try:
+            entries = [e for e in os.scandir(sess_root) if e.is_dir()]
+        except FileNotFoundError:
+            entries = []
+
+        entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+        sorted_sessions = [Path(e.path) for e in entries[:5]]
 
         for sess_dir in sorted_sessions:
             recent_sessions.append({"session_id": sess_dir.name})
@@ -428,9 +448,17 @@ def list_sessions(limit: int = 20):
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    # ⚡ Bolt: Use os.scandir to avoid Path instantiation and stat overhead per file
+    try:
+        entries = [e for e in os.scandir(sess_root) if e.is_dir()]
+    except FileNotFoundError:
+        entries = []
+
+    entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+
+    for e in entries[:limit]:
+        items.append({"session_id": e.name, "path": e.path})
+
     return {"count": len(items), "sessions": items}
 
 

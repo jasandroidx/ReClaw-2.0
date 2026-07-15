@@ -20,7 +20,7 @@ class TestTextExtractor:
             extractor = TextExtractor()
             result = extractor.extract(f.name)
             assert result.text == "Hello, this is a test document.\nSecond line here."
-            assert result.total_words == 10
+            assert result.total_words == 9
             assert result.title == Path(f.name).stem
             Path(f.name).unlink()
 
