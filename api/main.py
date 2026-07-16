@@ -312,8 +312,24 @@ def list_packages(limit: int = 20):
 
 @app.get("/state")
 def get_state():
-    """Unified dashboard state endpoint - county queue, jobs, sessions, approvals."""
+    """Unified dashboard state: services, county queue, jobs, sessions, approvals.
+
+    Single source of truth for Command Center (and anything else that should not
+    invent parallel status endpoints).
+    """
+    import urllib.request
+
     from core.county_queue import CountyQueue
+
+    def _probe(url: str, timeout: float = 3.0) -> dict:
+        try:
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                body = json.loads(resp.read().decode("utf-8", errors="replace"))
+                return body if isinstance(body, dict) else {"raw": body}
+        except Exception as exc:
+            return {"status": "down", "detail": str(exc)[:160]}
+
     try:
         cq = CountyQueue(settings).status()
     except Exception as exc:
@@ -335,9 +351,68 @@ def get_state():
                     pending_approvals.append({"session_id": sess_dir.name, **req.model_dump()})
             except Exception:
                 pass
+
+    # Live service probes. API often runs in Docker without host network, so
+    # 127.0.0.1 is wrong for OpenClaw/MCP on the host — try host-gateway candidates.
+    import os as _os
+
+    host_candidates = [
+        _os.environ.get("RECLAW_HOST_PROBE", "").strip(),
+        "host.docker.internal",
+        "172.17.0.1",
+        "127.0.0.1",
+    ]
+    host_candidates = [h for h in host_candidates if h]
+
+    def _probe_host(port: int, path: str = "/health") -> dict:
+        last: dict = {"status": "down", "detail": "no probe target"}
+        for host in host_candidates:
+            last = _probe(f"http://{host}:{port}{path}")
+            if last.get("status") in ("ok", "healthy", "live") or last.get("ok") is True:
+                last = {**last, "probed_via": f"{host}:{port}"}
+                return last
+        return last
+
+    # Self-health is always local to this process
+    reclaw = _probe("http://127.0.0.1:8000/health")
+    openclaw = _probe_host(18789)
+    mcp = _probe_host(8100)
+    reclaw_ok = reclaw.get("status") in ("ok", "healthy")
+    oc_ok = openclaw.get("ok") is True or openclaw.get("status") in ("live", "ok", "healthy")
+    mcp_ok = mcp.get("status") == "ok"
+    if reclaw_ok and oc_ok and mcp_ok:
+        network, network_detail = "CONNECTED", "RECLAW + OPENCLAW + MCP OK"
+    elif reclaw_ok and oc_ok:
+        network, network_detail = "PARTIAL", "RECLAW + OPENCLAW OK / MCP ?"
+    elif reclaw_ok:
+        network, network_detail = "DEGRADED", "RECLAW OK / OPENCLAW or MCP down"
+    else:
+        network, network_detail = "DISCONNECTED", "API probe failed"
+
+    public_mcp = ""
+    try:
+        uf = Path(__file__).resolve().parent.parent / "data" / "mcp_public_url.txt"
+        if uf.is_file():
+            public_mcp = uf.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        pass
+
     return {
         "generated_at": datetime.utcnow().isoformat() + "Z",
         "platform": "ReClaw 2.0",
+        "network": network,
+        "network_detail": network_detail,
+        "services": {
+            "reclaw_api": reclaw,
+            "openclaw": openclaw,
+            "mcp": mcp,
+        },
+        "mcp": {
+            "localhost_health": "ok" if mcp_ok else "down",
+            "bind": "127.0.0.1:8100 (loopback; Tailscale Serve /reclaw-mcp + cloudflared)",
+            "public_url_file": public_mcp or None,
+            "tailnet_serve": "https://openclaw.tail20a090.ts.net/reclaw-mcp",
+        },
         "county_queue": cq,
         "jobs": {"running": running_jobs, "recent": recent_jobs},
         "sessions": recent_sessions,

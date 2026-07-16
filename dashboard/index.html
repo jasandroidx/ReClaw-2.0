@@ -75,6 +75,7 @@
   </div>
   <div class="status-bar">
     <span class="pill stale" id="conn-pill">Connecting&hellip;</span>
+    <span class="pill stale" id="net-pill">Network&hellip;</span>
     <span id="last-updated">&mdash;</span>
   </div>
 </header>
@@ -82,13 +83,15 @@
   <div class="card queue-card">
     <div class="card-title"><span class="dot"></span>County Queue</div>
     <div class="big-stat" id="q-cursor">&mdash;</div>
-    <div class="big-stat-label">counties processed</div>
+    <div class="big-stat-label">queue cursor</div>
     <div class="queue-county"><h3 id="q-next-name">&mdash;</h3><div class="meta" id="q-next-meta">Loading&hellip;</div></div>
     <div class="card-title" style="margin-top:20px"><span class="dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span>Pending Review</div>
     <div class="review-card" id="review-section"><div class="empty"><div class="icon">&#x1F4CB;</div>No pending card</div></div>
   </div>
   <div class="card jobs-card">
-    <div class="card-title"><span class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Active Jobs</div>
+    <div class="card-title"><span class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Stack services (from /state)</div>
+    <div class="job-list" id="svc-list"><div class="empty">Probing&hellip;</div></div>
+    <div class="card-title" style="margin-top:20px"><span class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Active Jobs</div>
     <div class="job-list" id="running-jobs"><div class="empty"><div class="icon">&#x1F4A4;</div>No active jobs</div></div>
     <div class="card-title" style="margin-top:20px"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>Recent Jobs</div>
     <div class="job-list" id="recent-jobs"><div class="empty"><div class="icon">&#x1F4ED;</div>No runs yet</div></div>
@@ -102,13 +105,20 @@
     <div class="session-list" id="sessions-list"><div class="empty"><div class="icon">&#x1F4C1;</div>No sessions yet</div></div>
   </div>
 </main>
-<footer>ReClaw 2.0 &mdash; Ravenstack Fortress &nbsp;|&nbsp; <a href="/health" target="_blank">/health</a> &nbsp;<a href="/state" target="_blank">/state</a></footer>
+<footer>ReClaw 2.0 &mdash; Command Center (single truth: <code>/state</code>) &nbsp;|&nbsp;
+  <a id="link-health" href="#" target="_blank">API /health</a> &nbsp;
+  <a id="link-state" href="#" target="_blank">API /state</a> &nbsp;
+  <a href="status.json" target="_blank">status.json</a>
+</footer>
 <script>
 const API=`http://${location.hostname}:8000`;
 const $=id=>document.getElementById(id);
+$("link-health").href=`${API}/health`;
+$("link-state").href=`${API}/state`;
 function rel(s){if(!s)return"&mdash;";const d=Math.floor((Date.now()-new Date(s))/1000);return d<60?d+"s ago":d<3600?Math.floor(d/60)+"m ago":Math.floor(d/3600)+"h ago"}
 function rc(s){return s>=.75?"var(--red)":s>=.4?"var(--amber)":"var(--green)"}
 function badge(s){return`<span class="badge ${s}">${s}</span>`}
+function svcOk(v){if(!v)return false;return v.ok===true||["ok","healthy","live"].includes(v.status)}
 let errs=0;
 async function poll(){
   try{
@@ -116,16 +126,28 @@ async function poll(){
     if(!r.ok)throw new Error("HTTP "+r.status);
     const d=await r.json();errs=0;
     $("conn-pill").className="pill live";$("conn-pill").textContent="Live";
-    $("last-updated").textContent="Updated "+new Date().toLocaleTimeString();
+    const net=d.network||"UNKNOWN";
+    const np=$("net-pill");
+    np.textContent=net;
+    np.className="pill "+(net==="CONNECTED"?"live":net==="PARTIAL"||net==="DEGRADED"?"stale":"error");
+    $("last-updated").textContent="Updated "+new Date().toLocaleTimeString()+(d.network_detail?" · "+d.network_detail:"");
     const cq=d.county_queue||{};
-    $("q-cursor").textContent=cq.cursor??0;
-    const nx=cq.next_county;
-    $("q-next-name").textContent=nx?nx.name:"Queue complete";
-    $("q-next-meta").textContent=nx?`FIPS ${nx.fips} · pos ${nx.worklist_position}`:"All done";
-    const rc2=cq.pending_card;
+    $("q-cursor").textContent=`${cq.cursor??0}/${cq.total_counties??"?"}`;
+    const cur=cq.current_county||cq.next_county;
+    $("q-next-name").textContent=cur?cur.name:(cq.queue_status||"Queue");
+    $("q-next-meta").textContent=cur
+      ?`FIPS ${cur.fips||"?"} · pos ${cur.worklist_position??"?"} · ${cq.queue_status||"?"} · rem ${cq.remaining??"?"}`
+      :`status ${cq.queue_status||"?"} · remaining ${cq.remaining??"?"}`;
+    const rc2=cq.pending_review||cq.pending_card;
     const rs=$("review-section");
     if(rc2){const risk=rc2.risk_score??0;rs.innerHTML=`<div class="rc-header"><h4>${rc2.county||"&mdash;"}</h4>${badge(rc2.status||"pending_approval")}</div><div class="rc-stat"><span class="label">Risk</span><span class="value" style="color:${rc(risk)}">${(risk*100).toFixed(0)}%</span></div><div class="risk-bar"><div class="risk-bar-fill" style="width:${(risk*100).toFixed(0)}%;background:${rc(risk)}"></div></div><div class="rc-stat"><span class="label">Flags</span><span class="value">${rc2.flag_count??0}</span></div><div class="rc-stat"><span class="label">Shorts</span><span class="value">${rc2.short_count??0}</span></div>${rc2.top_finding?`<div class="rc-stat" style="display:block;margin-top:8px"><span class="label">Finding: </span><span class="value" style="color:var(--amber)">${rc2.top_finding}</span></div>`:""}`;}
     else rs.innerHTML=`<div class="empty"><div class="icon">&#x1F4CB;</div>No pending card</div>`;
+    const svc=d.services||{};
+    const rows=[["reclaw_api","ReClaw API"],["openclaw","OpenClaw"],["mcp","MCP bridge"]];
+    $("svc-list").innerHTML=rows.map(([k,label])=>{
+      const v=svc[k]||{};const ok=svcOk(v);
+      return `<div class="job-item"><div><div class="job-county">${label}</div><div class="job-id">${v.probed_via||v.detail||""}</div></div>${badge(ok?"completed":"failed")}<div class="job-time">${ok?(v.status||"ok"):"down"}</div></div>`;
+    }).join("");
     const run=d.jobs?.running||[];
     $("running-jobs").innerHTML=run.length?run.map(j=>`<div class="job-item"><div><div class="job-county"><span class="pulse-dot"></span>${j.county||"?"}/${j.area||"?"}</div><div class="job-id">${j.job_id}</div></div>${badge("running")}<div class="job-time">${rel(j.started_at)}</div></div>`).join(""):`<div class="empty"><div class="icon">&#x1F4A4;</div>No active jobs</div>`;
     const rec=d.jobs?.recent||[];

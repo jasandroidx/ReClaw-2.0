@@ -799,7 +799,8 @@ def project_sitrep() -> str:
     Returns a complete markdown sitrep (every section summarized). Call with no arguments.
     Do NOT ask the user to paste into Grok Build. Do NOT return only JSON.
     Covers Docker, API, OpenClaw, Tailscale, MCP, Ollama, dashboard, county queue,
-    sessions, git, GitHub, Obsidian, RAG, gaps, next actions. Read-only.
+    sessions, git, GitHub, Obsidian, RAG, openclaw doctor --lint, gateway logs,
+    disk, vault porcelain, WhatsApp status, gaps, next actions. Read-only.
     Triggers: project sitrep, sitrep, full status, fortress status, health everything.
     """
     from datetime import datetime, timezone
@@ -809,6 +810,7 @@ def project_sitrep() -> str:
         "tool": "project_sitrep",
     }
     gaps: list[str] = []
+    actions: list[str] = []
 
     # --- Docker ---
     docker = _run(["docker", "compose", "ps", "--format", "json"], timeout=30)
@@ -852,8 +854,14 @@ def project_sitrep() -> str:
     report["openclaw_gateway"] = oc_h if isinstance(oc_h, dict) else {"status": "down", "detail": str(oc_h)[:200]}
     if isinstance(api_h, str) or (isinstance(api_h, dict) and api_h.get("status") not in ("ok", "healthy")):
         gaps.append("ReClaw API unhealthy")
+        actions.append("Check reclaw-api container: docker compose -f /root/ReClaw-2.0/docker-compose.yml logs --tail=80 reclaw-api")
     if isinstance(oc_h, str) or (isinstance(oc_h, dict) and not (oc_h.get("ok") or oc_h.get("status") in ("live", "ok"))):
         gaps.append("OpenClaw gateway unhealthy")
+        actions.append(
+            "Do NOT run openclaw CLI config/doctor/fix until gateway is healthy. "
+            "First: docker compose -f /root/ReClaw-2.0/docker-compose.yml ps openclaw-gateway && "
+            "docker compose -f /root/ReClaw-2.0/docker-compose.yml logs --tail=80 openclaw-gateway"
+        )
 
     # Single-gateway guard
     guard = _run(["bash", str(ROOT / "scripts" / "ensure-single-openclaw.sh")], timeout=30)
@@ -861,6 +869,7 @@ def project_sitrep() -> str:
     if "ok" not in report["openclaw_single_gateway"]:
         if "duplicate" in guard.lower() or "failed" in guard.lower():
             gaps.append("OpenClaw gateway guard issue")
+            actions.append("Investigate multi-gateway: bash /root/ReClaw-2.0/scripts/ensure-single-openclaw.sh")
 
     # --- Ollama / dashboard ---
     ollama = _run(
@@ -873,11 +882,13 @@ def project_sitrep() -> str:
     except Exception:
         report["ollama"] = {"status": "down_or_unknown", "detail": ollama[:120]}
         gaps.append("Ollama not responding on :11434")
+        actions.append("Check Ollama on :11434 (host service or container)")
 
     dash = _run(["curl", "-sf", "-o", "/dev/null", "-w", "%{http_code}", "http://127.0.0.1:8081/"], timeout=10)
     report["fortress_dashboard"] = {"http": dash, "status": "up" if dash == "200" else "down"}
     if dash != "200":
         gaps.append("Fortress dashboard :8081 not 200")
+        actions.append("Check reclaw-dashboard: docker compose -f /root/ReClaw-2.0/docker-compose.yml logs --tail=40 reclaw-dashboard")
 
     # --- Tailscale ---
     ts_ip = _run(["tailscale", "ip", "-4"], timeout=10)
@@ -888,6 +899,7 @@ def project_sitrep() -> str:
     }
     if not report["tailscale"]["ip"]:
         gaps.append("Tailscale IP unavailable")
+        actions.append("Check Tailscale: systemctl status tailscaled; tailscale status")
 
     # --- MCP bridge + public tunnel ---
     # IMPORTANT: never curl this process's own :8100 while serving tools/call — deadlocks
@@ -930,18 +942,28 @@ def project_sitrep() -> str:
     }
     if bridge != "active":
         gaps.append("MCP bridge inactive")
+        actions.append("sudo systemctl restart reclaw-mcp-bridge && journalctl -u reclaw-mcp-bridge -n 40 --no-pager")
     if tunnel != "active":
         gaps.append("MCP public tunnel inactive")
+        actions.append("sudo systemctl restart reclaw-mcp-tunnel && journalctl -u reclaw-mcp-tunnel -n 30 --no-pager")
 
     # --- Pipeline (reuse distilled logic) ---
     try:
         report["pipeline"] = json.loads(pipeline_status())
         cq = report["pipeline"].get("county_queue") or {}
         if cq.get("status") == "awaiting_approval":
-            gaps.append(f"County queue awaiting approval: {cq.get('current') or cq.get('pending_review')}")
+            county = cq.get("current") or cq.get("pending_review") or "unknown"
+            if isinstance(county, dict):
+                county = county.get("county") or county.get("name") or str(county)
+            gaps.append(f"County queue awaiting approval: {county}")
+            actions.append(
+                f"Review {county} county card in Obsidian or API, then approve/reject with explicit human intent "
+                f"(county_queue_card / approve with confirm=true)"
+            )
     except Exception as e:
         report["pipeline"] = {"error": str(e)}
         gaps.append("pipeline_status failed")
+        actions.append("Inspect pipeline_status failure and county-queue API")
 
     # --- Latest session ---
     try:
@@ -956,7 +978,10 @@ def project_sitrep() -> str:
         br = _run(["git", "status", "-sb"], cwd=path, timeout=15)
         rem = _run(["git", "remote", "-v"], cwd=path, timeout=10)
         log = _run(["git", "log", "-1", "--oneline"], cwd=path, timeout=10)
-        dirty = any(line.startswith(" M") or line.startswith("??") or line.startswith(" D") for line in br.splitlines()[1:])
+        dirty = any(
+            line.startswith(" M") or line.startswith("??") or line.startswith(" D") or line[:1] in "MADRC"
+            for line in br.splitlines()[1:]
+        )
         ahead = "ahead" in br or "behind" in br
         return {
             "status_sb": br[:500],
@@ -973,8 +998,23 @@ def project_sitrep() -> str:
     }
     if report["git"]["reclaw"].get("dirty"):
         gaps.append("ReClaw repo dirty (uncommitted work)")
+        actions.append("Review ReClaw dirty files: git -C /root/ReClaw-2.0 status")
     if report["git"]["obsidian_vault"].get("dirty"):
         gaps.append("Obsidian vault dirty (uncommitted notes)")
+        actions.append("Review vault porcelain (listed below); commit/sync vault when ready")
+
+    # Vault exact dirty list (porcelain)
+    vault_porcelain = _run(["git", "status", "--porcelain"], cwd=VAULT, timeout=20)
+    if vault_porcelain.startswith("error:"):
+        vault_dirty_lines: list[str] = [vault_porcelain[:200]]
+    else:
+        vault_dirty_lines = [ln for ln in vault_porcelain.splitlines() if ln.strip()][:80]
+    report["vault_porcelain"] = vault_dirty_lines
+
+    # ReClaw ahead of origin?
+    reclaw_sb = (report["git"]["reclaw"].get("status_sb") or "")
+    if "ahead" in reclaw_sb:
+        actions.append("ReClaw branch is ahead of origin — push when ready: git -C /root/ReClaw-2.0 push")
 
     # --- GitHub (gh, read-only) ---
     gh = _run(
@@ -1010,8 +1050,10 @@ def project_sitrep() -> str:
     }
     if not oracle_ok:
         gaps.append("ORACLE missing from vault")
+        actions.append("Restore Ravenstack/RAVENSTACK-ORACLE.md in the vault")
     if not mcp_doc_ok:
         gaps.append("mcp-connector.md missing from vault")
+        actions.append("Restore Ravenstack/mcp-connector.md in the vault")
 
     # --- RAG smoke ---
     rag_raw = _curl(
@@ -1023,6 +1065,7 @@ def project_sitrep() -> str:
     if rag_raw.startswith("request failed:"):
         report["rag"] = {"status": "error", "detail": rag_raw[:200]}
         gaps.append("RAG search failed")
+        actions.append("Check ReClaw API RAG and re-sync vault if needed")
     else:
         try:
             rag = json.loads(rag_raw)
@@ -1030,8 +1073,140 @@ def project_sitrep() -> str:
             report["rag"] = {"status": "ok" if n else "empty", "hits": n}
             if not n:
                 gaps.append("RAG returned zero hits (index may be stale)")
+                actions.append("Re-ingest / RAG vault sync if knowledge search should hit")
         except json.JSONDecodeError:
             report["rag"] = {"status": "unknown", "detail": rag_raw[:200]}
+
+    # --- WhatsApp disabled check ---
+    wa_enabled = None
+    wa_note = ""
+    oc_cfg = Path("/root/.openclaw/openclaw.json")
+    try:
+        if oc_cfg.is_file():
+            ocj = json.loads(oc_cfg.read_text(encoding="utf-8", errors="replace"))
+            wa_entry = ((ocj.get("plugins") or {}).get("entries") or {}).get("whatsapp")
+            if isinstance(wa_entry, dict):
+                wa_enabled = wa_entry.get("enabled")
+            elif wa_entry is not None:
+                wa_enabled = bool(wa_entry)
+            else:
+                wa_note = "no plugins.entries.whatsapp key (treated as not configured)"
+        else:
+            wa_note = "openclaw.json missing"
+    except Exception as e:
+        wa_note = f"could not parse openclaw.json: {e}"
+    if wa_enabled is True:
+        gaps.append("WhatsApp plugin still enabled")
+        actions.append("Disable WhatsApp: openclaw config set plugins.entries.whatsapp.enabled false (only if gateway healthy)")
+        wa_status = "ENABLED (unexpected)"
+    elif wa_enabled is False:
+        wa_status = "disabled (enabled=false)"
+    else:
+        wa_status = wa_note or f"unknown (enabled={wa_enabled})"
+    report["whatsapp"] = {"enabled": wa_enabled, "status": wa_status}
+
+    # --- Disk usage ---
+    df_out = _run(["df", "-h", "/", "/root"], timeout=10)
+    report["disk"] = df_out[:800] if df_out else "df unavailable"
+    # flag high usage
+    for line in (df_out or "").splitlines():
+        parts = line.split()
+        if len(parts) >= 5 and parts[4].endswith("%"):
+            try:
+                pct = int(parts[4].rstrip("%"))
+                if pct >= 90:
+                    gaps.append(f"Disk high usage: {parts[4]} on {parts[-1]}")
+                    actions.append(f"Free disk space on {parts[-1]} (currently {parts[4]} used)")
+            except ValueError:
+                pass
+
+    # --- Gateway errors/warnings last 45 minutes ---
+    gw_logs = _run(
+        [
+            "docker",
+            "compose",
+            "logs",
+            "--since",
+            "45m",
+            "openclaw-gateway",
+        ],
+        timeout=45,
+    )
+    gw_filtered: list[str] = []
+    if gw_logs and not gw_logs.startswith("error:"):
+        for ln in gw_logs.splitlines():
+            low = ln.lower()
+            if any(
+                k in low
+                for k in (
+                    "error",
+                    "fail",
+                    "fatal",
+                    "warn",
+                    "exception",
+                    "refused",
+                    "timeout",
+                    "eacces",
+                    "overflow",
+                )
+            ):
+                # trim docker compose prefix noise a bit
+                gw_filtered.append(ln[:300])
+        gw_filtered = gw_filtered[-35:]  # last 35 matching lines
+    elif gw_logs:
+        gw_filtered = [gw_logs[:300]]
+    report["gateway_logs_45m"] = gw_filtered
+    if any("eacces" in x.lower() or "startup_failed" in x.lower() for x in gw_filtered):
+        gaps.append("Gateway recent EACCES/startup failures in logs")
+        actions.append("Verify /root/.openclaw/openclaw.json is readable by container (linuxbrew:linuxbrew / uid 1000)")
+
+    # --- OpenClaw doctor --lint (read-only) ---
+    # Prefer JSON; fall back to truncated text. Skip heavy CLI only if gateway is hard-down? Still useful offline.
+    doctor_raw = _run(
+        ["openclaw", "doctor", "--lint", "--json"],
+        timeout=90,
+    )
+    doctor_summary: list[str] = []
+    doctor_ok = None
+    if doctor_raw.startswith("error:"):
+        doctor_summary = [doctor_raw[:300]]
+    else:
+        # CLI may print warnings before JSON — find last JSON object
+        payload = doctor_raw
+        brace = doctor_raw.find("{")
+        if brace >= 0:
+            payload = doctor_raw[brace:]
+        try:
+            dj = json.loads(payload)
+            doctor_ok = dj.get("ok")
+            findings = dj.get("findings") or []
+            doctor_summary.append(
+                f"ok={dj.get('ok')} · checksRun={dj.get('checksRun')} · "
+                f"checksSkipped={dj.get('checksSkipped')} · findings={len(findings)}"
+            )
+            # Deduplicate messages, keep severity
+            seen: set[str] = set()
+            for f in findings:
+                if not isinstance(f, dict):
+                    continue
+                msg = (f.get("message") or "").strip()
+                sev = f.get("severity") or "info"
+                key = msg[:120]
+                if not msg or key in seen:
+                    continue
+                seen.add(key)
+                doctor_summary.append(f"[{sev}] {msg[:220]}")
+                if sev in ("error", "critical"):
+                    gaps.append(f"openclaw doctor: {msg[:120]}")
+            if not findings:
+                doctor_summary.append("No findings reported by doctor --lint.")
+        except json.JSONDecodeError:
+            # text mode fallback
+            for ln in doctor_raw.splitlines():
+                if any(x in ln.lower() for x in ("warn", "error", "fail", "finding", "ok")):
+                    doctor_summary.append(ln[:220])
+            doctor_summary = doctor_summary[:25] or [doctor_raw[:500]]
+    report["doctor_lint"] = {"ok": doctor_ok, "lines": doctor_summary}
 
     # --- Overall ---
     api_ok = isinstance(report["reclaw_api"], dict) and report["reclaw_api"].get("status") in ("ok", "healthy")
@@ -1047,12 +1222,110 @@ def project_sitrep() -> str:
         overall = "healthy"
     report["overall"] = overall
     report["gaps"] = gaps
-    report["next_actions_hint"] = gaps[:5] if gaps else [
-        "Stack clear — run daily pipeline or county-queue approve as needed"
-    ]
 
-    # Plain English is the product. (JSON was for machines; chat users want the report.)
-    return _format_sitrep_plain(report)
+    # Prefer concrete actions; fall back to gaps
+    if not actions and not gaps:
+        actions = ["Stack clear — run daily pipeline or county-queue approve as needed"]
+    # de-dupe actions preserving order
+    seen_a: set[str] = set()
+    uniq_actions: list[str] = []
+    for a in actions + [g for g in gaps if g not in actions]:
+        if a not in seen_a:
+            seen_a.add(a)
+            uniq_actions.append(a)
+    report["next_actions_hint"] = uniq_actions[:8]
+
+    # Plain English base report (sections 1–16)
+    body = _format_sitrep_plain(report)
+
+    # --- Append enhanced sections (keep base formatter intact) ---
+    extra: list[str] = []
+    extra.append("")
+    extra.append("## 17. OpenClaw doctor (`doctor --lint`)")
+    if doctor_ok is True:
+        extra.append("- Lint result: **ok**")
+    elif doctor_ok is False:
+        extra.append("- Lint result: **findings present** (ok=false)")
+    else:
+        extra.append("- Lint result: **unknown / parse incomplete**")
+    for ln in doctor_summary[:20]:
+        extra.append(f"- {ln}")
+    if len(doctor_summary) > 20:
+        extra.append(f"- … {len(doctor_summary) - 20} more finding line(s) truncated")
+    extra.append("")
+
+    extra.append("## 18. Gateway logs (errors/warnings, last 45m)")
+    if not gw_filtered:
+        extra.append("- No matching error/warn/fail lines in the last 45 minutes (or logs empty).")
+    else:
+        extra.append(f"- Matching lines: **{len(gw_filtered)}** (showing up to 35)")
+        for ln in gw_filtered:
+            extra.append(f"- `{ln}`")
+    extra.append("")
+
+    extra.append("## 19. Disk usage")
+    if df_out and not df_out.startswith("error:"):
+        extra.append("```")
+        extra.append(df_out.strip())
+        extra.append("```")
+    else:
+        extra.append(f"- df unavailable: {df_out[:200] if df_out else 'n/a'}")
+    extra.append("")
+
+    extra.append("## 20. Obsidian vault dirty files (`git status --porcelain`)")
+    extra.append(f"- Vault path: `{VAULT}`")
+    if not vault_dirty_lines:
+        extra.append("- Clean — no porcelain lines.")
+    else:
+        extra.append(f"- **{len(vault_dirty_lines)}** line(s):")
+        for ln in vault_dirty_lines:
+            extra.append(f"- `{ln}`")
+    extra.append("")
+
+    extra.append("## 21. WhatsApp plugin")
+    extra.append(f"- Status: **{wa_status}**")
+    if wa_enabled is False:
+        extra.append("- Confirmed: `plugins.entries.whatsapp.enabled` is **false**.")
+    elif wa_enabled is True:
+        extra.append("- Action needed: set `plugins.entries.whatsapp.enabled` to false.")
+    extra.append("")
+
+    extra.append("## 22. Safety note — OpenClaw CLI")
+    if oc_ok:
+        extra.append(
+            "- Gateway health probe is **OK**. CLI commands (`openclaw config`, `doctor --fix`, etc.) "
+            "are still best run carefully; after any root-owned config write, ensure "
+            "`/root/.openclaw/openclaw.json` is owned by `linuxbrew` (uid 1000) so Docker can read it."
+        )
+    else:
+        extra.append(
+            "- **Gateway is NOT healthy.** Do **not** run `openclaw config set`, `openclaw doctor --fix`, "
+            "or other mutating CLI until Docker `openclaw-gateway` is healthy again. "
+            "Diagnose with `docker compose ps` / `docker compose logs openclaw-gateway` first."
+        )
+    extra.append(
+        "- Never curl this MCP process's own `:8100` from inside a tool call (deadlocks streamable-http)."
+    )
+    extra.append("")
+
+    # Replace generic next-actions block with clearer actionable list if we have richer actions
+    # (base formatter already printed section 15 from next_actions_hint)
+    extra.append("## 23. Actionable next steps (prioritized)")
+    for i, a in enumerate(uniq_actions[:10], 1):
+        extra.append(f"{i}. {a}")
+    if not uniq_actions:
+        extra.append("1. No action required.")
+    extra.append("")
+
+    # Insert extras before Provenance so numbering stays readable, else append
+    marker = "## 16. Provenance"
+    if marker in body:
+        body = body.replace(marker, "\n".join(extra) + "\n" + marker)
+    else:
+        body = body + "\n" + "\n".join(extra)
+
+    return body
+
 
 
 @mcp.tool()

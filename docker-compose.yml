@@ -5,6 +5,8 @@ services:
       dockerfile: docker/Dockerfile
     image: reclaw:2.0
     container_name: reclaw-api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     user: "1000:1000"
     restart: unless-stopped
     env_file:
@@ -57,6 +59,7 @@ services:
     environment:
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
       - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+      - LOCAL_CODER_API_KEY=${LOCAL_CODER_API_KEY:-local-coder}
       # Ollama chat API (tags/models). Coder GGUF stays on :8080 separately if needed.
       - OLLAMA_HOST=http://127.0.0.1:11434
       - OLLAMA_API_BASE=http://127.0.0.1:11434
