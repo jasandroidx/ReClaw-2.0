@@ -33,7 +33,13 @@
     .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
     .queue-card{grid-column:1;grid-row:1/4}
     .big-stat{font-size:3.2rem;font-weight:900;line-height:1;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
-    .big-stat-label{font-size:.78rem;color:var(--text-muted);margin-bottom:22px}
+    .big-stat-label{font-size:.78rem;color:var(--text-muted);margin-bottom:12px}
+    .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+    .stat-box{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center}
+    .stat-box .n{font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--accent)}
+    .stat-box .l{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+    .hint{font-size:.78rem;color:var(--amber);margin-top:8px;line-height:1.35}
+    .git-line{font-family:var(--mono);font-size:.72rem;color:var(--text-muted);margin-top:10px;word-break:break-all}
     .queue-county{background:var(--surface-2);border-radius:8px;padding:14px 16px;margin-bottom:16px;border:1px solid var(--border)}
     .queue-county h3{font-size:1.05rem;font-weight:700;color:var(--text)}
     .queue-county .meta{font-size:.75rem;color:var(--text-muted);margin-top:4px;font-family:var(--mono)}
@@ -84,9 +90,17 @@
     <div class="card-title"><span class="dot"></span>County Queue</div>
     <div class="big-stat" id="q-cursor">&mdash;</div>
     <div class="big-stat-label">queue cursor</div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="n" id="st-approved">—</div><div class="l">Approved</div></div>
+      <div class="stat-box"><div class="n" id="st-rejected">—</div><div class="l">Rejected</div></div>
+      <div class="stat-box"><div class="n" id="st-remaining">—</div><div class="l">Remaining</div></div>
+    </div>
     <div class="queue-county"><h3 id="q-next-name">&mdash;</h3><div class="meta" id="q-next-meta">Loading&hellip;</div></div>
     <div class="card-title" style="margin-top:20px"><span class="dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span>Pending Review</div>
     <div class="review-card" id="review-section"><div class="empty"><div class="icon">&#x1F4CB;</div>No pending card</div></div>
+    <div class="card-title" style="margin-top:20px"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>Operator hints</div>
+    <div id="hints" class="hint">—</div>
+    <div class="git-line" id="git-line">git: —</div>
   </div>
   <div class="card jobs-card">
     <div class="card-title"><span class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Stack services (from /state)</div>
@@ -133,25 +147,32 @@ async function poll(){
     $("last-updated").textContent="Updated "+new Date().toLocaleTimeString()+(d.network_detail?" · "+d.network_detail:"");
     const cq=d.county_queue||{};
     $("q-cursor").textContent=`${cq.cursor??0}/${cq.total_counties??"?"}`;
+    $("st-approved").textContent=cq.approved_count??0;
+    $("st-rejected").textContent=cq.rejected_count??0;
+    $("st-remaining").textContent=cq.remaining??"—";
     const cur=cq.current_county||cq.next_county;
     $("q-next-name").textContent=cur?cur.name:(cq.queue_status||"Queue");
     $("q-next-meta").textContent=cur
-      ?`FIPS ${cur.fips||"?"} · pos ${cur.worklist_position??"?"} · ${cq.queue_status||"?"} · rem ${cq.remaining??"?"}`
-      :`status ${cq.queue_status||"?"} · remaining ${cq.remaining??"?"}`;
+      ?`FIPS ${cur.fips||"?"} · pos ${cur.worklist_position??"?"} · ${cq.queue_status||"?"}`
+      :`status ${cq.queue_status||"?"}`;
     const rc2=cq.pending_review||cq.pending_card;
     const rs=$("review-section");
-    if(rc2){const risk=rc2.risk_score??0;rs.innerHTML=`<div class="rc-header"><h4>${rc2.county||"&mdash;"}</h4>${badge(rc2.status||"pending_approval")}</div><div class="rc-stat"><span class="label">Risk</span><span class="value" style="color:${rc(risk)}">${(risk*100).toFixed(0)}%</span></div><div class="risk-bar"><div class="risk-bar-fill" style="width:${(risk*100).toFixed(0)}%;background:${rc(risk)}"></div></div><div class="rc-stat"><span class="label">Flags</span><span class="value">${rc2.flag_count??0}</span></div><div class="rc-stat"><span class="label">Shorts</span><span class="value">${rc2.short_count??0}</span></div>${rc2.top_finding?`<div class="rc-stat" style="display:block;margin-top:8px"><span class="label">Finding: </span><span class="value" style="color:var(--amber)">${rc2.top_finding}</span></div>`:""}`;}
+    if(rc2){const risk=rc2.risk_score??0;rs.innerHTML=`<div class="rc-header"><h4>${rc2.county||"&mdash;"}</h4>${badge(rc2.status||"pending_approval")}</div><div class="rc-stat"><span class="label">Risk</span><span class="value" style="color:${rc(risk)}">${(risk*100).toFixed(0)}%</span></div><div class="risk-bar"><div class="risk-bar-fill" style="width:${Math.min(100,(risk*100)).toFixed(0)}%;background:${rc(risk)}"></div></div><div class="rc-stat"><span class="label">Flags</span><span class="value">${rc2.flag_count??0}</span></div><div class="rc-stat"><span class="label">Shorts</span><span class="value">${rc2.short_count??0}</span></div>${rc2.recommendation?`<div class="rc-stat"><span class="label">Rec</span><span class="value" style="color:var(--accent);max-width:60%;text-align:right">${rc2.recommendation}</span></div>`:""}${rc2.top_finding?`<div class="rc-stat" style="display:block;margin-top:8px"><span class="label">Finding: </span><span class="value" style="color:var(--amber)">${rc2.top_finding}</span></div>`:""}${rc2.obsidian_file?`<div class="rc-stat" style="margin-top:6px"><span class="label">Vault</span><span class="value" style="font-size:.7rem">${rc2.obsidian_file}</span></div>`:""}`;}
     else rs.innerHTML=`<div class="empty"><div class="icon">&#x1F4CB;</div>No pending card</div>`;
+    const hints=d.operator_hints||[];
+    $("hints").innerHTML=hints.length?hints.map(h=>`• ${h}`).join("<br>"):"No operator hints right now.";
+    const g=d.git||{};
+    $("git-line").textContent=g.error?`git: ${g.error}`:`git: ${g.branch||"?"} · ${g.head||"?"}${g.dirty?" · DIRTY":" · clean"}`;
     const svc=d.services||{};
     const rows=[["reclaw_api","ReClaw API"],["openclaw","OpenClaw"],["mcp","MCP bridge"]];
     $("svc-list").innerHTML=rows.map(([k,label])=>{
       const v=svc[k]||{};const ok=svcOk(v);
       return `<div class="job-item"><div><div class="job-county">${label}</div><div class="job-id">${v.probed_via||v.detail||""}</div></div>${badge(ok?"completed":"failed")}<div class="job-time">${ok?(v.status||"ok"):"down"}</div></div>`;
-    }).join("");
+    }).join("")+(d.mcp?.tailnet_serve?`<div class="job-item"><div><div class="job-county">MCP Serve</div><div class="job-id">${d.mcp.tailnet_serve}</div></div>${badge("completed")}<div class="job-time">tailnet</div></div>`:"");
     const run=d.jobs?.running||[];
     $("running-jobs").innerHTML=run.length?run.map(j=>`<div class="job-item"><div><div class="job-county"><span class="pulse-dot"></span>${j.county||"?"}/${j.area||"?"}</div><div class="job-id">${j.job_id}</div></div>${badge("running")}<div class="job-time">${rel(j.started_at)}</div></div>`).join(""):`<div class="empty"><div class="icon">&#x1F4A4;</div>No active jobs</div>`;
     const rec=d.jobs?.recent||[];
-    $("recent-jobs").innerHTML=rec.length?rec.slice(0,8).map(j=>`<div class="job-item"><div><div class="job-county">${j.county||"?"}/${j.area||"?"}</div><div class="job-id">${j.job_id}</div></div>${badge(j.status||"unknown")}<div class="job-time">${rel(j.finished_at||j.started_at)}</div></div>`).join(""):`<div class="empty"><div class="icon">&#x1F4ED;</div>No runs yet</div>`;
+    $("recent-jobs").innerHTML=rec.length?rec.slice(0,8).map(j=>`<div class="job-item"><div><div class="job-county">${j.county||"?"}/${j.area||"?"}</div><div class="job-id">${j.job_id}${j.risk_score!=null?" · risk "+j.risk_score:""}</div></div>${badge(j.status||"unknown")}<div class="job-time">${rel(j.finished_at||j.started_at)}</div></div>`).join(""):`<div class="empty"><div class="icon">&#x1F4ED;</div>No runs yet</div>`;
     const ap=d.pending_approvals||[];
     $("approvals-list").innerHTML=ap.length?ap.map(a=>`<div class="approval-item"><div><div class="cap">${a.capability||a.name||"?"}</div><div class="sess">Session: ${a.session_id}</div></div><span class="badge pending">Awaiting</span></div>`).join(""):`<div class="empty"><div class="icon">&#x2705;</div>All clear</div>`;
     const ses=d.sessions||[];

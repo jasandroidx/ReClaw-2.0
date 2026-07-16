@@ -397,6 +397,37 @@ def get_state():
     except OSError:
         pass
 
+    # Lightweight git snapshot (repo only — no vault dump)
+    git_info: dict[str, Any] = {}
+    try:
+        import subprocess
+
+        root = Path(__file__).resolve().parent.parent
+
+        def _g(*args: str) -> str:
+            return subprocess.run(
+                ["git", *args],
+                cwd=str(root),
+                capture_output=True,
+                text=True,
+                timeout=8,
+            ).stdout.strip()
+
+        branch = _g("rev-parse", "--abbrev-ref", "HEAD")
+        head = _g("log", "-1", "--oneline")
+        sb = _g("status", "-sb")
+        dirty = any(
+            ln and not ln.startswith("##") for ln in (sb.splitlines() if sb else [])
+        )
+        git_info = {
+            "branch": branch,
+            "head": head,
+            "dirty": dirty,
+            "status_line": (sb.splitlines() or [""])[0],
+        }
+    except Exception as exc:
+        git_info = {"error": str(exc)[:120]}
+
     return {
         "generated_at": datetime.utcnow().isoformat() + "Z",
         "platform": "ReClaw 2.0",
@@ -409,14 +440,28 @@ def get_state():
         },
         "mcp": {
             "localhost_health": "ok" if mcp_ok else "down",
-            "bind": "127.0.0.1:8100 (loopback; Tailscale Serve /reclaw-mcp + cloudflared)",
+            "bind": "0.0.0.0:8100 (UFW: tailscale0 only; Serve + cloudflared)",
             "public_url_file": public_mcp or None,
             "tailnet_serve": "https://openclaw.tail20a090.ts.net/reclaw-mcp",
         },
+        "git": git_info,
         "county_queue": cq,
         "jobs": {"running": running_jobs, "recent": recent_jobs},
         "sessions": recent_sessions,
         "pending_approvals": pending_approvals,
+        "operator_hints": [
+            h
+            for h in [
+                (
+                    f"County queue awaiting approval: {(cq.get('pending_review') or {}).get('county')}"
+                    if isinstance(cq, dict)
+                    and (cq.get("queue_status") == "awaiting_approval" or cq.get("pending_review"))
+                    else None
+                ),
+                "Repo dirty — commit or stash when ready" if git_info.get("dirty") else None,
+            ]
+            if h
+        ],
     }
 
 # === Gateway Security / Approval endpoints (OpenClaw approval gate pattern) ===
