@@ -397,34 +397,56 @@ def get_state():
     except OSError:
         pass
 
-    # Lightweight git snapshot (repo only — no vault dump)
+    # Lightweight git snapshot without requiring `git` binary in the container
     git_info: dict[str, Any] = {}
     try:
         import subprocess
+        import shutil
 
         root = Path(__file__).resolve().parent.parent
+        git_bin = shutil.which("git") or "/usr/bin/git"
+        if Path(git_bin).is_file():
+            def _g(*args: str) -> str:
+                return subprocess.run(
+                    [git_bin, *args],
+                    cwd=str(root),
+                    capture_output=True,
+                    text=True,
+                    timeout=8,
+                ).stdout.strip()
 
-        def _g(*args: str) -> str:
-            return subprocess.run(
-                ["git", *args],
-                cwd=str(root),
-                capture_output=True,
-                text=True,
-                timeout=8,
-            ).stdout.strip()
-
-        branch = _g("rev-parse", "--abbrev-ref", "HEAD")
-        head = _g("log", "-1", "--oneline")
-        sb = _g("status", "-sb")
-        dirty = any(
-            ln and not ln.startswith("##") for ln in (sb.splitlines() if sb else [])
-        )
-        git_info = {
-            "branch": branch,
-            "head": head,
-            "dirty": dirty,
-            "status_line": (sb.splitlines() or [""])[0],
-        }
+            branch = _g("rev-parse", "--abbrev-ref", "HEAD")
+            head = _g("log", "-1", "--oneline")
+            sb = _g("status", "-sb")
+            dirty = any(
+                ln and not ln.startswith("##") for ln in (sb.splitlines() if sb else [])
+            )
+            git_info = {
+                "branch": branch,
+                "head": head,
+                "dirty": dirty,
+                "status_line": (sb.splitlines() or [""])[0],
+            }
+        else:
+            # Fallback: read .git files only
+            head_file = (root / ".git" / "HEAD").read_text(encoding="utf-8").strip()
+            branch = "detached"
+            sha = ""
+            if head_file.startswith("ref:"):
+                ref = head_file.split(" ", 1)[1].strip()
+                branch = ref.split("/")[-1]
+                ref_path = root / ".git" / ref
+                if ref_path.is_file():
+                    sha = ref_path.read_text(encoding="utf-8").strip()[:7]
+            else:
+                sha = head_file[:7]
+            git_info = {
+                "branch": branch,
+                "head": sha,
+                "dirty": None,
+                "status_line": f"## {branch}",
+                "note": "git binary missing in container; dirty unknown",
+            }
     except Exception as exc:
         git_info = {"error": str(exc)[:120]}
 
