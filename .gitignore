@@ -49,3 +49,4 @@ data/mcp_queue.jsonl
 data/mcp_public_url.txt
 data/mcp_tunnel_host.txt
 outputs/
+.aider*

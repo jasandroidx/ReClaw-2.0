@@ -28,6 +28,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from core.job_registry import JobRegistry
+
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Header, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -55,8 +57,8 @@ _ = KnowledgeManager(settings)
 # The Gateway owns session creation. We create a fresh Orchestrator per job so it can be bound to one session.
 # (Lightweight for MVP; in heavier future we can pool or use dependency injection.)
 
-# Very light in-memory job registry (survives only until restart — disk is source of truth)
-_jobs: dict[str, dict[str, Any]] = {}
+# Persistent job registry — crash-safe
+_registry = JobRegistry(settings.runs_dir)
 
 
 class TriggerResponse(BaseModel):
@@ -81,9 +83,8 @@ class JobStatus(BaseModel):
 
 
 def _persist_job(job_id: str, data: dict[str, Any]) -> None:
-    _jobs[job_id] = data
-    # also write a tiny status file next to the run artifact if we want
-    (settings.runs_dir / f"{job_id}.status.json").write_text(json.dumps(data, indent=2))
+    """Persist via crash-safe JobRegistry."""
+    _registry.put(job_id, data)
 
 
 def _run_orchestrator_job(job_id: str, county: str, area: str, write_obsidian: bool, auto_approve: bool = False):
@@ -258,16 +259,9 @@ def run_sync(county: str = "Pike", area: str = "Winslow", write_obsidian: bool =
 
 @app.get("/jobs/{job_id}", response_model=JobStatus)
 def get_job(job_id: str):
-    if job_id in _jobs:
-        return JobStatus(**_jobs[job_id])
-
-    # Try to recover from disk
-    status_file = settings.runs_dir / f"{job_id}.status.json"
-    if status_file.exists():
-        data = json.loads(status_file.read_text())
-        _jobs[job_id] = data
+    data = _registry.get(job_id)
+    if data:
         return JobStatus(**data)
-
     raise HTTPException(404, f"Job {job_id} not found")
 
 
@@ -313,6 +307,42 @@ def list_packages(limit: int = 20):
             continue
     return {"count": len(items), "packages": items}
 
+
+
+
+@app.get("/state")
+def get_state():
+    """Unified dashboard state endpoint - county queue, jobs, sessions, approvals."""
+    from core.county_queue import CountyQueue
+    try:
+        cq = CountyQueue(settings).status()
+    except Exception as exc:
+        cq = {"error": str(exc)}
+    running_jobs = _registry.list_running()
+    recent_jobs = _registry.list(limit=10)
+    sess_root = settings.data_dir / "sessions"
+    recent_sessions, pending_approvals = [], []
+    if sess_root.exists():
+        for sess_dir in sorted(
+            (p for p in sess_root.iterdir() if p.is_dir()),
+            key=lambda p: p.stat().st_mtime, reverse=True
+        )[:5]:
+            recent_sessions.append({"session_id": sess_dir.name})
+            try:
+                from core.security import SecurityManager
+                sec = SecurityManager(sess_dir, sess_dir.name)
+                for req in sec.get_pending_requests():
+                    pending_approvals.append({"session_id": sess_dir.name, **req.model_dump()})
+            except Exception:
+                pass
+    return {
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "platform": "ReClaw 2.0",
+        "county_queue": cq,
+        "jobs": {"running": running_jobs, "recent": recent_jobs},
+        "sessions": recent_sessions,
+        "pending_approvals": pending_approvals,
+    }
 
 # === Gateway Security / Approval endpoints (OpenClaw approval gate pattern) ===
 
