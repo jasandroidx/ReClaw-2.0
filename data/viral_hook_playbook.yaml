@@ -3,14 +3,21 @@
 
 psychology:
   rule: Never start with the data. Start with the intent behind the data.
+  stop_scroll: >
+    First 1–2 seconds must create a curiosity gap or pattern shock.
+    Named person + exact $ + "why/they thought" beats "County paid X $Y — public record."
   bad_example: "Chicago spent $14,000 on consulting."
+  worse_example: "Gibson County paid Vanoven, Bruce L (Sheriff) $111K — public record."
   good_example: "Why did Chicago pay the same consultant three times in 24 hours?"
+  good_salary_example: "They thought you wouldn't check public salaries. Posey County's sheriff? $111K on the books."
 
 trigger_phrases:
   - "They thought you wouldn't check —"
   - "I ran the math on"
   - "The county's own public records show"
   - "Forensic accountants call this"
+  - "Pause. Read this twice —"
+  - "Nobody is talking about this —"
 
 red_flag_hooks:
   smurfing:
@@ -61,7 +68,7 @@ red_flag_hooks:
       - "{place} County Weekend Payment: {amount_fmt} to '{vendor}'"
 
   duplicate_payment:
-    categories: [statistical_anomaly, double_dip]
+    categories: [statistical_anomaly]
     evidence_rules: [duplicate_vendor_amount_date]
     playbook_id: rapid_fire_duplicates
     visual: duplicate_check_side_by_side
@@ -76,6 +83,26 @@ red_flag_hooks:
     headline_templates:
       - "{place}: Duplicate {amount_fmt} Payment to '{vendor}'? (Public Records)"
 
+  # dual public compensation lines for same person (salary CSV) — NOT vendor duplicates
+  double_dip:
+    categories: [double_dip]
+    playbook_id: dual_paycheck
+    visual: salary_table_highlight
+    vfx: subtle_camera_push
+    text_overlay: "TWO PAYCHECKS"
+    requires: [name]
+    hook_templates:
+      - "They thought you wouldn't notice. {name} shows up on two public paychecks in {place} County{amount_clause} — on the official record."
+      - "One name, two compensation lines: {name} in {place} County{amount_clause}. Public salary search."
+    hook_templates_short:
+      # Stop-scroll first: pattern shock → name → $
+      - "Same name. TWO paychecks. {name} in {place} County{amount_clause}."
+      - "They thought you wouldn't notice — {name} is on two public paychecks in {place}{amount_clause}."
+      - "Why does one person show up twice on {place}'s payroll? {name}{amount_clause}."
+    headline_templates:
+      - "{place}: {name} on Two Public Paychecks — Salary Records"
+      - "Same Name, Two Paychecks — {place} County Public Records"
+
   salary_shock:
     categories: [salary_shock]
     playbook_id: taxpayer_paycheck
@@ -87,8 +114,12 @@ red_flag_hooks:
       - "They thought you wouldn't check public salaries. {place} County paid {name} ({title}) {amount_fmt} — on the official record."
       - "The county's own public records show {name} — {title} — at {amount_fmt}. In a county your size, that's a fair question."
     hook_templates_short:
-      - "{place} County paid {name} ({title}) {amount_fmt} — public record."
+      # Stop-scroll first: intent/curiosity → role + $ → name (not dry "County paid X")
+      - "They thought you wouldn't check. {place} County {title}? {amount_fmt}. Name: {name}."
+      - "Why is a {title} in {place} County pulling {amount_fmt}? Public books say {name}."
+      - "I opened the salary search. {place}'s {title} — {name} — {amount_fmt}."
     headline_templates:
+      - "Why Is {place}'s {title} Paid {amount_fmt}? (Public Records)"
       - "{place} County: {title} Paid {amount_fmt} — Public Salary Records"
 
   benford:

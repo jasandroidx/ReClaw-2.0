@@ -263,15 +263,35 @@ def run_pipeline(
         except Exception:
             return ""
 
-    out["script_line"] = out.apply(
-        lambda r: f"{r.get('county', '')}: {r.get('department', '')}"
-        + (f" / {r.get('category')}" if r.get("category") else "")
-        + f" in {int(r['fiscal_year']) if not pd.isna(r['fiscal_year']) else 'N/A'} → "
-        + (f"{fmt_currency(r['amount'])}" if not pd.isna(r["amount"]) else "amount N/A")
-        + (f" ({r['pct_change']:.0f}% YoY)" if not pd.isna(r["pct_change"]) else "")
-        + f" — flagged by {r['method']} ({r['note']})",
-        axis=1,
-    )
+    def human_script_line(r):
+        """Video-ready angle — no IsolationForest/ECOD method dumps."""
+        county = str(r.get("county") or "").strip()
+        dept = str(r.get("department") or "").strip()
+        cat = str(r.get("category") or "").strip()
+        if dept in ("nan", "None"):
+            dept = ""
+        if cat in ("nan", "None"):
+            cat = ""
+        subject = " / ".join(x for x in (dept, cat) if x) or "A budget line"
+        place = county or "this county"
+        try:
+            year = int(r["fiscal_year"]) if not pd.isna(r.get("fiscal_year")) else None
+        except Exception:
+            year = None
+        year_s = str(year) if year else "recent years"
+        amt = fmt_currency(r["amount"]) if not pd.isna(r.get("amount")) else ""
+        pct = r.get("pct_change")
+        if not pd.isna(pct) and amt:
+            direction = "jumped" if float(pct) > 0 else "dropped"
+            return (
+                f"{subject} in {place} {direction} {abs(float(pct)):.0f}% YoY "
+                f"to {amt} in {year_s}."
+            )
+        if amt:
+            return f"{subject} in {place} hit {amt} in {year_s} — public certified budget."
+        return f"{subject} in {place} stands out in {year_s} public budget records."
+
+    out["script_line"] = out.apply(human_script_line, axis=1)
     out.to_csv(outp, index=False)
     return len(out)
 

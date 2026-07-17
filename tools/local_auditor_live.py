@@ -609,22 +609,47 @@ def _gateway_year_flags(
                 )
             )
 
-    if by_vendor:
-        top_v, top_v_amt = max(by_vendor.items(), key=lambda x: x[1])
-        vshare = top_v_amt / total
-        if vshare >= 0.35 and top_v_amt >= 500_000:
-            flags.append(
-                RedFlag(
-                    severity="high" if vshare >= 0.5 else "medium",
-                    category="vendor_concentration",
-                    description=(
-                        f"'{top_v}' received ${top_v_amt:,.0f} ({vshare*100:.1f}% of "
-                        f"{county_label} FY{year} disbursements)"
-                    ),
-                    evidence=f"Gateway vendor aggregation cnty_cd={gateway_code} year={year}",
-                    recommended_action="Review bid/procurement records for vendor concentration.",
+    # 2026-07-17 Story Factory HARD STOP:
+    # Gateway ent_name is NOT a payee. Never emit vendor_concentration / split_purchase_pattern
+    # from Gateway aggregation (fake "ONE company" / WATER / GAS scandals).
+    # Re-enable only when by_vendor keys come from check-register payee fields.
+    _GATEWAY_VENDOR_CLAIMS_ENABLED = False
+    if by_vendor and _GATEWAY_VENDOR_CLAIMS_ENABLED:
+        # Prefer a real payee over Gateway rollups (Governmental Activities, WATER, …).
+        try:
+            from tools.scriptwriter import _looks_like_fake_vendor
+        except Exception:  # pragma: no cover
+            def _looks_like_fake_vendor(n):  # type: ignore
+                return (n or "").strip().lower() in (
+                    "governmental activities",
+                    "business-type activities",
+                    "water",
+                    "wastewater",
+                    "solid waste",
+                    "",
                 )
-            )
+
+        ranked = sorted(by_vendor.items(), key=lambda x: -x[1])
+        top_v, top_v_amt = None, 0.0
+        for cand, amt in ranked:
+            if not _looks_like_fake_vendor(cand):
+                top_v, top_v_amt = cand, amt
+                break
+        if top_v is not None:
+            vshare = top_v_amt / total
+            if vshare >= 0.35 and top_v_amt >= 500_000:
+                flags.append(
+                    RedFlag(
+                        severity="high" if vshare >= 0.5 else "medium",
+                        category="vendor_concentration",
+                        description=(
+                            f"'{top_v}' received ${top_v_amt:,.0f} ({vshare*100:.1f}% of "
+                            f"{county_label} FY{year} disbursements)"
+                        ),
+                        evidence=f"Gateway vendor aggregation cnty_cd={gateway_code} year={year}",
+                        recommended_action="Review bid/procurement records for vendor concentration.",
+                    )
+                )
 
         n_small, small_share = _vendor_fragmentation(by_vendor, total)
         if n_small >= 15 and small_share >= 0.15:

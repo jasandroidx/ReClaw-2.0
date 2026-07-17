@@ -20,13 +20,27 @@ from tools.public_data_loaders import REPO_ROOT
 
 SRC = "https://gateway.ifionline.org/public/download.aspx"
 
-# Rollup labels — not real vendors; exclude from vendor-style tests.
+# Rollup / category labels — not real vendors; exclude from vendor-style tests.
 ROLLUP_ENTITIES = frozenset(
     {
         "governmental activities",
         "business-type activities",
         "0",
         "",
+        "water",
+        "wastewater",
+        "solid waste",
+        "stormwater",
+        "sewer",
+        "highway",
+        "streets",
+        "transfers out",
+        "distributions to other governmental entities",
+        "salaries and wages",
+        "employee benefits",
+        "other capital outlays",
+        "other disbursements",
+        "payment of taxes and other payroll withholdings",
     }
 )
 
@@ -94,9 +108,28 @@ def detect_iqr_outliers(
     q1, q3 = np.percentile(amts, [25, 75])
     fence = float(q3 + iqr_multiplier * (q3 - q1))
 
+    # Aggregate payroll / transfer lines are legitimate large totals — not publishable juice.
+    _AGG_LINES = frozenset(
+        {
+            "salaries and wages",
+            "employee benefits",
+            "payment of taxes and other payroll withholdings",
+            "other disbursements",
+            "other capital outlays",
+            "transfers out",
+            "distributions to other governmental entities",
+            "debt service",
+        }
+    )
+
     flags: list[RedFlag] = []
     for r in sorted(positive, key=lambda x: -x["amount"]):
         if r["amount"] < max(fence, min_amount):
+            continue
+        line_low = (r["line"] or "").strip().lower()
+        if line_low in _AGG_LINES or any(a in line_low for a in _AGG_LINES):
+            continue
+        if r.get("is_rollup") or _is_rollup_entity(r.get("vendor") or ""):
             continue
         flags.append(
             RedFlag(

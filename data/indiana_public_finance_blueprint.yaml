@@ -1,0 +1,175 @@
+# Operational distillation of:
+# "Algorithmic Auditing of Public Finance: An Operational Blueprint for Indiana Local Government Financial Oversight"
+# Operator paste 2026-07-17. Raw archive:
+#   data/research/algorithmic-auditing-public-finance-blueprint-2026-07-17.md
+# Aligns with Story Factory freeze + content_truth_rules.yaml
+
+status: ingested
+ingested: 2026-07-17
+source: operator-provided-research-paste
+
+executive_shift:
+  from: unsupervised statistical anomaly mill (60-90 unwatchable flags)
+  to: multi-pass deterministic framework + SBOA + Form 100R + dual-receipt narratives
+  pipeline:
+    - raw_ledger_ingest
+    - programmatic_filters  # discard aggregates / rollup-as-vendor
+    - deterministic_anomaly_engine  # cohort salary z, YoY fund, SBOA text
+    - human_review_card  # 60s provenance check
+    - high_retention_video  # cite SBOA IDs / Gateway rows only when verified
+
+# --- Ingestion priority (Level 1 = ship first) ---
+ingestion_priority:
+  level_1:
+    - id: sboa_report_database
+      portals: [audit.sboa.in.gov, in.gov/sboa]
+      fields: [report_number, unit_name, file_date, report_type]  # B, I, S series
+      unlocks: [cash_shortages, credit_card_abuse, nepotism, undocumented_spending, special_investigation]
+      method: HTTP search on Audit Report Filings App
+      reliability: 1.0  # special investigation (I series)
+      notes:
+        - Drafts/exit conferences confidential until final filed (SBOA Directive 2014-1)
+        - Audit frequency IC 5-11-1-25: annual if >$750k federal or bond debt; else 2-4 yr risk model
+    - id: gateway_form_100r
+      statute: IC 5-11-13-1
+      fields: [year, last_name, first_name, middle, department, job_title, compensation]
+      unlocks: [salary_outlier, dual_line_compensation]
+      method: public search / CSV export
+      reliability: 0.7
+      boundaries:
+        - Annual aggregate — hard to split OT vs base vs dual-role without more data
+  level_2:
+    - id: county_claims_dockets
+      statute: IC 36-2-6-3
+      fields: [vendor_name, payment_date, check_number, invoice_amount, department]
+      unlocks: [split_purchase, sequential_invoices, round_dollar]
+      method: scrape commissioner minutes / auditor portals (PDF variance high)
+      reliability: 0.5  # needs manual verify
+  level_3:
+    - id: gateway_afr_disbursements
+      fields: [year, county_code, unit_name, fund_name, disburse_name, amount]
+      # also ent_name in live flat files
+      unlocks: [fund_yoy_spike, cash_budget_imbalance]
+      method: bulk pipe-delimited download
+      critical_boundary: >
+        NO vendor payee, payment_date, invoice_id, PO.
+        disburse_name = account category NOT company.
+        ent_name = often rollup (Governmental Activities) NOT payee.
+    - id: township_disbursements_by_vendor
+      note: Townships only — payee names + annual totals; still no dates/invoices
+    - id: propublica_990
+      unlocks: [nonprofit_contractor_context]
+    - id: dlgf_beacon_gis
+      unlocks: [tax_base_context, parcel_ownership_for_coi]
+
+# --- Taxonomy (publishable flags) ---
+flag_taxonomy:
+  SALARY_SHOCK:
+    evidence_min: >
+      C_i > cohort_mean + 3*sigma across same job title (92 counties)
+      OR C_i > 4 * county_median_household_wage
+    kill:
+      - title in [Judge, Prosecutor]  # state-set salary tiers
+      - contracted medical role
+    traps: [same-name collisions, retro pay, dual-role aggregate]
+    on_screen: Form 100R cells + peer bar chart
+
+  DOUBLE_COMPENSATION:
+    evidence_min: >
+      same first+last in county, distinct depts, C_total >= $100k, C_secondary >= $20k
+    kill_title_contains: [Seasonal, Part-Time, Poll Worker, Temporary, Board Member, Advisory]
+    traps: [common names in Marion/Lake]
+
+  SPLIT_PURCHASE:
+    evidence_min: >
+      n payments to vendor v in 30-day window with 0.90 <= p_i/T < 1.0
+      T = $50k small-purchase or $150k bid threshold (per report — verify statute before code)
+    source_required: county_claims_docket
+    kill: gateway_afr_only  # no vendor+date
+
+  ROUND_DOLLAR:
+    evidence_min: ">=3 consecutive payments to vendor, each mod 1000 == 0 and >= $5k"
+    kill_payee_types: [financial_institution, utility, intergovernmental]
+    source_required: county_claims_docket
+
+  SBOA_FINDING:
+    evidence_min: high-severity phrase + official report ID + page
+    kill: none_if_published_final
+    reliability: highest_narrative
+    on_screen: WebReports PDF Audit Results and Comments highlight
+
+  FUND_SPIKE:
+    evidence_min: "YoY fund disbursement > 1.5x prior year AND prior >= $50k (report also refs 3-sigma trend)"
+    kill_if: offset by federal grants or bond proceeds same FY
+    prefer_funds: [Jail Commissary, Probation User Fees, Cumulative Capital, E911]
+
+  FEDERAL_MISMATCH:
+    evidence_min: SBOA finding on unauthorized local match / out-of-program federal spend
+    kill_if: legally resolved at exit conference
+
+  TRANSPARENCY_GAP:
+    evidence_min: AFR or 100R missing >30 days past statutory deadline
+    kill_if: filed but locked for correction
+
+# --- Hard kill list (pre-processing) ---
+hard_kill:
+  category_only_disburse_names:
+    - Other Services and Charges
+    - Other Capital Outlays
+    - Supplies
+    - Other Disbursements
+    - Office Supplies
+  rollup_entities:
+    - Governmental Activities
+    - Business-Type Activities
+    - Transfers Out
+    - Internal Service Funds
+    - WATER  # category/fund label not payee on county AFR
+    - WASTEWATER
+    - GAS
+  pure_benford: never_headline_without_named_rows
+  seasonal_comp_under: 15000
+  payroll_aggregate_lines:
+    - Salaries and Wages
+    - Employee Benefits
+
+# --- Scoring model for cold-open pick ---
+cold_open_score:
+  formula: "S = 0.35*A_norm + 0.30*R_type + 0.25*D_contrast - 0.10*C_complexity"
+  A_norm: "min(1.0, anomaly_amount / 500000)"
+  R_type:
+    sboa_special_investigation_I: 1.0
+    sboa_supplemental_compliance_S: 0.8
+    gateway_100r_salary: 0.7
+    local_claims_docket: 0.5
+  pick: top_1_per_county  # not 5 noise shorts
+
+# --- Video / legal ---
+video_structure_sec:
+  0_3: hook_bold_text
+  3_15: proof_zoom_sboa_or_100r
+  15_30: eli5_peer_chart
+  30_45: fair_query
+  45_60: cta_download_public_report
+on_screen:
+  max_words: 5-7
+  dollars: round_to_one_decimal_K
+  transition_sec: 1.5-2.2
+fair_report:
+  forbidden_words: [embezzled, stole, corrupt, criminals, fraud, theft]
+  prefer: [unsupported disbursements, compliance failures, unidentified adjustments]
+  frame: according_to_sboa_report_ID / public_records_on_gateway
+  close_with: open_question
+
+# --- Human review ---
+human_gate:
+  target_seconds: 60
+  must_show: [county, fy, flag_type, primary_actor, amount, comparison, provenance_url_page_quote]
+
+# --- Cross-ref ReClaw files ---
+implements_in_repo:
+  - data/content_truth_rules.yaml
+  - data/audit_strategy.yaml
+  - data/audit_pipeline_mistakes.yaml
+  - data/red_flag_taxonomy.yaml
+  - Ravenstack/ops/algorithmic-auditing-public-finance-blueprint-2026-07-17.md

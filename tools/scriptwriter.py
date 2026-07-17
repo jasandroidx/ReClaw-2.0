@@ -24,7 +24,7 @@ from tools.viral_hooks import build_viral_hook, get_playbook_visual, headline_op
 
 WPM = 150  # spoken words per minute (documentary pace)
 
-# Generic disburse_name buckets — weak hooks without vendor/fund drill-down.
+# Generic disburse_name / rollup buckets — weak hooks without vendor/fund drill-down.
 _WEAK_DISBURSE_LINES = frozenset(
     {
         "other capital outlays",
@@ -34,7 +34,54 @@ _WEAK_DISBURSE_LINES = frozenset(
         "other",
         "transfers out",
         "debt service",
+        "salaries and wages",
+        "employee benefits",
+        "payment of taxes and other payroll withholdings",
+        "distributions to other governmental entities",
+        "governmental activities",
+        "business-type activities",
+        "other capital outlay",
+        "personal services",
+        "supplies",
     }
+)
+
+# Gateway ent_name / disburse_name labels that are NOT real payee vendors.
+_FAKE_VENDOR_NAMES = frozenset(
+    {
+        "governmental activities",
+        "business-type activities",
+        "water",
+        "wastewater",
+        "solid waste",
+        "stormwater",
+        "sewer",
+        "highway",
+        "streets",
+        "parks",
+        "recreation",
+        "gas",
+        "electric",
+        "electricity",
+        "utilities",
+        "utility",
+        "fuel",
+        "gasoline",
+        "none",
+        "unknown",
+        "n/a",
+        "0",
+        "",
+    }
+)
+_FAKE_VENDOR_RE = re.compile(
+    r"^(water|wastewater|solid\s*waste|stormwater|sewer|highway|streets?|"
+    r"gas|electric(?:ity)?|utilities?|fuel|gasoline|"
+    r"governmental\s+activities|business-?type\s+activities|"
+    r"transfers?\s+out|distributions?\s+to\s+other|"
+    r"salaries\s+and\s+wages|employee\s+benefits|"
+    r"payment\s+of\s+taxes|other\s+capital)\b",
+    re.I,
 )
 
 # Salary titles that outperform category-only budget lines on Shorts.
@@ -111,7 +158,37 @@ def _is_weak_dominant(f) -> bool:
     line = _dominant_line_label(f).lower()
     if not line:
         return True
-    return line in _WEAK_DISBURSE_LINES or any(w in line for w in _WEAK_DISBURSE_LINES)
+    if line in _WEAK_DISBURSE_LINES:
+        return True
+    return any(w in line for w in _WEAK_DISBURSE_LINES)
+
+
+def _looks_like_fake_vendor(name: str | None) -> bool:
+    """True for Gateway rollups / account categories, not real payees."""
+    if name is None:
+        return True
+    raw = str(name).strip()
+    if not raw or raw.lower() in _FAKE_VENDOR_NAMES:
+        return True
+    if raw.lower() in _WEAK_DISBURSE_LINES:
+        return True
+    if _FAKE_VENDOR_RE.match(raw):
+        return True
+    return False
+
+
+def _flag_entity_name(f) -> str:
+    """Best-effort vendor / line / person label from evidence or description."""
+    ev = _evidence_dict(f)
+    for key in ("vendor", "name", "line", "vendor_field"):
+        val = ev.get(key)
+        if val is not None and str(val).strip() and str(val).strip().lower() != "none":
+            return str(val).strip()
+    desc = getattr(f, "description", "") or ""
+    m = re.search(r"'([^']+)'", desc)
+    if m:
+        return m.group(1).strip()
+    return ""
 
 
 def _parse_salary_parts(f) -> tuple[str | None, str | None]:
@@ -134,16 +211,75 @@ def _salary_impact_score(f) -> int:
     return 3 if _HIGH_IMPACT_TITLE_RE.search(title) else 1
 
 
+def _is_method_dump_noise(f) -> bool:
+    """DOGEGPT IsolationForest/ECOD method dumps — not video-ready cold opens."""
+    desc = getattr(f, "description", "") or ""
+    low = desc.lower()
+    if "flagged by isolationforest" in low or "flagged by ecod" in low:
+        return True
+    # County-total peer outliers without a fund/department story
+    if re.search(r":\s*[A-Z][A-Z\s]+COUNTY\s+in\s+\d{4}\s*→", desc) and "/" not in desc.split(":", 1)[-1][:40]:
+        return True
+    return False
+
+
+def _is_named_publishable(f) -> bool:
+    """Flags with a real person, company, or specific fund — for worthiness."""
+    if not _is_publishable(f):
+        return False
+    cat = getattr(f, "category", "") or ""
+    if cat in ("salary_shock", "double_dip", "composition_outlier"):
+        return True
+    if cat == "dominant_disbursement" and not _is_weak_dominant(f):
+        return True
+    if cat in ("split_purchase", "vendor_concentration", "round_number_cluster"):
+        return not _looks_like_fake_vendor(_flag_entity_name(f))
+    if cat == "budget_spike" and _amt_from_flag(f):
+        return True
+    return False
+
+
 def _is_publishable(f) -> bool:
-    if f.category == "dominant_disbursement" and _is_weak_dominant(f):
+    """Hard kill list before ranking / scriptwriter cold opens."""
+    cat = getattr(f, "category", "") or ""
+    if cat == "dominant_disbursement" and _is_weak_dominant(f):
         return False
-    if f.category in ("benford_violation", "benford_deviation") and f.severity == "low":
+    if cat in ("benford_violation", "benford_deviation") and getattr(f, "severity", "") == "low":
         return False
+
+    entity = _flag_entity_name(f)
+    entity_low = entity.lower()
+
+    # Vendor-style claims need a real payee name, not a Gateway rollup/category.
+    if cat in (
+        "vendor_concentration",
+        "split_purchase",
+        "split_purchase_pattern",
+        "round_number_cluster",
+    ):
+        if _looks_like_fake_vendor(entity):
+            return False
+
+    # IQR / statistical noise on legitimate aggregate payroll / transfer lines.
+    if cat == "statistical_anomaly":
+        desc = (getattr(f, "description", "") or "").lower()
+        line = entity_low or ""
+        for weak in _WEAK_DISBURSE_LINES:
+            if weak in line or weak in desc:
+                return False
+        # Method dumps and bare county totals are noise for publish path
+        if _is_method_dump_noise(f):
+            return False
+
     return True
 
 
 def _flag_hook_rank(f) -> tuple:
-    """Lower tuple = stronger cold-open candidate."""
+    """Lower tuple = stronger cold-open candidate.
+
+    Story impact ranks first so a medium named fund/salary beats a high-severity
+    IsolationForest county total.
+    """
     impact = {
         "salary_shock": 0,
         "double_dip": 1,
@@ -151,15 +287,18 @@ def _flag_hook_rank(f) -> tuple:
         "vendor_concentration": 3,
         "dominant_disbursement": 4,
         "split_purchase": 5,
-        "statistical_anomaly": 6,
-        "peer_outlier": 7,
-        "federal_spending_spike": 8,
-        "budget_spike": 9,
-        "disbursement_swing": 10,
+        "budget_spike": 6,
+        "disbursement_swing": 7,
+        "peer_outlier": 8,
+        "federal_spending_spike": 9,
+        "statistical_anomaly": 10,
         "benford_violation": 11,
         "benford_deviation": 12,
         "composition_break": 13,
         "collective_anomaly": 14,
+        "elected_pay": 15,
+        "budget_anomaly": 16,
+        "procurement": 17,
     }.get(f.category, 20)
     if f.category == "salary_shock":
         impact -= _salary_impact_score(f)
@@ -167,7 +306,8 @@ def _flag_hook_rank(f) -> tuple:
         impact -= 1
     if f.category == "composition_outlier" and _evidence_dict(f).get("fund"):
         impact -= 1
-    return (_sev_rank(f), impact, -(_amt_from_flag(f) or 0))
+    # Named juice first; severity only breaks ties within same story class
+    return (impact, _sev_rank(f), -(_amt_from_flag(f) or 0))
 
 
 def _pick_lead_flag(flags):
@@ -250,32 +390,37 @@ def long_form_worthiness(result):
     """
     Decide whether a county has enough signal for 8-12 min long-form vs shorts-only.
 
+    Scores publishable *named* findings only — raw flag-count spam does not help.
     Returns (is_worthy: bool, score: int, reasons: list[str]).
     """
     flags = getattr(result, "red_flags", result)
     publishable = [f for f in flags if _is_publishable(f)]
-    high = [f for f in publishable if f.severity in ("critical", "high")]
-    distinct_cats = {f.category for f in publishable}
+    named = [f for f in publishable if _is_named_publishable(f)]
+    high = [f for f in named if f.severity in ("critical", "high")]
+    distinct_cats = {f.category for f in named}
     lead = _pick_lead_flag(flags)
-    biggest = max((_amt_from_flag(f) or 0) for f in publishable) if publishable else 0
+    biggest = max((_amt_from_flag(f) or 0) for f in named) if named else 0
 
     score, reasons = 0, []
     if len(high) >= 2:
         score += 2
-        reasons.append(f"{len(high)} high-severity flags")
+        reasons.append(f"{len(high)} high-severity publishable flags")
     elif len(high) == 1:
         score += 1
-        reasons.append("1 high-severity flag")
+        reasons.append("1 high-severity publishable flag")
     if len(distinct_cats) >= 4:
         score += 2
-        reasons.append(f"{len(distinct_cats)} distinct anomaly types (varied story)")
+        reasons.append(f"{len(distinct_cats)} distinct named anomaly types (varied story)")
     elif len(distinct_cats) >= 3:
         score += 1
-        reasons.append(f"{len(distinct_cats)} distinct anomaly types")
+        reasons.append(f"{len(distinct_cats)} distinct named anomaly types")
     if lead and lead.category == "salary_shock" and _salary_impact_score(lead) >= 3:
         score += 2
         _, title = _parse_salary_parts(lead)
         reasons.append(f"named salary hook ({title or 'public employee'})")
+    elif lead and lead.category == "double_dip":
+        score += 2
+        reasons.append("named dual-paycheck hook")
     elif lead and lead.category in ("composition_outlier", "dominant_disbursement"):
         score += 2
         reasons.append(f"named fund/line hook ({_short_dollars(_amt_from_flag(lead))})")
@@ -285,13 +430,13 @@ def long_form_worthiness(result):
     elif biggest >= 250_000:
         score += 1
         reasons.append(f"a {_short_dollars(biggest)} standout number")
-    # Pike-style taxpayer scans: many medium flags still warrant long-form
-    if len(flags) >= 20:
+    # Depth from *named publishable* stack only (never raw IsolationForest volume)
+    if len(named) >= 5:
         score += 2
-        reasons.append(f"{len(flags)} total flags (deep stack for pattern beat)")
-    elif len(flags) >= 10:
+        reasons.append(f"{len(named)} publishable named findings")
+    elif len(named) >= 3:
         score += 1
-        reasons.append(f"{len(flags)} total flags")
+        reasons.append(f"{len(named)} publishable named findings")
 
     is_worthy = score >= 4
     if not reasons:
@@ -312,59 +457,165 @@ def build_shorts(result, channel="The Local Auditor", county=None, max_shorts=5)
         key=_flag_hook_rank,
     )
 
-    shorts, seen_cats = [], set()
+    shorts, seen_keys = [], set()
+    named_repeat_cats = {"salary_shock", "double_dip"}  # allow multiple named people
     for f in flags:
-        if f.category in seen_cats:
-            continue
         if f.severity == "low":
             continue
+        # One short per category, except multiple named salary/double_dip people
+        if f.category in named_repeat_cats:
+            entity_key = (f.category, _flag_entity_name(f) or f.description[:40])
+            if entity_key in seen_keys:
+                continue
+            # Cap named repeats so shorts stay varied
+            named_count = sum(1 for s in shorts if s.get("category") == f.category)
+            if named_count >= 2:
+                continue
+            seen_keys.add(entity_key)
+        else:
+            if f.category in seen_keys:
+                continue
+            seen_keys.add(f.category)
+
         amt = _amt_from_flag(f)
         dollars = _short_dollars(amt)
         viral_short = build_viral_hook(f, county, short=True)
+        open_line = None
         if viral_short:
             open_line = viral_short
         elif f.category == "salary_shock" and dollars:
             name, title = _parse_salary_parts(f)
             if name and title:
+                # Stop-scroll: curiosity → role/$ → name (never dry "County paid X")
                 open_line = (
-                    f"{base} County paid {name} ({title}) {dollars} — public record."
+                    f"They thought you wouldn't check. {base} County {title}? "
+                    f"{dollars}. Name: {name}."
                 )
             else:
-                open_line = f"{base} County taxpayers paid {dollars} on ONE public paycheck."
+                open_line = (
+                    f"They thought you wouldn't check the salary search. "
+                    f"{base} County — one paycheck at {dollars}."
+                )
         elif f.category == "dominant_disbursement" and dollars:
             label = _dominant_line_label(f) or "one budget line"
-            open_line = f"{base} County: '{label}' totaled {dollars} in public disbursements."
+            open_line = (
+                f"Where did {base} County park {dollars}? One line on the books: '{label}'."
+            )
         elif f.category == "composition_outlier" and dollars:
             ev = _evidence_dict(f)
             fund = ev.get("fund") or "one fund"
-            open_line = f"{base} County '{fund}' fund — {dollars} concentrated in one line."
+            line = ev.get("line") or _dominant_line_label(f)
+            # Weak line labels kill the scandal feel — skip unless fund itself is the story
+            if line and str(line).lower() in _WEAK_DISBURSE_LINES:
+                open_line = (
+                    f"Follow the money in {base}: the '{fund}' fund moved {dollars}. "
+                    f"Here's where it went."
+                )
+            elif line:
+                open_line = (
+                    f"Follow the money in {base}: the '{fund}' fund moved {dollars} "
+                    f"— mostly '{line}'."
+                )
+            else:
+                open_line = (
+                    f"Follow the money in {base}: the '{fund}' fund moved {dollars} "
+                    f"into one line."
+                )
         elif f.category == "double_dip":
-            open_line = f"ONE person, TWO paychecks — {base} County public records."
+            from tools.viral_hooks import extract_hook_context
+
+            dctx = extract_hook_context(f, county)
+            if dctx.get("name") and dctx.get("amount_fmt"):
+                open_line = (
+                    f"Same name. TWO paychecks. {dctx['name']} in {base} County "
+                    f"— {dctx['amount_fmt']} combined."
+                )
+            elif dctx.get("name"):
+                open_line = (
+                    f"Same name. TWO paychecks. {dctx['name']} in {base} County."
+                )
+            else:
+                open_line = f"Same name. TWO paychecks. On {base} County's public payroll."
         elif f.category == "budget_spike":
-            open_line = f"{base} County's certified budget just spiked — public records."
-        elif f.category == "composition_outlier" and dollars:
-            open_line = f"Something's off with {base} County's books. {dollars} in one fund."
+            desc = getattr(f, "description", "") or ""
+            m = re.search(r"([+-]?\d+(?:\.\d+)?%)", desc)
+            pct = m.group(1) if m else None
+            if dollars and pct:
+                open_line = (
+                    f"In one year, {base} County's certified budget moved {pct} "
+                    f"— to {dollars}. Here's the receipt."
+                )
+            elif dollars:
+                open_line = (
+                    f"Nobody posted about this: {base} County's budget hit {dollars}."
+                )
+            else:
+                open_line = f"Nobody posted about this: {base} County's budget just spiked."
         elif f.category == "vendor_concentration":
-            open_line = f"ONE company got over half of {base} County's money."
+            entity = _flag_entity_name(f)
+            if entity and not _looks_like_fake_vendor(entity):
+                open_line = (
+                    f"Why did '{entity}' get {dollars or 'a huge share'} of "
+                    f"{base} County's public money?"
+                )
+            else:
+                # Filtered by _is_publishable; skip generic "ONE company" fallback.
+                continue
         elif f.category == "federal_spending_spike" and dollars:
-            open_line = f"{base} County's money moved by {dollars} in a single year."
+            open_line = (
+                f"Federal money into {base} County moved by {dollars} in a single year. "
+                f"Almost nobody noticed."
+            )
         elif f.category in ("benford_deviation", "benford_violation"):
-            open_line = f"{base} County's budget just failed a fraud-detection test."
+            open_line = (
+                f"There's a math test that catches weird numbers. "
+                f"{base} County's budget just failed it."
+            )
         elif f.category == "round_number_cluster":
-            open_line = f"{base} County wrote dozens of suspiciously round checks."
+            open_line = (
+                f"They thought you wouldn't check the cents. "
+                f"{base} County wrote a stack of round-dollar checks."
+            )
         elif f.category == "disbursement_swing" and dollars:
-            open_line = f"{base} County disbursements swung by {dollars} year over year."
+            open_line = (
+                f"In one year, {base} County spending swung by {dollars}. "
+                f"That's not a rounding error."
+            )
+        elif f.category == "statistical_anomaly" and dollars:
+            # Only human YoY fund lines reach here after method-dump kill
+            desc = (getattr(f, "description", "") or "")[:100]
+            open_line = (
+                f"I ran the math on {base}'s books. {desc}" if desc else None
+            )
         else:
-            open_line = f"{base} County, Indiana — here's what's weird in the budget."
+            # Never pad with "what's weird in the budget" — skip non-juice flags
+            continue
+
+        if not open_line:
+            continue
+        # Final hard rejects for broken English / None leaks
+        if "'None'" in open_line or "this gibson" in open_line.lower() or "this pike" in open_line.lower():
+            continue
+        if "ONE company" in open_line and _looks_like_fake_vendor(_flag_entity_name(f)):
+            continue
 
         contrast = ""
         if earn:
             contrast = f" The typical worker here makes about ${earn:,.0f} a year."
 
+        body = getattr(f, "description", "") or ""
+        # Prefer human angle body; strip method jargon if any slipped through
+        body = re.sub(
+            r"\s*—\s*flagged by\s+\S+.*$",
+            "",
+            body,
+            flags=re.I,
+        ).strip() or body
+
         beats = [
             f"[0-2s HOOK / on-screen big text] {open_line}",
             f"[2-10s] Here's the number, straight from public records.{contrast}",
-            f"[10-40s] {f.description}",
+            f"[10-40s] {body}",
             f"[on-screen source] {f.evidence}",
             "[40-55s] Could be innocent. But it's YOUR money, and nobody's explaining it.",
             "[55-60s CTA] Full breakdown on the channel. Is your county next? Comment it.",
@@ -385,7 +636,6 @@ def build_shorts(result, channel="The Local Auditor", county=None, max_shorts=5)
                 "playbook": get_playbook_visual(f),
             }
         )
-        seen_cats.add(f.category)
         if len(shorts) >= max_shorts:
             break
 

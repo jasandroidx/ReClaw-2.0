@@ -1,5 +1,11 @@
 # Audit strategy — synthesized from DOGEGPT kit + fraud-examination patterns + ReClaw stack.
 # Governs red_flag_engine, analyst, scriptwriter, county queue.
+#
+# 2026-07-17: Operator blueprint ingested —
+#   data/indiana_public_finance_blueprint.yaml
+#   Ravenstack/ops/algorithmic-auditing-public-finance-blueprint-2026-07-17.md
+# Prefer deterministic SBOA + 100R + fund YoY over IsolationForest cold opens.
+# Split-purchase / vendor drama ONLY on claims dockets (not Gateway AFR ent_name).
 
 philosophy:
   - explainable_over_exotic
@@ -7,6 +13,9 @@ philosophy:
   - different_hook_per_county
   - show_ask_cite_never_convict
   - every_flag_traces_to_public_record
+  - sboa_and_100r_before_statistical_mill  # blueprint Level-1
+  - gateway_afr_is_not_vendor_ledger
+  - one_story_not_sixty_flags
 
 three_pass_model:
   pass_1_timeseries:

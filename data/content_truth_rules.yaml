@@ -1,0 +1,144 @@
+# Content truth rules — SOT for publishable claims (Story Factory)
+# Updated: 2026-07-17 after field research (Winslow water, SBOA heat, Gateway schema truth)
+# Hard stop: nothing fake enters analysis package, risk score, or review card.
+
+status: freeze_county_mill
+freeze_note: >
+  No county-queue run-next / refresh until ClaimGate + zero-fake detectors land.
+  Posey may stay pending. Operator must explicitly unfreeze.
+
+philosophy:
+  - anger_signal_then_public_dollars  # not anomaly CSV → hope
+  - dual_receipt_for_pain_stories
+  - salaries_are_supporting_not_the_channel
+  - fair_report_only
+  - every_claim_has_actor_type
+
+# Heat ranking from live research (14News, LPM, WSBT, IPM, X)
+heat_rank:
+  1_sboa_missing_misspent: "Named $ + SBOA special investigation / audit finding"
+  2_bill_shock: "Rate hike % on my bill + fixed income fear + council drama"
+  3_project_vs_outcome: "Big fund $ vs roads/water still bad (needs pain leg)"
+  4_unauditable: "Can't audit / missing books"
+  5_coi: "Role + ownership/contract docs (SOS, Beacon) — never rumor"
+  6_tax_waste: "Levy up + documented waste"
+  7_salary: "Supporting cast with peer/median contrast"
+
+# What may appear as a publishable Claim.actor_type
+allowed_actor_types:
+  person:
+    sources: [salary_csv, sboa_finding_named_official, court_docket]
+  company:
+    sources: [check_register_payee, sboa_named_payee, bid_tabulation, sos_business]
+    forbidden_sources: [gateway_ent_name, gateway_disburse_name]
+  fund:
+    sources: [gateway_fund_name, dor_certified_budget_fund]
+  place_utility:
+    sources: [town_rate_ordinance, local_news_rate_hike]
+    note: "Town/utility as actor for rate stories — not a vendor fraud claim"
+
+forbidden_as_vendor_or_company:
+  - Governmental Activities
+  - Business-Type Activities
+  - WATER
+  - WASTEWATER
+  - WATER UTILITY
+  - GAS
+  - ELECTRIC
+  - SOLID WASTE
+  - STORMWATER
+  - SEWER
+  - HIGHWAY
+  - Other Capital Outlays
+  - Other Disbursements
+  - Salaries and Wages
+  - Employee Benefits
+  - Transfers Out
+  - Distributions to Other Governmental Entities
+  - None
+  - unknown
+  - n/a
+
+forbidden_language_in_hooks:
+  - "ONE company"
+  - "flagged by IsolationForest"
+  - "flagged by ECOD"
+  - "'None'"
+  - "this gibson"
+  - "this pike"
+  - smurfing_without_real_payee
+
+# Positive 4-part bar (all required to publish a short)
+publish_gate:
+  named_actor: true
+  exact_dollar: true
+  contrast: true  # ACS median | peer | YoY % | rate % | SBOA prior
+  receipt_path: true  # URL, PDF page, or Gateway fund+year identity
+
+# Dual-receipt stories (operator juice)
+dual_receipt:
+  winslow_water_template:
+    pain_leg:
+      source: local_news
+      example: "14News 2025-01-14/16 Winslow 45% water / 10% sewer town hall"
+    money_leg:
+      source: gateway_fund
+      example_funds: ["WW PHASE II IBB CONSTRUCTION", "WATER CASH OPERATING", "Motor Vehicle Highway"]
+  roads_template:
+    pain_leg: [local_news, council_minutes, documented_complaint]
+    money_leg: [Motor Vehicle Highway, Restricted MVH, Cumulative Bridge, Community Crossings]
+
+# Detectors
+detectors:
+  hard_off_until_real_payee:
+    - split_purchase_on_gateway_ent_name
+    - vendor_concentration_on_gateway_ent_name
+    - split_purchase_pattern_gateway
+  keep:
+    - salary_shock
+    - double_dip
+    - named_fund_totals
+    - sboa_findings  # must implement ingest
+  smoke_never_lead:
+    - benford
+    - isolation_forest_cold_open
+
+# Volume
+volume:
+  max_primary_shorts: 1
+  max_secondary_shorts: 1
+  risk_from: publishable_claims_only  # 0-3 scale, not flag count
+
+# Hook voice
+hook_voice:
+  pattern: "Did you know {place} … {crazy true fact with $} … while {pain or state finding}?"
+  bad: "County paid X $Y — public record."
+  worse: "ONE company got over half … Governmental Activities"
+
+# Field research citations (2026-07-17)
+research_log:
+  - url: https://www.14news.com/2025/01/16/this-town-needs-get-it-together-winslow-residents-left-questions-after-explosive-town-hall-meeting/
+    fact: "45% water / 10% sewer; shouting; fixed-income fear; ~$13 min-use bump"
+  - url: https://www.14news.com/2025/01/14/neighbors-voice-their-anger-over-proposed-water-rate-hike-winslow/
+    fact: "Tempers flared; scary jump from 3% to 42-54%"
+  - url: https://www.lpm.org/news/2024-02-22/state-audit-finds-jamey-noel-responsible-for-more-than-900k-in-sheriffs-office-and-state-funds
+    fact: "SBOA >$900K; commissary unsupported; consulting no contract"
+  - url: https://www.ipm.org/news/2025-11-21/former-oolitic-clerk-pleads-guilty-to-official-misconduct-ordered-to-pay-over-100k-in-restitution
+    fact: "~$80K water utility deposits not deposited"
+  - url: https://wsbt.com/news/22-investigates/state-board-of-accounts-investigates-town-of-roseland-after-missing-checks-documentation
+    fact: "20 missing checks; Remitly; undocumented purchases"
+
+# Operator-provided operational blueprint (2026-07-17)
+blueprint:
+  title: Algorithmic Auditing of Public Finance — Indiana Local Government
+  vault: Ravenstack/ops/algorithmic-auditing-public-finance-blueprint-2026-07-17.md
+  yaml: data/indiana_public_finance_blueprint.yaml
+  raw: data/research/algorithmic-auditing-public-finance-blueprint-2026-07-17.md
+  key_additions:
+    - Township Disbursements by Vendor has payee names (counties do not on AFR)
+    - SBOA drafts confidential until final published (Directive 2014-1)
+    - Split/round-dollar ONLY on claims dockets (IC 36-2-6-3)
+    - Salary kill: Judge/Prosecutor state pay tiers; dual-dip kill seasonal/board/poll
+    - Cold-open score weights SBOA I-series highest
+    - Fair-report forbidden words: embezzled/stole/corrupt/fraud/theft
+    - 60s human review card before video

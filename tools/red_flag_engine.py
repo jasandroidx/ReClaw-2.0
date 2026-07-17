@@ -68,6 +68,49 @@ def _gap_flags(gaps: list[str]) -> list[RedFlag]:
     return flags
 
 
+def _humanize_dogegpt_line(row: dict) -> str:
+    """Video-ready angle from a DOGEGPT anomaly row — never IsolationForest dumps."""
+    county = str(row.get("county") or "").strip()
+    dept = str(row.get("department") or "").strip()
+    cat = str(row.get("category") or "").strip()
+    if dept in ("nan", "None", "none"):
+        dept = ""
+    if cat in ("nan", "None", "none", "TOTAL", "total"):
+        cat = ""
+    subject = " / ".join(x for x in (dept, cat) if x) or "A budget line"
+    place = county or "this county"
+    year = row.get("fiscal_year") or ""
+    try:
+        year_s = str(int(float(year))) if year not in ("", None) else "recent years"
+    except (TypeError, ValueError):
+        year_s = str(year) if year else "recent years"
+
+    def _fmt(x) -> str:
+        try:
+            return f"${float(x):,.0f}"
+        except (TypeError, ValueError):
+            return ""
+
+    amt = _fmt(row.get("amount"))
+    pct_raw = row.get("pct_change")
+    try:
+        pct = float(pct_raw) if pct_raw not in ("", None) else None
+    except (TypeError, ValueError):
+        pct = None
+
+    existing = str(row.get("script_line") or "")
+    # Already human (no method dump) — keep if good
+    if existing and "flagged by" not in existing.lower() and "isolationforest" not in existing.lower():
+        return existing[:500]
+
+    if pct is not None and amt:
+        direction = "jumped" if pct > 0 else "dropped"
+        return f"{subject} in {place} {direction} {abs(pct):.0f}% YoY to {amt} in {year_s}."
+    if amt:
+        return f"{subject} in {place} hit {amt} in {year_s} — public certified budget."
+    return f"{subject} in {place} stands out in {year_s} public budget records."
+
+
 def _dogegpt_flags(county: str) -> tuple[list[RedFlag], list[str], int]:
     """Run DOGEGPT pipeline and convert to RedFlags + script angles."""
     flags: list[RedFlag] = []
@@ -86,7 +129,11 @@ def _dogegpt_flags(county: str) -> tuple[list[RedFlag], list[str], int]:
                 method = row.get("method", "")
                 score = float(row.get("score") or 0)
                 sev = "high" if method in ("ECOD", "YoY_spike") and score > 20 else "medium"
-                desc = row.get("script_line") or row.get("note", "")
+                # Humanize at load so stale CSVs never ship IsolationForest cold opens
+                desc = _humanize_dogegpt_line(row) or row.get("script_line") or row.get("note", "")
+                # Demote pure method-dump peer totals — not publish juice
+                if method in ("IsolationForest", "ECOD") and not (row.get("category") or "").strip():
+                    sev = "low"
                 flags.append(
                     RedFlag(
                         severity=sev,
@@ -96,8 +143,8 @@ def _dogegpt_flags(county: str) -> tuple[list[RedFlag], list[str], int]:
                         recommended_action="Pull certified budget PDF + council votes for that fund/year.",
                     )
                 )
-                if row.get("script_line"):
-                    angles.append(row["script_line"])
+                if desc:
+                    angles.append(desc)
         return flags, angles, n
     except Exception:
         from tools.county_isolation import anomalies_csv_for

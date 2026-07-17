@@ -72,19 +72,25 @@ curl -X POST http://127.0.0.1:8000/county-queue/refresh
 PYTHONPATH=. .venv/bin/python scripts/export_county_salaries.py --all
 ```
 
-## Red-flag quality rules (from mistakes backlog)
+## Red-flag quality rules (from mistakes backlog + 2026-07-17 blueprint)
 
-**Publish-worthy hooks:**
-- Named salary (sheriff, judge, referee, probation, jail)
-- Named vendor + specific amount + duplicate/split pattern
-- SBOA prior finding with PDF cite
-- Fund-specific spike with line detail
+**SOT research:** vault `Ravenstack/ops/algorithmic-auditing-public-finance-blueprint-2026-07-17.md`  
+**Machine:** `data/indiana_public_finance_blueprint.yaml` + `data/content_truth_rules.yaml`
 
-**Kill before scriptwriter:**
+**Publish-worthy hooks (priority):**
+- SBOA final findings (special investigation / unsupported spend) with report ID + page
+- Named salary outlier with **peer or median** contrast (Form 100R) — not Judge/Prosecutor state pay alone
+- Dual-line compensation (same name, multi-dept) above blueprint thresholds
+- Fund-specific YoY spike (named fund) with grant/bond offset kill
+- Named vendor + date + amount **only** from claims dockets / township vendor report — never Gateway AFR ent_name
+
+**Kill before scriptwriter (and before analysis when possible):**
 - Category sum without vendor ("Other Capital Outlays $41M")
+- Rollups: Governmental Activities, Transfers Out, WATER/GAS as payee
 - Cross-county bleed (verify with `scripts/verify_county_isolation.py`)
 - Benford-only with no named receipt
 - Lifeguard/seasonal pay as scandal unless county-isolated and peer-outlier
+- IsolationForest/ECOD method dumps as cold opens
 
 ## Implementation backlog
 

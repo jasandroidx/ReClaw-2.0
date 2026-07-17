@@ -20,8 +20,36 @@ MIN_COMBINED = 50_000
 MIN_TX_COUNT = 2
 SRC = "https://gateway.ifionline.org/public/download.aspx"
 
-# Gateway ent_name is often a rollup, not a payee vendor.
-ROLLUP_VENDORS = frozenset({"governmental activities", "business-type activities", "0", ""})
+# Gateway ent_name is often a rollup or account category, not a payee vendor.
+ROLLUP_VENDORS = frozenset(
+    {
+        "governmental activities",
+        "business-type activities",
+        "0",
+        "",
+        "water",
+        "wastewater",
+        "solid waste",
+        "stormwater",
+        "sewer",
+        "highway",
+        "streets",
+        "gas",
+        "electric",
+        "electricity",
+        "utilities",
+        "utility",
+        "fuel",
+        "gasoline",
+        "transfers out",
+        "distributions to other governmental entities",
+        "salaries and wages",
+        "employee benefits",
+        "other capital outlays",
+        "other disbursements",
+        "payment of taxes and other payroll withholdings",
+    }
+)
 
 
 def _float(val: str) -> float:
@@ -65,13 +93,25 @@ def load_county_disbursements(
     return rows
 
 
+# 2026-07-17 Story Factory: Gateway ent_name is fund/activity rollup, NOT payee.
+# Emitting "WATER UTILITY received N checks" is fake vendor drama. Hard stop.
+GATEWAY_HAS_REAL_PAYEE = False
+
+
 def detect_split_purchases(
     county: str,
     year: int = 2024,
     *,
     cache_dir: Path | None = None,
+    allow_gateway_ent_name: bool = False,
 ) -> list[RedFlag]:
-    """Flag vendors with multiple sub-threshold payments summing above bid threshold."""
+    """Flag vendors with multiple sub-threshold payments summing above bid threshold.
+
+    Returns [] on Gateway-only data unless allow_gateway_ent_name=True (tests only).
+    Real vendor fraud requires check-register payee + dates.
+    """
+    if not allow_gateway_ent_name and not GATEWAY_HAS_REAL_PAYEE:
+        return []
     rows = load_county_disbursements(county, year, cache_dir=cache_dir)
     if not rows:
         return []

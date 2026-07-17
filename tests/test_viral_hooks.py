@@ -80,6 +80,59 @@ def test_salary_hook_uses_trigger_phrase():
     assert "Sheriff" in hook
 
 
+def test_salary_short_is_grammatical_no_trigger_mash():
+    """P0: never 'Forensic accountants call this gibson County paid...'"""
+    hook = build_viral_hook(_salary_flag(), "Gibson County", short=True)
+    assert hook
+    assert "Vanoven" in hook
+    assert "$111K" in hook or "111" in hook
+    low = hook.lower()
+    assert not low.startswith("forensic accountants call this")
+    assert "this gibson" not in low
+    # Place name stays capitalized
+    assert "Gibson" in hook
+    # Stop-scroll: curiosity/intent first — not dry "County paid X — public record"
+    assert not low.startswith("gibson county paid")
+    assert any(
+        low.startswith(p)
+        for p in ("they thought", "why is", "i opened", "same name")
+    ) or "thought you wouldn't" in low or "why is" in low
+
+
+def test_double_dip_not_duplicate_vendor_none():
+    """P0: double_dip must not route to vendor template with 'None'."""
+    flag = RedFlag(
+        severity="high",
+        category="double_dip",
+        description=(
+            "Ballard, George A appears on 2 compensation lines totaling $90,440: "
+            "Director; Chief Deputy."
+        ),
+        evidence="Salary Search CSV — multiple rows same employee",
+    )
+    assert classify_flag(flag) == "double_dip"
+    hook = build_viral_hook(flag, "Gibson County", short=True)
+    assert hook
+    assert "Ballard" in hook
+    assert "'None'" not in hook
+    assert "None" not in hook.split()
+    assert "vendor" not in hook.lower() or "Ballard" in hook
+    # Stop-scroll pattern language
+    low = hook.lower()
+    assert "two" in low or "paycheck" in low
+
+
+def test_missing_vendor_returns_none_not_literal_none():
+    flag = RedFlag(
+        severity="high",
+        category="split_purchase",
+        description="Mystery pattern with no payee name",
+        evidence=json.dumps({"tx_count": 5, "total": 200_000}),
+    )
+    hook = build_viral_hook(flag, "Gibson County", short=True)
+    assert hook is None or "'None'" not in (hook or "")
+
+
 def test_round_number_hook():
     hook = build_viral_hook(_round_flag(), "Gibson County", short=True)
     assert hook
@@ -99,6 +152,7 @@ def test_scriptwriter_uses_viral_hook():
     assert "ACME" in hook or "8" in hook
     salary_hook = _pick_hook([_salary_flag()], "Gibson County")
     assert "Vanoven" in salary_hook
+    assert "this gibson" not in salary_hook.lower()
 
 
 def test_shorts_include_playbook_visuals():
