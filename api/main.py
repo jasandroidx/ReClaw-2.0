@@ -268,7 +268,15 @@ def get_job(job_id: str):
 @app.get("/jobs/latest")
 def latest_job():
     """Return metadata for the most recent run on disk."""
-    runs = sorted(settings.runs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    import os
+    try:
+        # ⚡ Bolt: os.scandir caches stat(), avoiding multiple system calls during sorting
+        entries = [e for e in os.scandir(str(settings.runs_dir)) if e.is_file() and e.name.endswith(".json")]
+        entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+        runs = [settings.runs_dir / e.name for e in entries]
+    except FileNotFoundError:
+        runs = []
+
     if not runs:
         return {"message": "No runs yet"}
     latest_path = runs[0]
@@ -291,8 +299,18 @@ def latest_job():
 @app.get("/packages")
 def list_packages(limit: int = 20):
     """List recent completed packages from disk (lightweight index)."""
+    import os
     items = []
-    for p in sorted(settings.runs_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+
+    try:
+        # ⚡ Bolt: os.scandir caches stat(), improving performance significantly for large directories
+        entries = [e for e in os.scandir(str(settings.runs_dir)) if e.is_file() and e.name.endswith(".json")]
+        entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+        recent_paths = [settings.runs_dir / e.name for e in entries[:limit]]
+    except FileNotFoundError:
+        recent_paths = []
+
+    for p in recent_paths:
         try:
             d = json.loads(p.read_text())
             items.append({
@@ -342,11 +360,14 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
-        sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )[:5]
+        try:
+            import os
+            # ⚡ Bolt: os.scandir is faster because it caches stat() and is_dir() results
+            entries = [e for e in os.scandir(str(sess_root)) if e.is_dir()]
+            entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+            sorted_sessions = [sess_root / e.name for e in entries[:5]]
+        except FileNotFoundError:
+            sorted_sessions = []
 
         for sess_dir in sorted_sessions:
             recent_sessions.append({"session_id": sess_dir.name})
@@ -424,13 +445,19 @@ def list_approvals(session_id: str):
 @app.get("/sessions")
 def list_sessions(limit: int = 20):
     """List recent isolated sessions (audit trail)."""
+    import os
     sess_root = settings.data_dir / "sessions"
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    try:
+        # ⚡ Bolt: os.scandir avoids extra stat calls, speeding up the audit trail fetch
+        entries = [e for e in os.scandir(str(sess_root)) if e.is_dir()]
+        entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+        for e in entries[:limit]:
+            items.append({"session_id": e.name, "path": str(sess_root / e.name)})
+    except FileNotFoundError:
+        pass
     return {"count": len(items), "sessions": items}
 
 

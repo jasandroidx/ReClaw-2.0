@@ -1,0 +1,3 @@
+## 2025-02-24 - [Avoid `pathlib.Path.glob` combined with `stat()` sorting for fast directory reads]
+**Learning:** In the ReClaw 2.0 FastAPI backend (`api/main.py`), querying state/sessions using `pathlib.Path.glob("*.json")` or `iterdir()` and then sorting by `p.stat().st_mtime` introduces significant performance bottlenecks due to excessive system calls. Using `os.scandir` handles this far better as it caches the `stat` results natively during the initial directory traversal.
+**Action:** Always prefer `os.scandir()` over `pathlib.Path.glob` or `iterdir` when iterating over directories and immediately needing file attributes (like `st_mtime` or `is_dir`) in Python, especially for large directories like session/run histories.
