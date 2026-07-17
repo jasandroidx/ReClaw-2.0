@@ -115,12 +115,27 @@ def register_extensions(
             if host_file.is_file()
             else ""
         )
-        local = curl(f"http://127.0.0.1:8100/health", timeout=5)
+        # NEVER curl this process's own :8100 from inside a tool call — single-worker
+        # streamable-http deadlocks (health/tool hang until client timeout).
+        bridge = run(["systemctl", "is-active", "reclaw-mcp-bridge"]).strip()
+        tunnel = run(["systemctl", "is-active", "reclaw-mcp-tunnel"]).strip()
+        listen = run(
+            ["bash", "-lc", "ss -tlnp 2>/dev/null | grep -F ':8100' | head -1 || true"]
+        ).strip()
+        local = {
+            "status": "ok" if bridge == "active" and ":8100" in listen else "degraded",
+            "service": "reclaw-platform",
+            "transport": "streamable-http",
+            "port": 8100,
+            "probed_via": "systemd+ss (no self-HTTP — avoids deadlock)",
+            "bridge_unit": bridge,
+            "listen_line": listen[:200] if listen else None,
+        }
         public_health = ""
         public_code = ""
         if public:
             base = public[:-4] if public.endswith("/mcp") else public.rstrip("/")
-            # probe /health without -f so we can see codes
+            # Public cloudflared path is external — OK to probe (not this process socket).
             proc = subprocess.run(
                 ["curl", "-sS", "-o", "/tmp/mcp_pub_health.json", "-w", "%{http_code}", "-m", "8", f"{base}/health"],
                 capture_output=True,
@@ -133,20 +148,17 @@ def register_extensions(
             except OSError:
                 public_health = ""
 
-        bridge = run(["systemctl", "is-active", "reclaw-mcp-bridge"])
-        tunnel = run(["systemctl", "is-active", "reclaw-mcp-tunnel"])
-
         out = {
             "as_of": _now(),
-            "local_health": _jload(local) or local[:200],
+            "local_health": local,
             "public_url": public or None,
             "public_url_ends_with_mcp": public.endswith("/mcp") if public else False,
             "public_health_http": public_code or None,
             "public_health_body": public_health or None,
             "tunnel_host_file": tunnel_host or None,
             "systemd": {
-                "reclaw-mcp-bridge": bridge.strip(),
-                "reclaw-mcp-tunnel": tunnel.strip(),
+                "reclaw-mcp-bridge": bridge,
+                "reclaw-mcp-tunnel": tunnel,
             },
             "tailscale_mcp": f"http://{ts_ip}:8100/mcp",
             "tailscale_health": f"http://{ts_ip}:8100/health",
@@ -157,6 +169,7 @@ def register_extensions(
                 "upgrade_path": "Named Cloudflare tunnel + optional Access/OAuth for auth",
             },
             "tool_surface": "reclaw-platform (primary) + stacked Firecrawl/GitHub/Chrome DevTools",
+            "note": "If a client health-checks 127.0.0.1:8100 during a long tool call, use a short timeout; prefer tool results over nested self-probes.",
         }
         return json.dumps(out, indent=2)
 
@@ -594,7 +607,8 @@ def register_extensions(
 
     @mcp.tool()
     def county_queue_reject(reason: str, confirm: bool = False) -> str:
-        """GATE: Reject pending county with required reason. confirm=true required."""
+        """GATE: Reject pending county with required reason. confirm=true required.
+        Also auto-appends a durable playbook lesson so the next scan improves."""
         refused = _refuse_unless_confirm(confirm, "county_queue_reject")
         if refused:
             return refused
@@ -602,6 +616,69 @@ def register_extensions(
         if not reason:
             return "reject reason required (logged for revisit)"
         return curl_json("POST", "/county-queue/reject", body={"reason": reason}, timeout=60)
+
+    @mcp.tool()
+    def auditor_playbook_show() -> str:
+        """Show living auditor playbook context (truth rules + open mistakes) loaded every scan."""
+        try:
+            import sys
+
+            if str(root) not in sys.path:
+                sys.path.insert(0, str(root))
+            from tools.auditor_playbook import (
+                forbidden_vendor_names,
+                load_playbook,
+                playbook_context_for_session,
+            )
+
+            pb = load_playbook()
+            sample = sorted(forbidden_vendor_names())[:25]
+            return (
+                playbook_context_for_session()
+                + "\n\n"
+                + json.dumps(
+                    {
+                        "paths": pb.get("paths"),
+                        "load_errors": pb.get("load_errors"),
+                        "forbidden_vendors_sample": sample,
+                    },
+                    indent=2,
+                )
+            )
+        except Exception as exc:  # noqa: BLE001
+            return f"auditor_playbook_show failed: {exc}"
+
+    @mcp.tool()
+    def log_auditor_lesson(
+        lesson_id: str,
+        symptom: str,
+        root_cause: str,
+        content_rule: str,
+        county: str = "",
+        confirm: bool = False,
+    ) -> str:
+        """Append a durable auditor lesson (mistakes YAML + lessons log). confirm=true required.
+        Use after human feedback or research so agents improve on the next run."""
+        refused = _refuse_unless_confirm(confirm, "log_auditor_lesson")
+        if refused:
+            return refused
+        try:
+            import sys
+
+            if str(root) not in sys.path:
+                sys.path.insert(0, str(root))
+            from tools.auditor_playbook import log_lesson
+
+            out = log_lesson(
+                lesson_id=lesson_id,
+                symptom=symptom,
+                root_cause=root_cause,
+                content_rule=content_rule,
+                county_example=county or None,
+            )
+            return json.dumps(out, indent=2)
+        except Exception as exc:  # noqa: BLE001
+            return f"log_auditor_lesson failed: {exc}"
 
     @mcp.tool()
     def county_queue_run_next(confirm: bool = False, force: bool = False) -> str:

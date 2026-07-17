@@ -8,6 +8,7 @@ Rejections are logged with reason for revisit (option b).
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -567,6 +568,33 @@ class CountyQueue:
         state.status = "idle"
         self.save_state(state)
 
+        # Continuous improvement: every human reject becomes a durable lesson
+        lesson_info: dict[str, Any] = {}
+        try:
+            from tools.auditor_playbook import log_lesson
+
+            slug = re.sub(r"[^a-z0-9]+", "-", card.county.lower()).strip("-")[:24]
+            day = datetime.now(timezone.utc).strftime("%Y%m%d")
+            lesson_info = log_lesson(
+                lesson_id=f"reject-{slug}-{day}",
+                symptom=f"Human rejected {card.county}: {reason[:300]}",
+                root_cause=(
+                    f"Package/review failed operator bar "
+                    f"(hook={card.top_short_hook!r}, flags={card.flag_count}, "
+                    f"top={card.top_finding!r}). granted_by={granted_by}"
+                ),
+                content_rule=(
+                    "Next run must respect this reject reason. Prefer SBOA + dual-receipt "
+                    "named $ stories over volume. Zero fake vendors from Gateway ent_name."
+                ),
+                status="open",
+                county_example=card.county,
+                fix="pending — code/rules update after operator review of reject",
+            )
+            entry["lesson"] = lesson_info
+        except Exception as exc:  # noqa: BLE001 — reject must still succeed
+            lesson_info = {"ok": False, "error": str(exc)}
+
         next_item = (
             self.worklist[state.cursor].model_dump()
             if state.cursor < len(self.worklist)
@@ -574,8 +602,12 @@ class CountyQueue:
         )
         return {
             "ok": True,
-            "message": f"Rejected {card.county} (logged for revisit). Cursor advanced.",
+            "message": (
+                f"Rejected {card.county} (logged for revisit + playbook lesson). "
+                "Cursor advanced."
+            ),
             "reason": reason,
             "next_county": next_item,
             "rejection": entry,
+            "lesson": lesson_info,
         }

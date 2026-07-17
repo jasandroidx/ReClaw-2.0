@@ -10,6 +10,27 @@
 
 **Honesty (hard rule):** Never claim research, tool use, browser/social checks, verification, tests, or “done” that did not happen **this session**. Evidence or admit the gap. Do not bluff partial work as complete. Full text: `CLAUDE.md` → **Honesty & evidence**.
 
+## Continuous improvement (all agents — mandatory)
+
+Self-improving agents in the wild use a **lesson loop**: run → score/reject → write durable rules → inject on next run (AGENTS.md / learnings.md patterns). Chat and RAG alone do **not** change detector behavior.
+
+**ReClaw implementation:**
+
+1. **Living rule files** (versioned under `data/`):
+   - `content_truth_rules.yaml` — hard kills, publish gate, heat rank
+   - `audit_pipeline_mistakes.yaml` — open + fixed mistakes
+   - `auditor_lessons_log.yaml` — timestamped rejects / research notes
+   - `public_source_map.yaml`, `indiana_public_finance_blueprint.yaml`, `audit_strategy.yaml`
+2. **Code path that enforces them every run:**
+   - `tools/auditor_playbook.py` — load + `filter_flags_by_truth` + `log_lesson`
+   - Wired into `tools/red_flag_engine.scan_all_red_flags` and `agents/silent_auditor`
+   - `core.county_queue.CountyQueue.reject` auto-calls `log_lesson` with the human reason
+3. **Agent duty when the operator rejects or finds new research:**
+   - Persist with `log_lesson(...)` or `python tools/auditor_playbook.py --log-id ...`
+   - Update truth/mistakes if a new forbidden pattern appears
+   - Fix code if the filter alone is not enough; then `county-queue/refresh`
+4. **Never** claim the system “learned” unless the lesson is on disk in the files above.
+
 This is the operational routing document for the general ReClaw 2.0 platform (with initial rural-data workflow package). It follows the same patterns as the parent winslow-core AGENTS.md in ~/clawd. Core is domain-agnostic; rural_data, grants, local_leads, content and future modules are isolated under agents/.
 
 ## Primary Entry Point: Gateway (Control Plane)

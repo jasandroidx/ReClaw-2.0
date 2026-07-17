@@ -34,6 +34,8 @@ class RedFlagScanResult:
     sources_used: list[str] = field(default_factory=list)
     gaps: list[str] = field(default_factory=list)
     anomaly_count: int = 0
+    playbook_drops: list[str] = field(default_factory=list)
+    playbook_loaded: bool = False
 
 
 def load_taxonomy() -> dict:
@@ -311,6 +313,22 @@ def scan_all_red_flags(
         seen.add(key)
         unique_flags.append(f)
 
+    # Continuous-improvement playbook: drop hard-kill / forbidden vendor flags
+    playbook_drops: list[str] = []
+    playbook_loaded = False
+    try:
+        from tools.auditor_playbook import filter_flags_by_truth, load_playbook
+
+        load_playbook()  # ensure living rules are in process cache
+        playbook_loaded = True
+        unique_flags, playbook_drops = filter_flags_by_truth(unique_flags)
+        if playbook_drops:
+            sources.append(f"auditor_playbook:dropped={len(playbook_drops)}")
+        else:
+            sources.append("auditor_playbook")
+    except Exception:
+        pass
+
     seen_a: set[str] = set()
     unique_angles = []
     for a in all_angles:
@@ -328,4 +346,6 @@ def scan_all_red_flags(
         sources_used=sources,
         gaps=bundle.gaps,
         anomaly_count=anom_n,
+        playbook_drops=playbook_drops,
+        playbook_loaded=playbook_loaded,
     )

@@ -3,28 +3,34 @@
 
 mistakes:
   - id: bleed-pike-salary-2026-07-06
-    county_affected: [Spencer, Warrick, all non-Pike before fix]
-    symptom: "Wood Brett paramedic $92K" or lifeguard vs sheriff contrast on wrong county
-    root_cause: load_salary_detail_records_for_county fell back to ingestion/SalarySearch.csv (Pike only)
+    county_affected: [Spencer, Warrick]
+    symptom: >
+      Wood Brett paramedic $92K or lifeguard vs sheriff contrast on wrong county
+    root_cause: >
+      load_salary_detail_records_for_county fell back to ingestion/SalarySearch.csv (Pike only)
     fix: tools/county_isolation.py + no cross-county fallback (e9f087c)
     status: fixed
-    content_rule: Never publish salary hook without salary_{gateway_code}_{year}.csv cache hit
+    content_rule: >
+      Never publish salary hook without salary_{gateway_code}_{year}.csv cache hit
 
   - id: dominant-disbursement-category-hook
     county_example: Spencer
-    symptom: "Spencer spent $41.3 MILLION on ONE line item" — sounds like one payee
-    root_cause: scriptwriter aggregates disburse_name (e.g. Other Capital Outlays) = sum of 72 rows
+    symptom: >
+      Spencer spent $41.3 MILLION on ONE line item — sounds like one payee
+    root_cause: >
+      scriptwriter aggregates disburse_name (e.g. Other Capital Outlays) = sum of 72 rows
     fix: >
       tools/scriptwriter._WEAK_DISBURSE_LINES expanded (Transfers Out, Salaries, Benefits,
-      Distributions, Governmental Activities…) + _is_publishable kill list (2026-07-17).
+      Distributions, Governmental Activities) + _is_publishable kill list (2026-07-17).
     status: fixed
     content_rule: >
-      "One line item" hooks only when ent_name or fund_name identifies ONE payee
+      One line item hooks only when ent_name or fund_name identifies ONE payee
       (person, company, bond, lawsuit fund). Category totals are not scandal hooks.
 
   - id: gateway-ent-name-not-vendor
     county_example: Spencer
-    symptom: sf-vendor duplicate-payment logic flags "Governmental Activities" $10K x6
+    symptom: >
+      sf-vendor duplicate-payment logic flags Governmental Activities $10K x6
     root_cause: >
       Indiana Gateway disbursements use ent_name as fund/activity rollup, not payee vendor.
       sf-vendor-audit and audit-analytics-toolkit assume journal-level vendor_id + payment_date.
@@ -33,7 +39,7 @@ mistakes:
       / split_purchase on fake vendors (2026-07-17). Check registers still required for true AP.
     status: fixed
     content_rule: >
-      Do not headline "duplicate vendor payment" from Gateway alone. Require named payee
+      Do not headline duplicate vendor payment from Gateway alone. Require named payee
       from SBOA PDF, county check register, or bid tabulation.
 
   - id: lifeguard-sheriff-contrast-bleed
@@ -47,7 +53,8 @@ mistakes:
 
   - id: viral-hook-trigger-concatenation
     county_example: [Gibson, Pike, Spencer]
-    symptom: "Forensic accountants call this gibson County paid Vanoven..."
+    symptom: >
+      Forensic accountants call this gibson County paid Vanoven...
     root_cause: >
       build_viral_hook prepended random trigger_phrases and lowercased the first character
       of an already-complete short template.
@@ -59,7 +66,8 @@ mistakes:
 
   - id: double-dip-as-duplicate-vendor-None
     county_example: [Gibson, Pike]
-    symptom: "Same vendor, same amount, same day — 'None' in Gibson"
+    symptom: >
+      Same vendor, same amount, same day — None in Gibson
     root_cause: >
       double_dip classified under duplicate_payment playbook (requires vendor);
       missing vendor formatted as Python None string.
@@ -71,7 +79,8 @@ mistakes:
 
   - id: split-purchase-on-disburse-category
     county_example: [Gibson, Pike]
-    symptom: "69 checks to 'WATER'" / WASTEWATER as smurfing vendor
+    symptom: >
+      69 checks to WATER / WASTEWATER as smurfing vendor
     root_cause: Gateway ent_name/disburse_name treated as payee; category buckets look like vendors.
     fix: >
       ROLLUP_VENDORS expanded in split_purchase_detector + procurement_detectors;
@@ -91,7 +100,8 @@ mistakes:
 
   - id: worthiness-by-flag-count
     county_example: Gibson
-    symptom: "STRONG long-form" / score 8 from 67 flags many of which are noise
+    symptom: >
+      STRONG long-form / score 8 from 67 flags many of which are noise
     root_cause: long_form_worthiness added points for len(flags) >= 20 raw count.
     fix: Score publishable named findings only (2026-07-17).
     status: fixed
@@ -99,7 +109,7 @@ mistakes:
 
   - id: sboa-cache-empty-still-scored-strong
     county_example: Gibson
-    symptom: Package STRONG with SBOA pdfs:[] findings:[]
+    symptom: Package STRONG with SBOA pdfs empty and findings empty
     root_cause: Worthiness ignored empty SBOA; no quality gate for missing Tier-3 receipts.
     fix: pending — Story Factory Phase 3 SBOA ingest is P0 for juice (2026-07-17 research).
     status: open
@@ -112,7 +122,7 @@ mistakes:
     root_cause: Optimized detector volume + Gateway schema misuse, not dual-receipt local juice
     fix: >
       Freeze county mill; content_truth_rules.yaml; ClaimGate; invert pipeline
-      anger→$→short (2026-07-17 plan approved).
+      anger to dollars to short (2026-07-17 plan approved).
     status: in_progress
     content_rule: One proven story beats forty fake vendors.
 
@@ -126,7 +136,8 @@ mistakes:
 
   - id: dogegpt-method-dump-cold-opens
     county_example: [Gibson, Pike]
-    symptom: "flagged by IsolationForest (Cross-sectional anomaly...)" as short body/hook
+    symptom: >
+      flagged by IsolationForest (Cross-sectional anomaly) as short body/hook
     root_cause: DOGEGPT script_line embedded method names; stale anomalies_*.csv shipped as video copy.
     fix: >
       human_script_line in pipeline_budget_anomalies; _humanize_dogegpt_line at load in
@@ -136,13 +147,29 @@ mistakes:
 
   - id: shorts-padded-with-generic-weird-budget
     county_example: Gibson
-    symptom: Short #5 "here's what's weird in the budget" when named salaries exist
+    symptom: >
+      Short #5 heres whats weird in the budget when named salaries exist
     root_cause: build_shorts generic else-branch + severity-first rank put noise above named juice.
     fix: >
       Skip generic fallback; rank story impact before severity; allow 2 named salary/double_dip
       shorts (2026-07-17).
     status: fixed
     content_rule: Pad shorts with more named people/funds — never filler generic openers.
+
+  - id: continuous-improve-playbook-not-wired
+    county_example: [Gibson, all]
+    symptom: >
+      Human rejects dry hooks; next run still repeats same fake vendor / method dump patterns
+    root_cause: >
+      Lessons lived only in chat or YAML files that agents never loaded into the flag path.
+      Industry pattern (AGENTS.md playbooks, learnings.md loops) requires durable rules
+      injected every run + reject auto-logs lessons.
+    fix: >
+      tools/auditor_playbook.py + filter_flags_by_truth in red_flag_engine and silent_auditor;
+      county_queue.reject calls log_lesson; county-audit skill + SOUL lesson loop (2026-07-17).
+    status: fixed
+    content_rule: >
+      Every human reject must become a durable lesson. Every scan loads the playbook first.
 
 content_priorities:
   high_viability:

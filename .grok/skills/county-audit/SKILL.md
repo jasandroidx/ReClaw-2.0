@@ -17,6 +17,34 @@ Faceless YouTube factory for **92 Indiana counties**. Every flag traces to a pub
 2. **Provenance** — named entity or vendor + dollar + source row/PDF page. No category-only hooks.
 3. **Obsidian SOT** — `/root/obsidian_vault/Rural Data/` review cards + packages.
 4. **Human gate** — `POST /county-queue/approve` or `reject` before `run-next`.
+5. **Continuous improve** — living playbook loaded every scan; every human reject becomes a durable lesson.
+
+## Continuous improvement (mandatory)
+
+Agents do **not** get better from chat history alone. They improve when lessons are written to disk and loaded on the next run (same pattern as AGENTS.md / learnings.md self-improving agent loops).
+
+| Layer | Path | Who writes | Who reads |
+|-------|------|------------|-----------|
+| Truth | `data/content_truth_rules.yaml` | operator / research | `filter_flags_by_truth` |
+| Mistakes | `data/audit_pipeline_mistakes.yaml` | `log_lesson` + humans | playbook open rules |
+| Lessons log | `data/auditor_lessons_log.yaml` | auto on reject | operators |
+| Code filter | `tools/auditor_playbook.py` | engineers | red_flag_engine + silent_auditor |
+
+```bash
+# Show what the next run will load
+PYTHONPATH=. .venv/bin/python tools/auditor_playbook.py --show
+
+# Manual lesson after research or operator feedback
+PYTHONPATH=. .venv/bin/python tools/auditor_playbook.py \
+  --log-id dry-hooks-gibson \
+  --symptom "hooks were dry / no dual receipt" \
+  --root-cause "flag factory volume not story juice" \
+  --rule "SBOA + bill shock before salary mill"
+```
+
+**Reject path:** `POST /county-queue/reject` with reason **auto-calls** `log_lesson()` (county + reason → mistakes + lessons log). Do not skip the reason — it is the training signal.
+
+**After a lesson:** fix detector/scriptwriter if needed, then `POST /county-queue/refresh` so the pending card uses new rules.
 
 ## Data tiers (what tool for what)
 

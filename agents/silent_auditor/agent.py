@@ -62,6 +62,18 @@ class SilentAuditorAgent:
         gc = gateway_code or meta.get("gateway_code")
         ad = AuditData(county=county, gateway_code=gc)
 
+        # Continuous-improvement: load living playbook before detectors
+        playbook_note = ""
+        try:
+            from tools.auditor_playbook import playbook_context_for_session
+
+            playbook_note = playbook_context_for_session()
+            if self.session:
+                self.session.log(playbook_note.replace("\n", " | ")[:500])
+        except Exception as exc:  # noqa: BLE001
+            if self.session:
+                self.session.log(f"auditor_playbook load skipped: {exc}", level="WARN")
+
         # Run detectors
         raw_flags = run_all(ad)
 
@@ -75,14 +87,33 @@ class SilentAuditorAgent:
             seen.add(key)
             flags.append(f)
 
+        # Apply living content_truth / hard-kill filter (same path as red_flag_engine)
+        drop_n = 0
+        try:
+            from tools.auditor_playbook import filter_flags_by_truth
+
+            flags, drop_reasons = filter_flags_by_truth(flags)
+            drop_n = len(drop_reasons)
+            if self.session and drop_reasons:
+                self.session.log(
+                    f"Playbook dropped {drop_n} flags: " + "; ".join(drop_reasons[:8])
+                )
+        except Exception as exc:  # noqa: BLE001
+            if self.session:
+                self.session.log(f"filter_flags_by_truth skipped: {exc}", level="WARN")
+
         high = sum(1 for f in flags if f.severity in ("critical", "high"))
         risk = min(10.0, 2.0 + high * 1.8 + len(flags) * 0.4)
 
+        summary = (
+            f"Silent Auditor (detector suite + playbook): {len(flags)} flags for {county}"
+            + (f" ({drop_n} playbook drops)." if drop_n else ".")
+        )
         pkg = CompliancePackage(
             county=county,
             red_flags=flags,
             overall_risk_score=round(risk, 1),
-            summary=f"Silent Auditor (detector suite): {len(flags)} flags for {county}.",
+            summary=summary,
             source_file="agents/silent_auditor/detectors",
             total_records_audited=len(flags),
         )
