@@ -1,0 +1,114 @@
+# Public source map — Story Factory / Silent Auditor
+# Updated: 2026-07-17. Honest status from this host.
+
+status: living
+host: Hetzner ReClaw (datacenter IP)
+
+access_reality:
+  web_search: works
+  httpx_public_sites: works
+  chrome_browser: works
+  firecrawl: key_present_credits_exhausted
+  reddit_www_json: blocked_403_datacenter
+  reddit_pullpush: works
+  reddit_rss: works
+  facebook_scrape: not_automated_login_wall
+  reddit_oauth: needs_REDDIT_CLIENT_ID_SECRET_plus_prefer_residential_exit
+
+sources:
+  sboa_filings_api:
+    url: "https://audit.sboa.in.gov:8090/filings/search"
+    tool: tools/sboa_ingest.py
+    status: implemented
+    juice: special_investigation_I_series_plus_supplemental
+    fields: [reportNumber, auditType, unitName, pdfLink, reportDate]
+
+  gateway_afr:
+    url: "https://gateway.ifionline.org/public/download.aspx"
+    tool: tools/indiana_gateway.py
+    status: implemented
+    juice: fund_totals_not_vendors
+    critical: no_vendor_payee_on_county_AFR
+
+  gateway_100r_salary:
+    tool: tools/gateway_salary_export.py
+    status: implemented
+    juice: named_person_compensation
+
+  gateway_township_vendor:
+    status: underused
+    juice: payee_names_township_only
+    note: Counties do not get payee-level Gateway disbursements
+
+  dlgf_max_levy:
+    url: "https://www.in.gov/dlgf/county-specific-information/"
+    tool: tools/dlgf_levy.py
+    status: implemented_download_extract
+    juice: tax_levy_wallet_stories
+
+  usaspending:
+    tool: tools/local_auditor_live.py
+    status: wired
+    juice: federal_awards_secondary
+
+  propublica_990:
+    tool: tools/county_data_fetch.py
+    status: wired
+    juice: nonprofit_contractor_context
+
+  census_acs:
+    tool: tools/taxpayer_red_flags.py
+    status: wired
+    juice: median_wage_contrast
+
+  reddit_heat:
+    tools: [tools/reddit_heat.py, tools/heat_watch.py]
+    status: implemented_via_pullpush_rss
+    juice: what_angers_residents
+    fix_full_api: docs/ops/REDDIT-FACEBOOK-ACCESS.md
+
+  facebook_local_groups:
+    status: manual_or_graph_api
+    juice: town_hall_rate_hike_rage
+    fix: docs/ops/REDDIT-FACEBOOK-ACCESS.md
+
+  county_claims_dockets:
+    statute: IC 36-2-6-3
+    status: not_automated
+    juice: true_vendor_date_check
+    how: scrape_commissioner_minutes_or_auditor_AP_PDFs_per_county
+
+  gateway_engagement_uploads:
+    status: not_automated
+    juice: monthly_minutes_plus_AP_AR_schedule_support
+    note: Closer to vendor lists than AFR ent_name
+
+  beacon_gis:
+    status: not_implemented
+    juice: parcel_ownership_COI
+
+  in_sos_opencorporates:
+    status: not_implemented_api_token_for_oc
+    juice: business_ownership_COI
+    sos: https://bsd.sos.in.gov / inbiz.in.gov
+
+  stats_indiana_logodaba:
+    status: not_implemented
+    juice: peer_appropriations_per_capita
+
+  iurc:
+    status: not_implemented
+    juice: utility_rate_cases
+
+  doxpop_courts:
+    status: paid_optional
+    juice: judgments_rulings
+
+priority_build_order:
+  1: sboa_ingest  # done
+  2: reddit_heat_pullpush  # done
+  3: dlgf_levy  # done
+  4: gateway_engagement_or_claims_pilot_one_county
+  5: open_corporates_or_sos_for_coi
+  6: beacon_parcel
+  7: firecrawl_credits_restore_for_county_sites
