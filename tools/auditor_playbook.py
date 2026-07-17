@@ -31,6 +31,7 @@ MISTAKES_PATH = REPO_ROOT / "data" / "audit_pipeline_mistakes.yaml"
 SOURCE_MAP_PATH = REPO_ROOT / "data" / "public_source_map.yaml"
 BLUEPRINT_PATH = REPO_ROOT / "data" / "indiana_public_finance_blueprint.yaml"
 STRATEGY_PATH = REPO_ROOT / "data" / "audit_strategy.yaml"
+WORKFLOW_PATH = REPO_ROOT / "data" / "silent_auditor_workflow.yaml"
 LESSONS_LOG = REPO_ROOT / "data" / "auditor_lessons_log.yaml"
 
 
@@ -59,6 +60,7 @@ def load_playbook() -> dict[str, Any]:
         ("source_map", SOURCE_MAP_PATH),
         ("blueprint", BLUEPRINT_PATH),
         ("strategy", STRATEGY_PATH),
+        ("workflow", WORKFLOW_PATH),
     ):
         doc = _safe_yaml_load(path)
         if doc.get("_load_error"):
@@ -94,22 +96,51 @@ def forbidden_vendor_names() -> set[str]:
         names.add(str(n).strip().lower())
     for n in hk.get("payroll_aggregate_lines") or []:
         names.add(str(n).strip().lower())
+    # workflow V2 gateway_afr never_vendor_names
+    wf = pb.get("workflow") or {}
+    for n in (wf.get("gateway_afr") or {}).get("never_vendor_names") or []:
+        names.add(str(n).strip().lower())
     return {n for n in names if n}
 
 
 def forbidden_hook_phrases() -> list[str]:
+    """
+    Phrases that kill a flag for publish path (substring match).
+
+    Note: do NOT put bare words like 'embezzled' here — SBOA final reports may
+    use them; scriptwriter enforces fair-report language for spoken hooks.
+    """
     truth = (load_playbook().get("truth") or {})
-    return list(truth.get("forbidden_language_in_hooks") or [])
+    phrases = list(truth.get("forbidden_language_in_hooks") or [])
+    # only method-theater tokens from workflow (safe to drop)
+    for m in (load_playbook().get("workflow") or {}).get("anomaly_not_for_publish_hooks") or []:
+        if isinstance(m, str) and m not in phrases:
+            phrases.append(m)
+    # Strip short criminal lemmas from auto-drop (they live in truth for hook craft)
+    drop_from_filter = {
+        "stole",
+        "embezzled",
+        "embezzle",
+        "is fraud",
+        "committed fraud",
+        "is theft",
+        "corrupt",
+        "fraud",
+        "theft",
+        "criminal",
+    }
+    return [p for p in phrases if str(p).lower() not in drop_from_filter]
 
 
 def open_content_rules() -> list[str]:
     """Human-readable rules for SOUL / review cards."""
     lines = [
-        "Living playbook active: content_truth_rules + mistakes + source_map.",
+        "Living playbook: truth + mistakes + source_map + workflow V2 (SILENT-AUDITOR-WORKFLOW).",
         "Never treat Gateway ent_name/disburse_name as a private company payee.",
-        "Prefer SBOA final findings + Form 100R + dual-receipt stories over IsolationForest volume.",
-        "Every publishable short: named actor + exact $ + contrast + receipt.",
-        "Fair-report only: no embezzled/stole/corrupt/fraud/theft allegations.",
+        "Prefer final SBOA Special Investigation (I-series) + Form 100R + dual-receipt over ML volume.",
+        "Every publishable short: named actor + exact $ + contrast + receipt (report ID + page).",
+        "Fair-report only: no stole/embezzled/fraud/theft unless quoting a formal charge.",
+        "Never draft/unfiled SBOA; never social media as fact; human review before publish.",
         "After human reject or new research: log_lesson() so the next run improves.",
     ]
     mistakes = (load_playbook().get("mistakes") or {}).get("mistakes") or []

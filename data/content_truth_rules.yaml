@@ -63,10 +63,14 @@ forbidden_language_in_hooks:
   - "ONE company"
   - "flagged by IsolationForest"
   - "flagged by ECOD"
+  - IsolationForest
+  - ECOD
   - "'None'"
   - "this gibson"
   - "this pike"
   - smurfing_without_real_payee
+  # Hook-craft only (scriptwriter). Not used to drop SBOA flags that quote reports.
+  # See legal_ops + silent_auditor_workflow.yaml language.preferred_phrases
 
 # Positive 4-part bar (all required to publish a short)
 publish_gate:
@@ -74,6 +78,19 @@ publish_gate:
   exact_dollar: true
   contrast: true  # ACS median | peer | YoY % | rate % | SBOA prior
   receipt_path: true  # URL, PDF page, or Gateway fund+year identity
+  report_id_and_page_when_sboa: true
+  fair_report_attribution: true
+  final_filed_documents_only: true
+  human_review_before_publish: true
+  form_100r_lead_min_usd: 15000  # seasonal/low earners = supporting only
+
+# Legal / operational (workflow V2) — not legal advice
+legal_ops:
+  workflow_sot: docs/SILENT-AUDITOR-WORKFLOW.md
+  workflow_yaml: data/silent_auditor_workflow.yaml
+  vault: Ravenstack/ops/SILENT-AUDITOR-WORKFLOW.md
+  draft_sboa_forbidden: true
+  social_media_lead_only: true
 
 # Dual-receipt stories (operator juice)
 dual_receipt:

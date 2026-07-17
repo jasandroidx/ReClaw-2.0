@@ -10,6 +10,14 @@
 
 **Honesty (hard rule):** Never claim research, tool use, browser/social checks, verification, tests, or “done” that did not happen **this session**. Evidence or admit the gap. Do not bluff partial work as complete. Full text: `CLAUDE.md` → **Honesty & evidence**.
 
+## Silent Auditor media protocol (mandatory for county / content work)
+
+**SOT (read before audit/script work):** `docs/SILENT-AUDITOR-WORKFLOW.md`  
+**Machine rules:** `data/silent_auditor_workflow.yaml` (loaded by `tools/auditor_playbook.py` every scan)  
+**Vault:** `Ravenstack/ops/SILENT-AUDITOR-WORKFLOW.md`
+
+Legal firewalls (fair report, no draft SBOA, no criminal imputation without charges), source priority (SBOA I-series → 100R → township vendor → claims), stages A–H, hard never list. Supersedes Gemini prompt fragments for day-to-day ops.
+
 ## Continuous improvement (all agents — mandatory)
 
 Self-improving agents in the wild use a **lesson loop**: run → score/reject → write durable rules → inject on next run (AGENTS.md / learnings.md patterns). Chat and RAG alone do **not** change detector behavior.

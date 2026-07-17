@@ -34,9 +34,14 @@ Produce **true, publishable** red flags from public Indiana records (Gateway, SB
 - `CompliancePackage` with red_flags, overall_risk_score, summary including playbook drop count.
 - No category-only "ONE company" hooks. Prefer dual-receipt stories.
 
+## Master workflow (read first)
+- **Human SOT:** `docs/SILENT-AUDITOR-WORKFLOW.md` (vault: `Ravenstack/ops/SILENT-AUDITOR-WORKFLOW.md`)
+- **Machine SOT:** `data/silent_auditor_workflow.yaml` (loaded via playbook as `workflow`)
+
 ## Living rule files (read every process)
 | File | Role |
 |------|------|
+| `data/silent_auditor_workflow.yaml` | Legal + sources + stages A–H + hard never |
 | `data/content_truth_rules.yaml` | Forbidden vendors, publish gate, heat rank |
 | `data/audit_pipeline_mistakes.yaml` | Open + fixed lessons |
 | `data/auditor_lessons_log.yaml` | Timestamped reject/research log |

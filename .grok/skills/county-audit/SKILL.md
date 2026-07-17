@@ -11,6 +11,12 @@ description: >
 
 Faceless YouTube factory for **92 Indiana counties**. Every flag traces to a public record. Human approves before publish.
 
+## Master protocol (read first)
+
+**SOT:** `docs/SILENT-AUDITOR-WORKFLOW.md` · vault `Ravenstack/ops/SILENT-AUDITOR-WORKFLOW.md` · machine `data/silent_auditor_workflow.yaml`
+
+Covers: fair report + draft SBOA ban · source priority (SBOA I-series → 100R → township vendor → IURC → claims) · stages A–H · PHI · script 0–60s · hard never list · continuous improve.
+
 ## Non-negotiables
 
 1. **County isolation** — Pike ingestion files never apply to other counties (`tools/county_isolation.py`).

@@ -16,31 +16,41 @@ philosophy:
   - sboa_and_100r_before_statistical_mill  # blueprint Level-1
   - gateway_afr_is_not_vendor_ledger
   - one_story_not_sixty_flags
+  - heuristic_over_unsupervised_ml_for_publish  # workflow V2
+  - final_filed_sboa_only
+  - fair_report_language_only
+
+# Full operational protocol: docs/SILENT-AUDITOR-WORKFLOW.md + data/silent_auditor_workflow.yaml
+workflow_sot: docs/SILENT-AUDITOR-WORKFLOW.md
 
 three_pass_model:
   pass_1_timeseries:
     question: Did this line change over time?
-    detectors: [YoY_spike, robust_zscore, ADTK_level_shift, multi_year_growth, disbursement_swing]
+    detectors: [YoY_spike, robust_zscore, multi_year_growth, disbursement_swing]
     thresholds:
       budget_yoy_warn_pct: 8
       budget_yoy_fury_pct: 12
       disbursement_swing_pct: 15
       robust_z_sigma: 3
-    patterns: [budget_spike, multi_year_growth, contextual_spike, collective_anomaly]
+    patterns: [budget_spike, multi_year_growth, contextual_spike]
+    publish_role: supporting_fund_story_only_with_named_fund
 
   pass_2_cross_section:
     question: Does this line look weird vs peers in the same year?
-    detectors: [IsolationForest, ECOD, composition_matrix, fund_imbalance]
+    detectors: [composition_matrix, fund_imbalance]
+    lab_only_never_publish_hooks: [IsolationForest, ECOD]
     note: >
-      Build department×category matrix per FY; flag outliers on totals AND mix ratios.
-      Big absolute numbers matter less than composition breaks.
-    patterns: [composition_break, fund_imbalance, statistical_anomaly, dominant_disbursement]
+      Lab/research may still explore IF/ECOD. NEVER put method names in spoken hooks.
+      Prefer composition breaks with named funds + human script lines.
+    patterns: [composition_break, fund_imbalance]
+    publish_role: supporting_not_cold_open
 
   pass_3_cross_source:
     question: Does the story hold across different public records?
-    sources: [gateway_disbursements, gateway_budgets, usaspending, census_acs, salary_export, propublica_990]
-    detectors: [per_capita_outlier, peer_county_ecod, federal_local_contrast, salary_vs_median]
-    patterns: [cross_source_contrast, peer_outlier, salary_shock, federal_spending_spike]
+    sources: [sboa_final, gateway_budgets, form_100r, usaspending, census_acs, claims_dockets]
+    detectors: [sboa_findings, per_capita_outlier, federal_local_contrast, salary_vs_median, dual_dip]
+    patterns: [sboa_special_investigation, cross_source_contrast, peer_outlier, salary_shock]
+    publish_role: primary
 
 procurement:
   split_purchase:
