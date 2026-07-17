@@ -76,23 +76,35 @@ if ! docker compose -f "$COMPOSE_FILE" ps "$CANONICAL_NAME" 2>/dev/null | grep -
   warn "Docker ${CANONICAL_NAME} is not Up — starting it"
   if [[ "$ENFORCE" == "1" ]]; then
     docker compose -f "$COMPOSE_FILE" up -d "$CANONICAL_NAME"
-    sleep 3
   else
     exit 1
   fi
 fi
 
-CANONICAL_CID=$(docker compose -f "$COMPOSE_FILE" ps -q "$CANONICAL_NAME" 2>/dev/null | head -1)
+# Wait for container + port (recreate races used to fail the guard)
+CANONICAL_CID=""
+CANONICAL_PID=""
+for attempt in $(seq 1 30); do
+  CANONICAL_CID=$(docker compose -f "$COMPOSE_FILE" ps -q "$CANONICAL_NAME" 2>/dev/null | head -1)
+  if [[ -n "$CANONICAL_CID" ]]; then
+    state=$(docker inspect -f '{{.State.Status}}' "$CANONICAL_CID" 2>/dev/null || echo "")
+    CANONICAL_PID=$(docker inspect -f '{{.State.Pid}}' "$CANONICAL_CID" 2>/dev/null || echo "")
+    listeners=$(ss -tlnp 2>/dev/null | grep -E ":${PORT}\\s" || true)
+    if [[ "$state" == "running" && -n "${listeners}" ]]; then
+      break
+    fi
+  fi
+  sleep 1
+done
 if [[ -z "$CANONICAL_CID" ]]; then
   warn "Could not resolve container id for ${CANONICAL_NAME}"
   exit 1
 fi
-CANONICAL_PID=$(docker inspect -f '{{.State.Pid}}' "$CANONICAL_CID" 2>/dev/null || echo "")
 
 # --- 4) Port 18789: at most one listener process tree ---
 listeners=$(ss -tlnp 2>/dev/null | grep -E ":${PORT}\\s" || true)
 if [[ -z "${listeners}" ]]; then
-  warn "Nothing on :${PORT} after start attempt"
+  warn "Nothing on :${PORT} after wait — try: docker compose -f ${COMPOSE_FILE} logs --tail=50 ${CANONICAL_NAME}"
   exit 1
 fi
 
@@ -137,28 +149,42 @@ if [[ ${#PORT_PIDS[@]} -gt 1 ]]; then
   fi
 fi
 
-# Host `openclaw gateway` processes NOT in the Docker cgroup (second gateway)
-# Be conservative: only kill if cgroup clearly lacks our container id.
+# Host gateway processes NOT in our Docker cgroup.
+# IMPORTANT: do not match shell wrappers whose *command text* merely mentions gateway
+# (pgrep -f matches the full bash -c line and was killing agent sessions).
 if [[ "$ENFORCE" == "1" && -n "$CANONICAL_CID" ]]; then
+  # Whitelist every PID in the canonical container
+  declare -A KEEP=()
+  while read -r pid; do
+    [[ -n "$pid" ]] && KEEP["$pid"]=1
+  done < <(docker top "$CANONICAL_CID" -eo pid 2>/dev/null | awk 'NR>1 {print $1}')
+
   while read -r pid; do
     [[ -z "$pid" || ! -d "/proc/${pid}" ]] && continue
-    # Never kill if process is in our container cgroup
+    [[ -n "${KEEP[$pid]:-}" ]] && continue
     if grep -q "$CANONICAL_CID" "/proc/${pid}/cgroup" 2>/dev/null; then
       continue
     fi
+    # Only real node gateway executables (not bash/python wrappers that quote the string)
+    comm=$(cat "/proc/${pid}/comm" 2>/dev/null || true)
+    exe=$(readlink -f "/proc/${pid}/exe" 2>/dev/null || true)
     cmd=""
     if [[ -r "/proc/${pid}/cmdline" ]]; then
       cmd=$(tr '\0' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)
     fi
+    # Require node/tini binary + gateway args, not "bash -c ... gateway ..."
+    if [[ "$comm" != "node" && "$comm" != "tini" && "$exe" != *"/node" && "$exe" != *"/tini" ]]; then
+      continue
+    fi
     case "$cmd" in
-      *'dist/index.js gateway'*|*'openclaw gateway'*|*'node dist/index.js gateway'*)
-        warn "Killing host OpenClaw gateway-like pid=${pid} (not in ${CANONICAL_NAME} cgroup)"
+      *'dist/index.js gateway'*|*' openclaw gateway '*)
+        warn "Killing non-Docker gateway pid=${pid} comm=${comm} exe=${exe}"
         kill "$pid" 2>/dev/null || true
         sleep 0.3
         kill -9 "$pid" 2>/dev/null || true
         ;;
     esac
-  done < <(pgrep -f 'dist/index.js gateway|openclaw gateway' 2>/dev/null || true)
+  done < <(pgrep -x node 2>/dev/null; pgrep -x tini 2>/dev/null || true)
 fi
 
 # --- 5) Health ---

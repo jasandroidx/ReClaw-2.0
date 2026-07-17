@@ -58,6 +58,8 @@ services:
       - .env
     environment:
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
+      - OPENCLAW_SUPERVISOR_MODE=external
+      - OPENCLAW_SERVICE_REPAIR_POLICY=external
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
       - OLLAMA_API_KEY=${OLLAMA_API_KEY}
       - LOCAL_CODER_API_KEY=${LOCAL_CODER_API_KEY:-local-coder}
