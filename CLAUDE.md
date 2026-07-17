@@ -63,3 +63,10 @@ If a skill or MCP is unavailable, say so briefly and fall back — do not silent
 - Keep responses focused and actionable.
 - When the user wants to move fast, match their pace.
 - When something is unclear or risky, ask for clarification instead of guessing.
+
+## Single OpenClaw gateway (hard rule on this host)
+- **Only** `cd /root/ReClaw-2.0 && docker compose up -d openclaw-gateway`.
+- Host CLI is wrapped by `/usr/local/bin/openclaw` — it **blocks** starting a second gateway.
+- Guard: `reclaw-openclaw-guard.timer` + `scripts/ensure-single-openclaw.sh` every 5 min.
+- Never `openclaw gateway install` / `gateway run` on the Hetzner host.
+- See outbox: `openclaw-single-gateway-ONCE-AND-FOR-ALL.md`
