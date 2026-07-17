@@ -98,7 +98,7 @@ detectors:
     - salary_shock
     - double_dip
     - named_fund_totals
-    - sboa_findings  # must implement ingest
+    - sboa_findings  # tools/sboa_ingest.py — live filings API (2026-07-17)
   smoke_never_lead:
     - benford
     - isolation_forest_cold_open

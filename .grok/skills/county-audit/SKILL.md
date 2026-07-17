@@ -64,9 +64,12 @@ curl -X POST http://127.0.0.1:8000/county-queue/approve
 # Refresh pending county after detector/scriptwriter updates:
 curl -X POST http://127.0.0.1:8000/county-queue/refresh
 
-# SBOA PDF discovery (one county or batch):
-./scripts/run_sboa_discovery.sh Spencer
-./scripts/run_sboa_discovery.sh '' 5   # first 5 worklist counties
+# SBOA PDF discovery + download + finding extract (no Firecrawl required):
+# Uses live API POST https://audit.sboa.in.gov:8090/filings/search
+./scripts/run_sboa_discovery.sh Clark
+PYTHONPATH=. .venv/bin/python tools/sboa_ingest.py Posey --download-top 3
+# Cache: data/cache/sboa/{county}/manifest.json + *.pdf + *.txt
+# Prefer SPECIAL INVESTIGATION (report numbers ending in I)
 
 # Batch salary prefetch (89 counties still missing cache):
 PYTHONPATH=. .venv/bin/python scripts/export_county_salaries.py --all
