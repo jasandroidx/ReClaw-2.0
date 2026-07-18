@@ -198,21 +198,37 @@ class VaultSynchronizer:
 
     def _discover_files(self) -> list[Path]:
         """Discover all ingestable files in the vault."""
+        import os
         files: list[Path] = []
-        for path in self.vault_path.rglob("*"):
-            if not path.is_file():
-                continue
-            rel = str(path.relative_to(self.vault_path))
-            # Skip patterns
-            if any(
-                fnmatch.fnmatch(rel, pattern) or pattern in rel
-                for pattern in self.SKIP_PATTERNS
-            ):
-                continue
-            # Check extension
-            if path.suffix.lower() not in self.INGEST_EXTENSIONS:
-                continue
-            files.append(path)
+
+        def scan_dir(current_dir: str | Path):
+            try:
+                with os.scandir(current_dir) as entries:
+                    for entry in entries:
+                        entry_path = Path(entry.path)
+                        rel = str(entry_path.relative_to(self.vault_path))
+
+                        if entry.is_dir(follow_symlinks=False):
+                            # Append trailing slash to directory paths for accurate skip matching
+                            rel_dir = rel + "/"
+                            if not any(
+                                fnmatch.fnmatch(rel_dir, pattern) or pattern in rel_dir
+                                for pattern in self.SKIP_PATTERNS
+                            ):
+                                scan_dir(entry.path)
+                        elif entry.is_file(follow_symlinks=False):
+                            if any(
+                                fnmatch.fnmatch(rel, pattern) or pattern in rel
+                                for pattern in self.SKIP_PATTERNS
+                            ):
+                                continue
+                            if entry_path.suffix.lower() not in self.INGEST_EXTENSIONS:
+                                continue
+                            files.append(entry_path)
+            except PermissionError:
+                pass
+
+        scan_dir(self.vault_path)
         return sorted(files)
 
     def _file_checksum(self, file_path: Path) -> str:

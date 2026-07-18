@@ -1,0 +1,3 @@
+## 2025-05-18 - Vault Sync Traversals with os.scandir
+**Learning:** For deep directories with extensive ignore rules (like `.git/`, `node_modules/`, `.obsidian/`), `Path.rglob("*")` is extremely slow because it eagerly traverses the entire directory tree before filters can be applied. In our Obsidian vault sync context, this can lead to massive performance overhead when users have heavy `.obsidian` configurations or node integrations.
+**Action:** Always prefer `os.scandir()` with manual recursion and early pruning of ignored directories for performance-critical file discovery tasks in this codebase.
