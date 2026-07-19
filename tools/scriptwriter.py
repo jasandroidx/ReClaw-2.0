@@ -310,12 +310,24 @@ def _flag_hook_rank(f) -> tuple:
     return (impact, _sev_rank(f), -(_amt_from_flag(f) or 0))
 
 
-def _pick_lead_flag(flags):
-    """Best flag for hook, lead beat, shorts opener — provenance-first."""
+def _pick_lead_flag(flags, county=None):
+    """Best flag for hook, lead beat, shorts opener — provenance-first + ClaimGate."""
     pool = [f for f in flags if _is_publishable(f)]
     if not pool:
         pool = list(flags)
-    return min(pool, key=_flag_hook_rank) if pool else None
+    if not pool:
+        return None
+    ranked = sorted(pool, key=_flag_hook_rank)
+    # Prefer ClaimGate-ready (actor + $ + contrast + receipt) among ranked pool
+    try:
+        from tools.claim_gate import pick_best_claim_ready
+
+        lead, res = pick_best_claim_ready(ranked, county=county or "")
+        if res is not None and res.ok and lead is not None:
+            return lead
+    except Exception:
+        pass
+    return ranked[0]
 
 
 def _pick_hook(flags, county):
@@ -456,6 +468,18 @@ def build_shorts(result, channel="The Local Auditor", county=None, max_shorts=5)
         [f for f in flags if _is_publishable(f)],
         key=_flag_hook_rank,
     )
+    # Story Factory Stage D: prefer ClaimGate-pass flags for primary shorts
+    try:
+        from tools.claim_gate import filter_flags_through_claim_gate
+
+        gated, _gate_results = filter_flags_through_claim_gate(
+            flags, county=county or "", require_pass=True
+        )
+        if gated:
+            flags = sorted(gated, key=_flag_hook_rank)
+        # if none pass, keep publishable pool so review still has drafts (human rejects)
+    except Exception:
+        pass
 
     shorts, seen_keys = [], set()
     named_repeat_cats = {"salary_shock", "double_dip"}  # allow multiple named people

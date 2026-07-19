@@ -102,12 +102,28 @@ class SilentAuditorAgent:
             if self.session:
                 self.session.log(f"filter_flags_by_truth skipped: {exc}", level="WARN")
 
+        # ClaimGate diagnostics (Stage D) — does not drop flags here; scriptwriter prefers passers
+        claim_note = ""
+        try:
+            from tools.claim_gate import claim_gate_summary, filter_flags_through_claim_gate
+
+            _, gate_results = filter_flags_through_claim_gate(
+                flags, county=county, require_pass=False
+            )
+            claim_note = claim_gate_summary(gate_results)
+            if self.session:
+                self.session.log(claim_note)
+        except Exception as exc:  # noqa: BLE001
+            if self.session:
+                self.session.log(f"claim_gate skipped: {exc}", level="WARN")
+
         high = sum(1 for f in flags if f.severity in ("critical", "high"))
         risk = min(10.0, 2.0 + high * 1.8 + len(flags) * 0.4)
 
         summary = (
             f"Silent Auditor (detector suite + playbook): {len(flags)} flags for {county}"
             + (f" ({drop_n} playbook drops)." if drop_n else ".")
+            + (f" {claim_note}" if claim_note else "")
         )
         pkg = CompliancePackage(
             county=county,
