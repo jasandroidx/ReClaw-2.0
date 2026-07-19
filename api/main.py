@@ -268,10 +268,18 @@ def get_job(job_id: str):
 @app.get("/jobs/latest")
 def latest_job():
     """Return metadata for the most recent run on disk."""
-    runs = sorted(settings.runs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if not runs:
+    import os
+    if not settings.runs_dir.exists():
         return {"message": "No runs yet"}
-    latest_path = runs[0]
+
+    # ⚡ Bolt Optimization: Use os.scandir instead of Path.glob() + stat() to avoid repeated system calls
+    # This reduces disk I/O when fetching job history
+    entries = [e for e in os.scandir(settings.runs_dir) if e.is_file() and e.name.endswith(".json")]
+    if not entries:
+        return {"message": "No runs yet"}
+
+    entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+    latest_path = Path(entries[0].path)
     try:
         data = json.loads(latest_path.read_text())
         # lightweight summary
@@ -291,20 +299,27 @@ def latest_job():
 @app.get("/packages")
 def list_packages(limit: int = 20):
     """List recent completed packages from disk (lightweight index)."""
+    import os
     items = []
-    for p in sorted(settings.runs_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        try:
-            d = json.loads(p.read_text())
-            items.append({
-                "id": d.get("id"),
-                "county": d.get("county"),
-                "area": d.get("primary_area"),
-                "generated_at": d.get("generated_at"),
-                "risk": d.get("analysis", {}).get("overall_risk_score"),
-                "flags": len(d.get("analysis", {}).get("red_flags", [])),
-            })
-        except Exception:
-            continue
+    if settings.runs_dir.exists():
+        # ⚡ Bolt Optimization: Use os.scandir to reduce I/O overhead from stat() on directory listing
+        entries = [e for e in os.scandir(settings.runs_dir) if e.is_file() and e.name.endswith(".json")]
+        entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+
+        for e in entries[:limit]:
+            p = Path(e.path)
+            try:
+                d = json.loads(p.read_text())
+                items.append({
+                    "id": d.get("id"),
+                    "county": d.get("county"),
+                    "area": d.get("primary_area"),
+                    "generated_at": d.get("generated_at"),
+                    "risk": d.get("analysis", {}).get("overall_risk_score"),
+                    "flags": len(d.get("analysis", {}).get("red_flags", [])),
+                })
+            except Exception:
+                continue
     return {"count": len(items), "packages": items}
 
 
@@ -342,17 +357,19 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
-        sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )[:5]
+        import os
+        # ⚡ Bolt Optimization: Use os.scandir to avoid repeated stat() calls on each directory
+        # The state endpoint is polled frequently, so this I/O optimization is critical
+        entries = [e for e in os.scandir(sess_root) if e.is_dir()]
+        entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+        sorted_sessions = entries[:5]
 
-        for sess_dir in sorted_sessions:
-            recent_sessions.append({"session_id": sess_dir.name})
+        for sess_entry in sorted_sessions:
+            recent_sessions.append({"session_id": sess_entry.name})
             try:
                 from core.security import SecurityManager
-                sec = SecurityManager(sess_dir, sess_dir.name)
+                sess_dir = Path(sess_entry.path)
+                sec = SecurityManager(sess_dir, sess_entry.name)
                 for req in sec.get_pending_requests():
                     pending_approvals.append({
                         "session_id": sess_dir.name,
@@ -425,12 +442,16 @@ def list_approvals(session_id: str):
 def list_sessions(limit: int = 20):
     """List recent isolated sessions (audit trail)."""
     sess_root = settings.data_dir / "sessions"
+    import os
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    # ⚡ Bolt Optimization: os.scandir caches stat() calls, reducing system call overhead on listings
+    entries = [e for e in os.scandir(sess_root) if e.is_dir()]
+    entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+
+    for e in entries[:limit]:
+        items.append({"session_id": e.name, "path": e.path})
     return {"count": len(items), "sessions": items}
 
 

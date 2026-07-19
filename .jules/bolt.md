@@ -1,0 +1,3 @@
+## 2026-07-19 - os.scandir for File Stats Optimization
+**Learning:** For file system queries where stat information (like st_mtime) is needed for sorting or filtering, using `os.scandir` is significantly faster than `Path.glob()` or `Path.iterdir()` followed by `Path.stat()`. `os.scandir` returns `DirEntry` objects which cache their stat results (on most platforms), avoiding repeated, expensive system calls. This is particularly important for endpoints (like the platform's dashboard state) that frequently poll directories containing many artifacts.
+**Action:** Always prefer `os.scandir()` over `Path.glob()` or `Path.iterdir()` when iterating directories if file metadata (like modification time or file type) is subsequently accessed.
