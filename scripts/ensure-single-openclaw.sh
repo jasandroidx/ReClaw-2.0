@@ -112,8 +112,8 @@ fi
 mapfile -t PORT_PIDS < <(echo "${listeners}" | grep -oE 'pid=[0-9]+' | sed 's/pid=//' | sort -u)
 # Also collect process names
 if [[ ${#PORT_PIDS[@]} -gt 1 ]]; then
-  warn "MULTIPLE PIDs on :${PORT} — this ruins Discord/sessions:"
-  echo "${listeners}"
+  # IPv4+IPv6 docker-proxy is normal (two PIDs). Only act on true foreign listeners.
+  foreign=0
   if [[ "$ENFORCE" == "1" ]]; then
     for pid in "${PORT_PIDS[@]}"; do
       # Keep anything in the docker container's process tree
@@ -139,13 +139,39 @@ if [[ ${#PORT_PIDS[@]} -gt 1 ]]; then
         continue
       fi
       cmd=$(tr '\0' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)
+      comm=$(cat "/proc/${pid}/comm" 2>/dev/null || true)
+      # docker-proxy is REQUIRED for published ports (IPv4 + IPv6 = two PIDs). Never kill it.
+      if [[ "$comm" == "docker-proxy" ]] || [[ "$cmd" == *"/docker-proxy"* ]] || [[ "$cmd" == *"docker-proxy"* ]]; then
+        continue
+      fi
+      # containerd / dockerd helpers
+      if [[ "$comm" == "dockerd" || "$comm" == "containerd" || "$comm" == containerd-shim* ]]; then
+        continue
+      fi
+      foreign=1
       warn "Killing non-canonical :${PORT} process pid=${pid} cmd=${cmd}"
       kill "$pid" 2>/dev/null || true
       sleep 0.5
       kill -9 "$pid" 2>/dev/null || true
     done
+    if [[ "$foreign" == "1" ]]; then
+      warn "Had foreign listeners on :${PORT} (removed). Current:"
+      ss -tlnp 2>/dev/null | grep -E ":${PORT}\\s" || true
+    fi
   else
-    exit 1
+    # report-only: ignore docker-proxy multiplicity
+    for pid in "${PORT_PIDS[@]}"; do
+      comm=$(cat "/proc/${pid}/comm" 2>/dev/null || true)
+      cmd=$(tr '\0' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)
+      [[ "$comm" == "docker-proxy" || "$cmd" == *docker-proxy* ]] && continue
+      [[ -n "$CANONICAL_PID" && "$pid" == "$CANONICAL_PID" ]] && continue
+      foreign=1
+    done
+    if [[ "$foreign" == "1" ]]; then
+      warn "MULTIPLE non-Docker PIDs on :${PORT}:"
+      echo "${listeners}"
+      exit 1
+    fi
   fi
 fi
 
@@ -209,6 +235,12 @@ for pid in "${PORT_PIDS[@]:-}"; do
   # child of container?
   pp=$(awk '/^PPid:/{print $2}' "/proc/${pid}/status" 2>/dev/null || echo "")
   if [[ -n "$CANONICAL_PID" && "$pp" == "$CANONICAL_PID" ]]; then
+    continue
+  fi
+  # docker-proxy (IPv4/IPv6) is the published-port path for compose — not a second gateway
+  comm=$(cat "/proc/${pid}/comm" 2>/dev/null || true)
+  cmd=$(tr '\0' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)
+  if [[ "$comm" == "docker-proxy" ]] || [[ "$cmd" == *docker-proxy* ]]; then
     continue
   fi
   unrelated=$((unrelated + 1))

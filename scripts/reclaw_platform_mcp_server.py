@@ -37,6 +37,10 @@ _TS_IP = os.environ.get("TAILSCALE_IP", "100.108.130.82")
 _extra_hosts = [h.strip() for h in os.environ.get("MCP_EXTRA_ALLOWED_HOSTS", "").split(",") if h.strip()]
 _public_mode = os.environ.get("MCP_PUBLIC_MODE", "").lower() in ("1", "true", "yes")
 _port = int(os.environ.get("FASTMCP_PORT", "8100"))
+# Stateless streamable-http: no mcp-session-id sticky map. OpenClaw (and restarts) were
+# hitting -32600 "Session not found" when clients reused a session after bridge restart
+# or after DELETE/terminate. Default ON for HTTP bridge; set MCP_STATELESS_HTTP=0 to disable.
+_stateless_http = os.environ.get("MCP_STATELESS_HTTP", "1").lower() in ("1", "true", "yes")
 mcp = FastMCP(
     "reclaw-platform",
     instructions=(
@@ -55,6 +59,8 @@ mcp = FastMCP(
     # Option 2: clients hit this host's Tailscale IP directly.
     host=os.environ.get("FASTMCP_HOST", _TS_IP),
     port=_port,
+    # Avoid Session not found (-32600) after bridge restarts / client reconnects.
+    stateless_http=_stateless_http,
     transport_security=TransportSecuritySettings(
         enable_dns_rebinding_protection=not _public_mode,
         allowed_hosts=[
@@ -477,10 +483,56 @@ def pipeline_status() -> str:
 
 @mcp.tool()
 def stack_health() -> str:
-    """Docker + API + gateway + Ollama post-deploy healthcheck."""
-    script = ROOT / "scripts" / "post-deploy-healthcheck.sh"
-    proc = subprocess.run(["bash", str(script)], cwd=str(ROOT), capture_output=True, text=True, timeout=120)
-    return (proc.stdout or "") + (proc.stderr or "")
+    """Docker + API + gateway + Ollama lightweight health (no self-MCP probe).
+
+    Avoids scripts/post-deploy-healthcheck.sh because it runs `openclaw mcp list`
+    and can deadlock single-worker streamable-http on :8100.
+    """
+    lines: list[str] = ["# stack_health (deadlock-safe)", ""]
+    # Docker compose
+    proc = subprocess.run(
+        ["docker", "compose", "ps", "--format", "table {{.Name}}\t{{.Status}}"],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+    lines.append("## docker")
+    lines.append((proc.stdout or proc.stderr or "").strip() or "(empty)")
+    lines.append("")
+    # Core HTTP endpoints (never :8100 — that is this process)
+    checks_ok = True
+    for name, url in (
+        ("reclaw_api", f"{GATEWAY}/health"),
+        ("openclaw", f"{OPENCLAW}/health"),
+        ("ollama", "http://127.0.0.1:11434/api/tags"),
+        ("dashboard", "http://127.0.0.1:8081/"),
+    ):
+        if name == "ollama":
+            raw = _run(["curl", "-sf", "-m", "5", url], timeout=10)
+            ok = raw.strip().startswith("{")
+            lines.append(f"{name}: {'ok' if ok else 'fail'}")
+        else:
+            code = _run(
+                ["curl", "-sf", "-o", "/dev/null", "-w", "%{http_code}", "-m", "5", url],
+                timeout=10,
+            ).strip()
+            ok = code in ("200", "204")
+            lines.append(f"{name}: {'ok' if ok else f'fail http={code or chr(48)*3}'}")
+        checks_ok = checks_ok and ok
+    # MCP bridge unit only (no self-HTTP)
+    bridge = _run(["systemctl", "is-active", "reclaw-mcp-bridge"], timeout=5).strip()
+    tunnel = _run(["systemctl", "is-active", "reclaw-mcp-tunnel"], timeout=5).strip()
+    listen = _run(
+        ["bash", "-lc", "ss -tlnp 2>/dev/null | grep -F ':8100' | head -1 || true"],
+        timeout=5,
+    ).strip()
+    lines.append(f"mcp_bridge_unit: {bridge}")
+    lines.append(f"mcp_tunnel_unit: {tunnel}")
+    lines.append(f"mcp_listen: {listen[:160] if listen else 'none'}")
+    lines.append("")
+    lines.append("OK" if bridge == "active" and checks_ok else "DEGRADED")
+    return "\n".join(lines)
 
 
 @mcp.tool()

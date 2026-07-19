@@ -19,6 +19,8 @@ export TAILSCALE_IP="${TAILSCALE_IP:-$(tailscale ip -4 2>/dev/null || echo 100.1
 export FASTMCP_HOST="${FASTMCP_HOST:-0.0.0.0}"
 export FASTMCP_PORT="${FASTMCP_PORT:-8100}"
 export MCP_PUBLIC_MODE="${MCP_PUBLIC_MODE:-1}"
+# Stateless sessions — required for OpenClaw: no sticky mcp-session-id (survives restart).
+export MCP_STATELESS_HTTP="${MCP_STATELESS_HTTP:-1}"
 
 extra=""
 if [[ -f data/mcp_tunnel_host.txt ]]; then
