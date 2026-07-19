@@ -488,6 +488,128 @@ def get_state():
 
 # === Gateway Security / Approval endpoints (OpenClaw approval gate pattern) ===
 
+@app.get("/fortress-state")
+def fortress_state():
+    """Ravenstack Fortress room catalog + live ops KPIs for the visual office UI.
+
+    Token-free: pure JSON for openclaw-office / fortress dashboards.
+    Rooms map to OpenClaw Office AgentZone physics (desk/meeting/hotDesk/lounge).
+    """
+    rooms = [
+        {
+            "id": "war-room",
+            "zone": "desk",
+            "label": "War Room",
+            "description": "Command & main specialists",
+            "accent": "#c9a227",
+        },
+        {
+            "id": "great-hall",
+            "zone": "meeting",
+            "label": "Great Hall",
+            "description": "Meetings and approval board",
+            "accent": "#7c6aaf",
+        },
+        {
+            "id": "forge",
+            "zone": "hotDesk",
+            "label": "Forge",
+            "description": "Builders, coders, sub-agents",
+            "accent": "#e07a3d",
+        },
+        {
+            "id": "library",
+            "zone": "lounge",
+            "label": "Library",
+            "description": "Memory, ops, waiting",
+            "accent": "#3d8b8b",
+        },
+    ]
+    default_homes = {
+        "main": "desk",
+        "raziel": "desk",
+        "research": "desk",
+        "coder": "hotDesk",
+        "ops": "lounge",
+    }
+    queue: dict[str, Any] = {}
+    try:
+        from core.county_queue import CountyQueue
+
+        queue = CountyQueue(settings).status()
+    except Exception as exc:
+        queue = {"error": str(exc)[:200]}
+
+    pending_gates = 0
+    try:
+        sess_root = settings.data_dir / "sessions"
+        if sess_root.exists():
+            for sess_dir in list(sess_root.iterdir())[:20]:
+                if not sess_dir.is_dir():
+                    continue
+                try:
+                    sec = SecurityManager(sess_dir, sess_dir.name)
+                    pending_gates += len(sec.get_pending_requests())
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    castle: dict[str, Any] = {}
+    # Container mounts: /data (repo data/), /app (repo root). Avoid host /root paths.
+    for path in (
+        Path(settings.data_dir) / "castle_map.json",
+        Path("/data/castle_map.json"),
+        Path("/app/data/castle_map.json"),
+        Path("/app/dashboard/data/castle_map.json"),
+    ):
+        try:
+            if path.exists():
+                castle = json.loads(path.read_text(encoding="utf-8"))
+                break
+        except Exception:
+            continue
+
+    payload = {
+        "theme": "ravenstack-fortress",
+        "title": "Ravenstack Fortress",
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "rooms": rooms,
+        "default_homes": default_homes,
+        "county_queue": {
+            "status": queue.get("queue_status") or queue.get("status"),
+            "cursor": queue.get("cursor"),
+            "remaining": queue.get("remaining"),
+            # Always a string for UI consumers (never nest the full review object)
+            "pending_review": (
+                (queue.get("pending_review") or {}).get("county")
+                if isinstance(queue.get("pending_review"), dict)
+                else (queue.get("pending_review") or queue.get("county"))
+            ),
+            "error": queue.get("error"),
+        },
+        "pending_gates": pending_gates,
+        "castle_map_rooms": [
+            {
+                "id": r.get("id"),
+                "name": r.get("name"),
+                "status": (r.get("agent") or {}).get("status"),
+            }
+            for r in (castle.get("rooms") or [])
+        ],
+        "office_url": "http://100.108.130.82:3000",
+        "command_center_url": "http://100.108.130.82:8081",
+    }
+    # Persist for token-free offline readers (container /data or host-mapped)
+    for out in (Path(settings.data_dir) / "fortress_state.json", Path("/data/fortress_state.json")):
+        try:
+            out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            break
+        except Exception:
+            continue
+    return payload
+
+
 @app.get("/capabilities")
 def list_capabilities():
     """What the swarm can do and their risk levels (for UI / Discord bot / docs)."""
