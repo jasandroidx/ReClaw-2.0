@@ -1,113 +1,80 @@
 services:
+  openclaw-gateway:
+    container_name: openclaw-gateway
+    env_file:
+    - .env
+    environment:
+    - OPENCLAW_ALLOW_OLDER_BINARY_DESTRUCTIVE_ACTIONS=1
+    # Pin past 2026.6.11 — that build has a known
+    # "reply session initialization conflicted" race (fixed in 2026.7.1+).
+    # Do not float :latest until tested; Windows/Control UI share agent:main:main.
+    image: ghcr.io/openclaw/openclaw:2026.7.1
+    extra_hosts:
+    # Reach host MCP (reclaw-platform :8100) from inside the gateway container.
+    - host.docker.internal:host-gateway
+    ports:
+    # Control UI + gateway WS on 18789 only.
+    # Do NOT publish 3000 here — host :3000 is ravenstack-fortress (Vite).
+    - 18789:18789
+    restart: unless-stopped
+    user: 1000:1000
+    volumes:
+    - ./data:/data:rw
+    - ~/.openclaw:/home/node/.openclaw
   reclaw-api:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: reclaw:2.0
     container_name: reclaw-api
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    user: "1000:1000"
-    restart: unless-stopped
     env_file:
-      - .env
+    - .env
     environment:
-      - RECLAW_ENV=prod
-      - RECLAW_OBSIDIAN_VAULT_PATH=/vault
-      - RECLAW_KNOWLEDGE_PATH=/vault/Ravenstack
-    volumes:
-      - .:/app
-      - ./data:/data:rw
-      - ./outputs:/app/outputs:rw
-      - /root/obsidian_vault:/vault:rw
-    ports:
-      - "8000:8000"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    - RECLAW_ENV=prod
+    - RECLAW_OBSIDIAN_VAULT_PATH=/vault
+    - RECLAW_KNOWLEDGE_PATH=/vault/Ravenstack
+    extra_hosts:
+    - host.docker.internal:host-gateway
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 5s
       retries: 3
       start_period: 10s
-
-  reclaw-dashboard:
-    image: python:3.12-slim
-    container_name: reclaw-dashboard
-    restart: unless-stopped
-    working_dir: /app
-    command: python3 -m http.server 8080 --directory dashboard
-    volumes:
-      - .:/app:ro
-    ports:
-      - "8081:8080"
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/')"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
-  openclaw-gateway:
-    image: ghcr.io/openclaw/openclaw:latest
-    container_name: openclaw-gateway
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
-      - OPENCLAW_SUPERVISOR_MODE=external
-      - OPENCLAW_SERVICE_REPAIR_POLICY=external
-      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
-      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
-      - LOCAL_CODER_API_KEY=${LOCAL_CODER_API_KEY:-local-coder}
-      # Ollama chat API (tags/models). Coder GGUF stays on :8080 separately if needed.
-      - OLLAMA_HOST=http://127.0.0.1:11434
-      - OLLAMA_API_BASE=http://127.0.0.1:11434
-      - XAI_API_KEY=${XAI_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - HOME=/home/node
-    volumes:
-      - /root/.openclaw:/home/node/.openclaw
-      # Host Tailscale CLI + daemon socket (Serve is host-managed; mounts for ops/debug).
-      - /usr/bin/tailscale:/usr/bin/tailscale:ro
-      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock
-    # Shared netns: gateway + host Tailscale (no Docker NAT). Required for Serve→loopback.
-    network_mode: host
-    # Dual path (PDANet-safe):
-    #   1) PRIMARY  — Tailscale Serve → wss://openclaw.tail20a090.ts.net
-    #   2) FALLBACK — bind lan → :18789 on all ifaces incl. 100.108.130.82 (tailnet TCP)
-    # Serve still proxies to 127.0.0.1:18789 (lan bind includes loopback).
-    # Host multi-path: bash scripts/ensure-tailscale-mcp-funnel.sh
-    command:
-      [
-        "node",
-        "dist/index.js",
-        "gateway",
-        "--bind",
-        "lan",
-        "--port",
-        "18789",
-        "--allow-unconfigured",
-      ]
-    healthcheck:
       test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:18789/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
-      interval: 30s
+      - CMD
+      - curl
+      - -f
+      - http://localhost:8000/health
       timeout: 5s
-      retries: 3
-      start_period: 20s
+    image: reclaw:2.0
     logging:
       driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-file: '3'
+        max-size: 10m
+    ports:
+    - 8000:8000
+    restart: unless-stopped
+    user: 1000:1000
+    volumes:
+    - .:/app
+    - ./data:/data:rw
+    - ./outputs:/app/outputs:rw
+    - /root/obsidian_vault:/vault:rw
+  reclaw-dashboard:
+    command: python3 -m http.server 8080 --directory dashboard
+    container_name: reclaw-dashboard
+    healthcheck:
+      interval: 30s
+      retries: 3
+      test:
+      - CMD
+      - python3
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:8080/')
+      timeout: 5s
+    image: python:3.12-slim
+    ports:
+    - 8081:8080
+    restart: unless-stopped
+    volumes:
+    - .:/app:ro
+    working_dir: /app
