@@ -147,8 +147,11 @@ def list_recent_sessions(limit: int = 5) -> str:
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions dir"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-    return "\n".join(d.name for d in dirs[:limit])
+    # ⚡ Bolt Optimization: Use os.scandir() instead of iterdir().stat()
+    # Prevents O(N) stat() syscalls by reading cached st_mtime from DirEntry.
+    entries = [e for e in os.scandir(sessions) if e.is_dir()]
+    entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+    return "\n".join(e.name for e in entries[:limit])
 
 
 @mcp.tool()
