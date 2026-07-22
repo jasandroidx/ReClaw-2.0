@@ -1,108 +1,103 @@
 ---
 name: ravenstack-sitrep
 description: >
-  FULL live ReClaw/Ravenstack project status analysis via MCP connector: Docker,
-  Tailscale, OpenClaw gateway, ReClaw API, MCP bridge/tunnel, Ollama, fortress
-  dashboard, county queue, sessions, packages, git (repo+vault), GitHub, Obsidian
-  knowledge, RAG, gaps, and next actions. Use when the user says
-  "use ravenstack-sitrep", /ravenstack-sitrep, sitrep, full project status,
-  fortress status, stack status, full analyze, or "status update on ReClaw".
+  Use when the user wants live Fortress status: sitrep, fortress sitrep,
+  fortress status, stack status, full project status, full analyze, morning
+  check, "is everything ok", /ravenstack-sitrep, or ravenstack-sitrep. Covers
+  Docker, Tailscale, OpenClaw, ReClaw API, MCP, Ollama, queue, git, vault, gaps.
 ---
 
-# Ravenstack Sitrep — Full Project Live Status
+# Fortress Sitrep — full live status
 
-When this skill is invoked you run a **complete live audit of the entire ReClaw / Ravenstack fortress**. Not a partial health ping. Cover every layer below. Prefer MCP. Never invent status.
+**Core principle:** Always probe live. Never invent health. **Fortress** = entire stack (OpenClaw + ReClaw + repo + Ravenstack + Docker + Tailscale + MCP + nodes) — not OpenClaw alone.
+
+**REQUIRED:** Call tools **this turn**. Prior sitrep text is not truth.
+
+## When to use / when not
+
+| Use | Not this skill |
+|-----|----------------|
+| Status, sitrep, “what’s broken?”, morning check | **Fix/wire/deploy** → skill `openclaw-mechanic` |
+| Full fortress audit before a big decision | **County flags/scripts** → `county-audit` |
+| User says fortress status / stack status | Mutations (approve queue, restart) unless they ask after |
 
 ## Non-negotiables
 
-1. **Always live** — call tools now; never reuse prior sitrep text as truth.
-2. **MCP first** — `reclaw-platform__*` preferred (fallback `ravenstack__*`). Shell only if MCP down.
-3. **One-shot full pass** — call `project_sitrep` first (covers everything). For SuperGrok morning brief, prefer `morning_digest`. Supplement if any section is thin.
-4. **Distill for chat** — structured report from live data; no multi-KB raw dumps. Facts only.
-5. **No mutations** — no ingest, reload, pipeline run, approve, or write unless user explicitly asks after the sitrep.
-6. **Gaps are mandatory** — every missing/degraded layer goes in Blockers & gaps with severity.
+1. **Always live** — call tools now.
+2. **MCP first** — `reclaw-platform__*` (fallback `ravenstack__*`). Shell only if MCP down.
+3. **One-shot full pass** — `project_sitrep` first (or `morning_digest` for SuperGrok brief). Fill holes only if thin/failed.
+4. **Show the report** — tool markdown is the answer; light rephrase only.
+5. **No mutations** — no pipeline run, approve, ingest, or write unless user asks after.
+6. **Gaps mandatory** — every degraded layer in blockers with severity.
+7. **Secrets** — never print gateway tokens or API keys.
 
-## Procedure (mandatory)
+## Procedure
 
-### Step A — Primary (always)
+### A — Primary (always)
 
 ```
 reclaw-platform__project_sitrep
 ```
+
 (or `ravenstack__project_sitrep` / `sitrep`)
 
-**The tool returns a full plain-English markdown report** (all 16 sections already written).  
-In chat: **show that report to the user**. Do not invent status; light rephrase only if needed.
+### B — Fill holes (only if A failed / empty)
 
-### Step B — Fill holes (parallel if needed)
-
-Only if Step A failed or a section is empty/error:
-
-| Layer | Tool / action |
-|-------|----------------|
-| Stack shell snapshot | `stack_health` |
-| Docker only | `docker_status` |
+| Layer | Tool |
+|-------|------|
+| Stack | `stack_health` |
+| Docker | `docker_status` |
 | OpenClaw | `openclaw_health` |
+| MCP | `connector_status` |
 | Pipeline | `pipeline_status` |
-| Session deep | `inspect_session` (empty = latest) |
-| Repo dirty | `git_status` |
-| Knowledge list | `list_knowledge_topics` |
-| ORACLE | `read_oracle` section `MCP Connector` |
-| RAG | `query_knowledge` query `MCP connector blockers` |
-| Vault file | `read_vault_file` `Rural Data/_latest.md` |
+| Session | `inspect_session` (empty id = latest) |
+| Git | `git_status` / `git_vault_status` |
+| Models | `openclaw_models` |
 
-### Step C — Shell fallback (only if MCP unavailable)
+### C — Shell fallback (MCP down only)
 
 ```bash
 cd /root/ReClaw-2.0
 ./scripts/post-deploy-healthcheck.sh
 docker compose ps
-tailscale serve status; tailscale ip -4
+tailscale status | head
 systemctl is-active reclaw-mcp-bridge reclaw-mcp-tunnel
-git -C /root/ReClaw-2.0 status -sb
-git -C /root/obsidian_vault status -sb
-gh repo view jasandroidx/ReClaw-2.0 --json name,updatedAt,url 2>/dev/null
-curl -sf http://127.0.0.1:8000/health; curl -sf http://127.0.0.1:18789/health
-curl -sf http://127.0.0.1:8000/county-queue/status | head -c 800
+curl -sf http://127.0.0.1:8000/health
+curl -sf http://127.0.0.1:18789/health || true
 ```
 
-Mark sitrep **DEGRADED (shell fallback)**.
+Mark report **DEGRADED (shell fallback)**.
 
-## Output (mandatory)
+## Output
 
-1. Call `project_sitrep` (or `sitrep`).
-2. **Present the tool result as the answer** — it is already plain English with sections 1–16.
-3. Only if the tool failed: use Step B/C and then fill the same section list yourself.
+1. Call `project_sitrep`.
+2. Present tool result (plain English sections).
+3. If tool failed: B/C then same coverage yourself.
+4. End with **top blockers + one next action** if not already clear.
 
-### Distill rules
-
-- Prefer the tool’s markdown as-is.
-- Secrets: never print gateway tokens or API keys.
-- No mutations after sitrep unless the user asks.
-
-## Chat triggers (seamless)
+## Triggers
 
 | User says | You do |
 |-----------|--------|
-| use ravenstack-sitrep | Full template from `project_sitrep` |
+| sitrep / fortress sitrep / fortress status | Full `project_sitrep` |
 | /ravenstack-sitrep | same |
-| full project status / fortress status / sitrep | same |
-| use ravenstack connector to project_sitrep | Call tool; still render full template |
-| use ravenstack connector to stack_health | Health only unless they asked for full sitrep |
+| stack status / full analyze / is everything ok | same |
+| just API/docker health | `stack_health` or `docker_status` only if they scoped it |
 
 ## After sitrep (only if asked)
 
-| Ask | Tool |
-|-----|------|
+| Ask | Action |
+|-----|--------|
 | Save to vault | `save_ravenstack_note` source=`sitrep` |
-| Reload | `reload_ritual` / `python -m core.cell` |
-| Run pipeline | explicit user command only |
-| Approve county queue | explicit human gate only |
+| Fix what’s broken | Hand off to **`openclaw-mechanic`** (or run mechanic procedure) |
+| Put report in outbox | Write under `/root/outbox` → `http://100.108.130.82:8765/` |
+| Approve queue / run pipeline | Explicit human intent only |
 
-## Anti-patterns
+## Anti-patterns / red flags
 
 - Partial “API is fine” without Docker/Tailscale/MCP/queue/git/vault
-- Treating skill text as live status
-- Dumping raw multi-page JSON into chat (summarize `project_sitrep`)
+- Treating skill text or chat memory as live status
+- Dumping raw multi-page JSON
 - Auto-running pipeline or writes
-- Skipping gaps when queue is `awaiting_approval`
+- Skipping gaps when queue is `awaiting_approval` or tunnel inactive
+- Claiming models/primary without probe

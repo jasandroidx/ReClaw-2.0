@@ -12,6 +12,25 @@
   - `/root/obsidian_vault/Ravenstack/`
 - Prefer using the custom FastMCP server (`reclaw-platform` on port 8100) for file operations on the vault instead of raw terminal commands when practical.
 
+
+
+
+## Delivery rules (Jason)
+
+- Say **"outbox"** → `/root/outbox` + `http://100.108.130.82:8765/` only. No email unless asked.
+- Say **email** → then email.
+
+## Permanent outbox
+
+**URL:** http://100.108.130.82:8765/  
+**Host path:** `/root/outbox`  
+
+Drop operator-facing files here for browser access on the tailnet. Prefer this over ad-hoc paths when “send me a file I can open.”
+
+## Fortress (vocabulary — permanent)
+
+**Fortress** means the entire system: OpenClaw + ReClaw + this repo + Ravenstack/Obsidian + Docker + Tailscale + MCP + paired nodes. A **fortress sitrep** audits all of it (`ravenstack-sitrep` / `project_sitrep`). **OpenClaw Mechanic** (skill `openclaw-mechanic` (legacy `reclaw-build`)) fixes/builds/advises under that whole umbrella and should sitrep first when status is unclear.
+
 ## Architecture Overview
 - **Runtime**: OpenClaw running on Hetzner VPS (Docker + Tailscale)
 - **Main Agent**: Currently simplifying toward one strong, reliable main agent
@@ -34,7 +53,7 @@
    - Knowledge: `query_knowledge`, `read_oracle`, `read_vault_file`, `list_knowledge_topics`
    - Prefer MCP vault R/W over ad-hoc vault shell when practical
 2. **Project / Grok skills** when they match the work:
-   - Platform/ops: `reclaw-build`, `ravenstack-sitrep`, `county-audit`
+   - Platform/ops: `openclaw-mechanic` (legacy alias reclaw-build), `ravenstack-sitrep`, `county-audit`
    - Engineering: TDD, systematic-debugging, codebase-design, review, check-work, writing-plans
    - Docs/files: obsidian, firecrawl (search/scrape), github, etc.
 3. **OpenClaw plugins & CLI** for gateway/agent/channel work:
@@ -98,3 +117,5 @@ This rule overrides polish, speed, and ego. Evidence or admit the gap.
 - Guard: `reclaw-openclaw-guard.timer` + `scripts/ensure-single-openclaw.sh` every 5 min.
 - Never `openclaw gateway install` / `gateway run` on the Hetzner host.
 - See outbox: `openclaw-single-gateway-ONCE-AND-FOR-ALL.md`
+
+Also: **"send it to me" = permanent outbox** (not email).
