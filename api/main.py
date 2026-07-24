@@ -21,6 +21,7 @@ Core endpoints:
 
 from __future__ import annotations
 
+import os
 import asyncio
 import json
 from datetime import datetime
@@ -268,10 +269,15 @@ def get_job(job_id: str):
 @app.get("/jobs/latest")
 def latest_job():
     """Return metadata for the most recent run on disk."""
-    runs = sorted(settings.runs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    # ⚡ Bolt Optimization: Use os.scandir to cache stat() results and avoid redundant syscalls
+    try:
+        entries = [e for e in os.scandir(settings.runs_dir) if e.is_file() and e.name.endswith(".json")]
+    except FileNotFoundError:
+        entries = []
+    runs = sorted(entries, key=lambda e: e.stat().st_mtime, reverse=True)
     if not runs:
         return {"message": "No runs yet"}
-    latest_path = runs[0]
+    latest_path = Path(runs[0].path)
     try:
         data = json.loads(latest_path.read_text())
         # lightweight summary
@@ -292,7 +298,13 @@ def latest_job():
 def list_packages(limit: int = 20):
     """List recent completed packages from disk (lightweight index)."""
     items = []
-    for p in sorted(settings.runs_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+    # ⚡ Bolt Optimization: Use os.scandir to cache stat() results and avoid redundant syscalls
+    try:
+        entries = [e for e in os.scandir(settings.runs_dir) if e.is_file() and e.name.endswith(".json")]
+    except FileNotFoundError:
+        entries = []
+    for e in sorted(entries, key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+        p = Path(e.path)
         try:
             d = json.loads(p.read_text())
             items.append({
@@ -342,13 +354,15 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
+        # ⚡ Bolt Optimization: Use os.scandir to cache stat() results and avoid redundant syscalls
         sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
+            (e for e in os.scandir(sess_root) if e.is_dir()),
+            key=lambda e: e.stat().st_mtime,
             reverse=True,
         )[:5]
 
-        for sess_dir in sorted_sessions:
+        for sess_entry in sorted_sessions:
+            sess_dir = Path(sess_entry.path)
             recent_sessions.append({"session_id": sess_dir.name})
             try:
                 from core.security import SecurityManager
@@ -428,9 +442,10 @@ def list_sessions(limit: int = 20):
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    # ⚡ Bolt Optimization: Use os.scandir to cache stat() results and avoid redundant syscalls
+    for e in sorted(os.scandir(sess_root), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+        if e.is_dir():
+            items.append({"session_id": e.name, "path": e.path})
     return {"count": len(items), "sessions": items}
 
 
