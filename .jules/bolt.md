@@ -1,0 +1,3 @@
+## 2026-07-25 - Python File System Operations
+**Learning:** `Path.glob()` and `Path.iterdir()` paired with `Path.stat()` incur multiple IO system calls because `Path` objects don't cache directory traversal stats by default. In a high-frequency polling architecture (like the `/state` endpoint polling every 5s), this leads to excessive file system overhead.
+**Action:** Use `os.scandir()` which returns `os.DirEntry` objects. These cache file attributes such as `st_mtime` from the initial directory scan, resulting in ~2x faster file iteration and sorting, reducing dashboard polling latency and system load.

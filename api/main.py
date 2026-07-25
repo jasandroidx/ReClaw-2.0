@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -268,12 +269,22 @@ def get_job(job_id: str):
 @app.get("/jobs/latest")
 def latest_job():
     """Return metadata for the most recent run on disk."""
-    runs = sorted(settings.runs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    entries = []
+    try:
+        with os.scandir(settings.runs_dir) as it:
+            for entry in it:
+                if entry.is_file() and entry.name.endswith(".json"):
+                    entries.append(entry)
+    except FileNotFoundError:
+        pass
+
+    runs = sorted(entries, key=lambda e: e.stat().st_mtime, reverse=True)
     if not runs:
         return {"message": "No runs yet"}
-    latest_path = runs[0]
+    latest_entry = runs[0]
     try:
-        data = json.loads(latest_path.read_text())
+        with open(latest_entry.path, "r", encoding="utf-8") as f:
+            data = json.loads(f.read())
         # lightweight summary
         return {
             "package_id": data.get("id"),
@@ -282,19 +293,29 @@ def latest_job():
             "generated_at": data.get("generated_at"),
             "risk_score": data.get("analysis", {}).get("overall_risk_score"),
             "obsidian_filename": data.get("obsidian_filename"),
-            "artifact_path": str(latest_path),
+            "artifact_path": latest_entry.path,
         }
     except Exception:
-        return {"artifact_path": str(latest_path), "error": "could not parse"}
+        return {"artifact_path": latest_entry.path, "error": "could not parse"}
 
 
 @app.get("/packages")
 def list_packages(limit: int = 20):
     """List recent completed packages from disk (lightweight index)."""
     items = []
-    for p in sorted(settings.runs_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+    entries = []
+    try:
+        with os.scandir(settings.runs_dir) as it:
+            for entry in it:
+                if entry.is_file() and entry.name.endswith(".json"):
+                    entries.append(entry)
+    except FileNotFoundError:
+        pass
+
+    for e in sorted(entries, key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
         try:
-            d = json.loads(p.read_text())
+            with open(e.path, "r", encoding="utf-8") as f:
+                d = json.loads(f.read())
             items.append({
                 "id": d.get("id"),
                 "county": d.get("county"),
@@ -341,25 +362,33 @@ def get_state():
     recent_sessions = []
     pending_approvals: list[dict] = []
 
-    if sess_root.exists():
+    try:
+        entries = []
+        with os.scandir(sess_root) as it:
+            for entry in it:
+                if entry.is_dir():
+                    entries.append(entry)
+
         sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
+            entries,
+            key=lambda e: e.stat().st_mtime,
             reverse=True,
         )[:5]
 
-        for sess_dir in sorted_sessions:
-            recent_sessions.append({"session_id": sess_dir.name})
+        for sess_entry in sorted_sessions:
+            recent_sessions.append({"session_id": sess_entry.name})
             try:
                 from core.security import SecurityManager
-                sec = SecurityManager(sess_dir, sess_dir.name)
+                sec = SecurityManager(Path(sess_entry.path), sess_entry.name)
                 for req in sec.get_pending_requests():
                     pending_approvals.append({
-                        "session_id": sess_dir.name,
+                        "session_id": sess_entry.name,
                         **req.model_dump(),
                     })
             except Exception:
                 pass
+    except FileNotFoundError:
+        pass
 
     return {
         "generated_at": datetime.utcnow().isoformat() + "Z",
@@ -425,12 +454,18 @@ def list_approvals(session_id: str):
 def list_sessions(limit: int = 20):
     """List recent isolated sessions (audit trail)."""
     sess_root = settings.data_dir / "sessions"
-    if not sess_root.exists():
-        return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    entries = []
+    try:
+        with os.scandir(sess_root) as it:
+            for entry in it:
+                if entry.is_dir():
+                    entries.append(entry)
+    except FileNotFoundError:
+        return {"sessions": []}
+
+    for e in sorted(entries, key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+        items.append({"session_id": e.name, "path": e.path})
     return {"count": len(items), "sessions": items}
 
 
