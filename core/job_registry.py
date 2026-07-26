@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -74,15 +75,25 @@ class JobRegistry:
 
     def list(self, limit: int = 20) -> list[dict[str, Any]]:
         """Return up to `limit` most-recently-modified job records."""
+        # Optimization: os.scandir caches stat results (like st_mtime) on most platforms,
+        # avoiding N+1 syscalls that pathlib.Path.glob().stat() would cause.
+        entries = []
+        if self._dir.exists():
+            with os.scandir(self._dir) as it:
+                for entry in it:
+                    if entry.is_file() and entry.name.endswith(".status.json"):
+                        entries.append(entry)
+
         status_files = sorted(
-            self._dir.glob("*.status.json"),
-            key=lambda p: p.stat().st_mtime,
+            entries,
+            key=lambda e: e.stat().st_mtime,
             reverse=True,
         )
         results = []
-        for p in status_files[:limit]:
+        for e in status_files[:limit]:
             try:
-                data = json.loads(p.read_text())
+                with open(e.path, "r", encoding="utf-8") as f:
+                    data = json.loads(f.read())
                 results.append(data)
             except Exception:
                 continue
