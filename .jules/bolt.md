@@ -1,0 +1,3 @@
+## 2024-10-24 - `os.scandir()` vs `pathlib.Path.glob()` performance
+**Learning:** `pathlib.Path.glob()` can be significantly slower than `os.scandir()` when iterating over directories because `glob` returns `Path` objects, which often requires an additional `stat()` syscall per file to access metadata like `st_mtime`. `os.scandir()` returns `DirEntry` objects, which cache file attributes (like `st_mtime`) on most platforms (Windows/Linux), avoiding N+1 syscall overhead.
+**Action:** When filtering or sorting a large number of files by modified time (`st_mtime`) or size, prefer using `os.scandir()` and accessing `entry.stat()` over using `pathlib.Path.glob()` followed by `path.stat()`.
