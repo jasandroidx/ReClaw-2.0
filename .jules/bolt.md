@@ -1,0 +1,3 @@
+## 2026-07-27 - File Iteration Performance
+**Learning:** In a project that processes many files and sessions (like ReClaw Gateway), using `pathlib.Path.iterdir()` for listing directories combined with `p.stat()` is significantly slower than using `os.scandir()`. `os.scandir()` caches the file attributes like `st_mtime` from the directory read, avoiding additional slow system calls.
+**Action:** When iterating over large or frequently accessed directories where file attributes (like modified time or type) are needed, use `os.scandir()` over `pathlib.Path.iterdir()` to leverage cached stat results.

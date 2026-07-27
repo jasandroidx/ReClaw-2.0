@@ -11,6 +11,7 @@ DOGEGPT zip (e.g. DOGEGPT-20260615T020114Z-3-001.zip):
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import zipfile
 from datetime import datetime, timezone
@@ -45,9 +46,13 @@ def scan_inbox(*, copy: bool = True) -> dict:
     known = {f.get("name") for f in manifest.get("files", [])}
     new_count = 0
 
-    for path in sorted(INBOX.iterdir()):
-        if path.name.startswith(".") or path.name in ("manifest.json", "extracted"):
+    # ⚡ Bolt: Use os.scandir() instead of Path.iterdir() for faster directory listing and cached stat() calls
+    for entry in sorted(os.scandir(INBOX), key=lambda e: e.name):
+        path_name = entry.name
+        if path_name.startswith(".") or path_name in ("manifest.json", "extracted"):
             continue
+        # We need the full path for path.suffix below, but entry doesn't have suffix directly
+        path = INBOX / path_name
         if path.suffix.lower() not in SUPPORTED_SUFFIXES:
             continue
 
