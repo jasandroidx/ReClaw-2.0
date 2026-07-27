@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -342,13 +343,15 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
+        # ⚡ Bolt: Use os.scandir() instead of Path.iterdir() for faster directory listing and cached stat() calls
         sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
+            (entry for entry in os.scandir(sess_root) if entry.is_dir()),
+            key=lambda entry: entry.stat().st_mtime,
             reverse=True,
         )[:5]
 
-        for sess_dir in sorted_sessions:
+        for entry in sorted_sessions:
+            sess_dir = Path(entry.path)
             recent_sessions.append({"session_id": sess_dir.name})
             try:
                 from core.security import SecurityManager
@@ -428,9 +431,10 @@ def list_sessions(limit: int = 20):
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    # ⚡ Bolt: Use os.scandir() instead of Path.iterdir() for faster directory listing and cached stat() calls
+    for entry in sorted(os.scandir(sess_root), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+        if entry.is_dir():
+            items.append({"session_id": entry.name, "path": entry.path})
     return {"count": len(items), "sessions": items}
 
 

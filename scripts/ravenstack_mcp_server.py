@@ -147,7 +147,8 @@ def list_recent_sessions(limit: int = 5) -> str:
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions dir"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    # ⚡ Bolt: Use os.scandir() instead of Path.iterdir() for faster directory listing and cached stat() calls
+    dirs = sorted((entry for entry in os.scandir(sessions) if entry.is_dir()), key=lambda e: e.stat().st_mtime, reverse=True)
     return "\n".join(d.name for d in dirs[:limit])
 
 
