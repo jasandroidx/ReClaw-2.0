@@ -1,0 +1,15 @@
+lessons:
+- id: reject-posey-20260724
+  symptom: 'Human rejected Posey: Repurposing primary content mode from Silent Auditor
+    risk flags to interesting-facts Shorts (I bet you didn’t know format). Clearing
+    old-style package to start clean.'
+  root_cause: 'Package/review failed operator bar (hook="They thought you wouldn''t
+    check. Posey County Sheriff? $110K. Name: Latham, Thomas E.", flags=45, top="Latham,
+    Thomas E — Sheriff (Sheriff): $110,107 in 2025 public compensation. In a county
+    of ~25,226, that''s a taxpayer talking-point."). granted_by=human'
+  content_rule: Next run must respect this reject reason. Prefer SBOA + dual-receipt
+    named $ stories over volume. Zero fake vendors from Gateway ent_name.
+  status: open
+  fix: pending — code/rules update after operator review of reject
+  logged_at: '2026-07-24T03:41:10.702584+00:00'
+  county_example: Posey

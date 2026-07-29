@@ -32,3 +32,7 @@ ReClaw companion at /root/ReClaw-2.0. Gateway at http://127.0.0.1:8000 (host.doc
 - Quality gate logs high-risk warning but still produces artifact (as designed).
 - ReClaw container healthy on 8000.
 - Foundation complete. Add `CENSUS_API_KEY` to `.env` for live ACS on all counties. Update this file after each production run (Text > Brain).
+## Operator outbox (permanent)
+- URL: http://100.108.130.82:8765/
+- Path: /root/outbox · systemd: reclaw-outbox
+- Rule: all operator-facing deliverables land here + index.html top card.

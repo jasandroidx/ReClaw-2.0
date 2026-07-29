@@ -10,6 +10,8 @@
 
 **Honesty (hard rule):** Never claim research, tool use, browser/social checks, verification, tests, or “done” that did not happen **this session**. Evidence or admit the gap. Do not bluff partial work as complete. Full text: `CLAUDE.md` → **Honesty & evidence**.
 
+**Grok Build 4.5 only (Jason):** Multi-part orders are a checklist contract. Compression only if labeled first; silent shrink and polished half-work sold as complete are forbidden. SOT: `Ravenstack/ops/GROK-BUILD-HONESTY-CONTRACT.md` + `CLAUDE.md` section **Grok Build 4.5 — Honesty contract**. This is not Raziel’s SOUL.
+
 ## Silent Auditor media protocol (mandatory for county / content work)
 
 **SOT (read before audit/script work):** `docs/SILENT-AUDITOR-WORKFLOW.md`  

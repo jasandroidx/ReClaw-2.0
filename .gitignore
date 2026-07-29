@@ -50,3 +50,14 @@ data/mcp_public_url.txt
 data/mcp_tunnel_host.txt
 outputs/
 .aider*
+
+# Runtime / local ops noise (do not commit)
+data/backups/
+data/memory/*.db
+data/fortress_state.json
+data/mcp_public_url.txt
+data/mcp_tunnel_host.txt
+*.bak
+*.bak-*
+docker-compose.yml.bak*
+.grok/skills/**/*.bak*
