@@ -17,15 +17,30 @@
 
 ## Delivery rules (Jason)
 
-- Say **"outbox"** → `/root/outbox` + `http://100.108.130.82:8765/` only. No email unless asked.
+- Say **"outbox"** / **"send me the document"** / **"put it where I can open it"** → permanent web outbox only. No email unless asked.
 - Say **email** → then email.
 
-## Permanent outbox
+## Permanent outbox (hard rule — agents keep forgetting this)
 
 **URL:** http://100.108.130.82:8765/  
 **Host path:** `/root/outbox`  
+**Home page:** `/root/outbox/index.html` (curated — **not** an auto file list)
 
-Drop operator-facing files here for browser access on the tailnet. Prefer this over ad-hoc paths when “send me a file I can open.”
+**Writing a file into `/root/outbox` alone is NOT delivery.** Jason opens `index.html`. Unlinked files look “missing.”
+
+**Always:**
+
+```bash
+# after writing /root/outbox/YOUR-FILE.md
+outbox-publish /root/outbox/YOUR-FILE.md --title "Human label"
+```
+
+Then reply with **both** home + direct URLs:
+
+- http://100.108.130.82:8765/
+- http://100.108.130.82:8765/YOUR-FILE.md
+
+SOT: `data/PERMANENT-OUTBOX-MEMORY.md` · `/root/outbox/PERMANENT-OUTBOX-MEMORY.md` · vault `Ravenstack/ops/OUTBOX.md`
 
 ## Fortress (vocabulary — permanent)
 

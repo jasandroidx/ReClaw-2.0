@@ -32,7 +32,9 @@ ReClaw companion at /root/ReClaw-2.0. Gateway at http://127.0.0.1:8000 (host.doc
 - Quality gate logs high-risk warning but still produces artifact (as designed).
 - ReClaw container healthy on 8000.
 - Foundation complete. Add `CENSUS_API_KEY` to `.env` for live ACS on all counties. Update this file after each production run (Text > Brain).
-## Operator outbox (permanent)
+## Operator outbox (permanent) — 2026-07-29 hardened
 - URL: http://100.108.130.82:8765/
-- Path: /root/outbox · systemd: reclaw-outbox
-- Rule: all operator-facing deliverables land here + index.html top card.
+- Path: /root/outbox · systemd: reclaw-outbox · helper: **`outbox-publish`**
+- **Lesson:** file on disk ≠ visible. Jason uses curated `index.html`. Unlinked files look missing even when direct URL works.
+- **Rule:** write file → `outbox-publish /root/outbox/FILE --title "…"` → give home + direct URLs.
+- SOT: `data/PERMANENT-OUTBOX-MEMORY.md`

@@ -25,6 +25,9 @@ services:
     - ~/.openclaw:/home/node/.openclaw
     # Persist wigolo cache/models/browser engine (uid 1000).
     - /root/.wigolo:/home/node/.wigolo
+    # Permanent outbox (host /root/outbox → container path agents can write).
+    # Host path /root is 0700 and not traversable by uid 1000, so mount under /home/node.
+    - /root/outbox:/home/node/outbox:rw
   reclaw-api:
     build:
       context: .
