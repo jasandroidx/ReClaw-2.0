@@ -1,0 +1,3 @@
+FROZEN=true
+REASON=Operator hard stop 2026-08-01: no automatic rural data / county audits / Pike packages
+STOPPED=reclaw-daily-pike units moved to /etc/systemd/system/disabled-by-operator/

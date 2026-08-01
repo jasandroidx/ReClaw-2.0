@@ -143,7 +143,7 @@ def build_brief() -> str:
         _docker() or "(no output)",
         "```",
         "",
-        "## County queue",
+        "## County queue\n- **HARD STOP 2026-08-01:** automatic rural packages OFF — do not suggest audits\n\n## County queue",
         f"- {_queue_snippet()}",
         "- **FROZEN policy:** do not run-next unless Jason unfreezes",
         "",
