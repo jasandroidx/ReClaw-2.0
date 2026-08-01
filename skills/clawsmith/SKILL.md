@@ -1,6 +1,6 @@
 ---
 name: clawsmith
-description: Meta-compiler blacksmith that forges complete OpenClaw project rooms, skills, AGENTS.md, vault structures, and deploy scripts from a plain-English business goal. Decides agent count (single vs multi/sub-agents), enforces sandbox/pending_approval gates, generates castle_map.json for visual UI. Use for "forge a room", "create project room for SEO", "bootstrap visual office", or "Clawforge a new automation".
+description: "Forge OpenClaw project rooms, skills, vault layout from a business goal."
 requires_env: ["OPENAI_API_KEY", "ANTHROPIC_API_KEY"]
 requires_bins: ["python3", "openclaw"]
 user-invocable: true

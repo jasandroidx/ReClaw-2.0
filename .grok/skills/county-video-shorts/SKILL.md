@@ -1,13 +1,6 @@
 ---
 name: county-video-shorts
-description: >
-  Build viral Indiana-county YouTube Shorts / TikTok packages: surprising local
-  history cold-open + verified public-money kicker, primary sources only, ready
-  for faceless TTS render. Use when the user says county video, county shorts,
-  interesting county facts, money kicker, review card package, viral county
-  short, "I bet you didn't know" Indiana county, Form 100R + history package,
-  or runs /county-video-shorts. Prefer this over silent-auditor flag-mills for
-  shareable short-form content.
+description: "County short-form video packages from verified public sources only."
 ---
 
 # County Video Shorts — Viral Indiana County Package

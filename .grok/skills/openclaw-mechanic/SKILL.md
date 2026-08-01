@@ -1,11 +1,6 @@
 ---
 name: openclaw-mechanic
-description: >
-  Use when fixing, deploying, wiring, upgrading, or advising on the Fortress
-  (OpenClaw, ReClaw, Ravenstack, Docker, Tailscale, MCP, openclaw.json, models,
-  devices/nodes, auth profiles, gateway health). Triggers: mechanic, openclaw
-  mechanic, something broken, wire OpenRouter, approve device, restart gateway,
-  /openclaw-mechanic, /reclaw-build. Not for sitrep-only or county content mill.
+description: "Fix, deploy, wire, upgrade Fortress (OpenClaw/ReClaw/Docker/MCP)."
 ---
 
 # OpenClaw Mechanic — Fortress operator

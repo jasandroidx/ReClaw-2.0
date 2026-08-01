@@ -1,10 +1,6 @@
 ---
 name: ravenstack-sitrep
-description: >
-  Use when the user wants live Fortress status: sitrep, fortress sitrep,
-  fortress status, stack status, full project status, full analyze, morning
-  check, "is everything ok", /ravenstack-sitrep, or ravenstack-sitrep. Covers
-  Docker, Tailscale, OpenClaw, ReClaw API, MCP, Ollama, queue, git, vault, gaps.
+description: "Live Fortress status: sitrep, stack health, queue, morning check."
 ---
 
 # Fortress Sitrep — full live status

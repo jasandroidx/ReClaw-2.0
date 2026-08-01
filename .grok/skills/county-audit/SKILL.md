@@ -1,10 +1,6 @@
 ---
 name: county-audit
-description: >
-  Indiana county faceless-auditor workflow: Gateway truth, Firecrawl discovery,
-  red-flag engine, Obsidian review cards, human approval. Use for county queue
-  runs, audit tool discovery, SBOA ingest, detector implementation, Spencer/Vanderburgh
-  packages, or "muni audit" / "red flag" / "watchdog video" tasks on ReClaw.
+description: "Indiana county auditor workflow with human approval gates (frozen auto)."
 ---
 
 # County Audit — MuniAudit Workflow

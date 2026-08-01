@@ -1,9 +1,6 @@
 ---
 name: reclaw-build
-description: >
-  Use when the user says reclaw-build or /reclaw-build for Fortress ops. Legacy
-  name — load and follow openclaw-mechanic instead (same job: fix, deploy, wire,
-  upgrade, advise on OpenClaw/ReClaw/Ravenstack).
+description: "Legacy name for openclaw-mechanic: fix/deploy/wire Fortress stack."
 ---
 
 # reclaw-build (legacy → OpenClaw Mechanic)

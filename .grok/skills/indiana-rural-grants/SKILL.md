@@ -1,12 +1,6 @@
 ---
 name: indiana-rural-grants
-description: |
-  Research and draft Indiana-relevant rural agriculture grant shortlists
-  (beekeeping, greenhouse, specialty crops, conservation, small farm).
-  Uses Grants.gov search2 (no API key) + ISDA program pages + Firecrawl for NOFOs.
-  Triggers: grant digest, rural grants, SCBG, RFSI, REAP, beekeeping grant,
-  greenhouse funding, Indiana farm grant, Grant Hall, Scribe Warden.
-  Never auto-applies. Human gate before email/send/portal submit.
+description: "Indiana rural ag grant shortlists via Grants.gov + ISDA (no auto-run)."
 ---
 
 # Indiana rural grants
