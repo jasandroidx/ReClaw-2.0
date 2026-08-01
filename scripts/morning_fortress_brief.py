@@ -97,6 +97,24 @@ def _queue_snippet() -> str:
     return "queue status file not found (check MCP sitrep later)"
 
 
+
+def _linux_node_line() -> str:
+    out = _sh(
+        "docker exec openclaw-gateway openclaw nodes status 2>/dev/null | "
+        "rg -i 'boydscomp|Linux PC|Connected' | head -8"
+    )
+    if not out or out.startswith("error:"):
+        return "Linux PC node: probe failed"
+    low = out.lower()
+    if "boydscomp" in low or "linux pc" in low:
+        if "disconnected" in low and "connected" not in low.replace("disconnected", ""):
+            return "Linux PC (boydscomp): paired but check connection"
+        if "connected" in low:
+            return "Linux PC (boydscomp): connected (see nodes status)"
+        return "Linux PC (boydscomp): listed (verify connected)"
+    return "Linux PC (boydscomp): not seen in nodes status"
+
+
 def build_brief() -> str:
     now = datetime.now(TZ)
     utc = datetime.now(timezone.utc)
@@ -137,6 +155,7 @@ def build_brief() -> str:
         f"| OpenClaw gateway :18789 | {ok(oc)} |",
         f"| MCP :8100 | {ok(mcp)} |",
         f"| Ollama | {ok(ollama)} · models={ollama_n} |",
+        f"| Linux PC node | {_linux_node_line()} |",
         "",
         "## Docker",
         "```",
