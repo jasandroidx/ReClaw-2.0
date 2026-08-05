@@ -1456,3 +1456,71 @@ if __name__ == "__main__":
     if transport not in ("stdio", "sse", "streamable-http"):
         transport = "stdio"
     mcp.run(transport=transport)  # type: ignore[arg-type]
+# --- Spatial Dashboard State Tools ---
+@mcp.tool()
+def get_keep_state() -> str:
+    """Returns the current spatial state of Ravenstack Keep rooms from castle_map.json."""
+    p = Path("/root/ReClaw-2.0/data/castle_map.json")
+    return p.read_text() if p.exists() else json.dumps({"error": "castle_map.json not found"})
+
+@mcp.tool()
+def update_room_state(room_id: str, state: str) -> str:
+    """Updates the rendering state of a room in castle_map.json (UNFORGED, LIVE, LOCKED, WORK, WAIT)."""
+    p = Path("/root/ReClaw-2.0/data/castle_map.json")
+    if not p.exists():
+        return "Error: castle_map.json missing"
+    with open(p, "r+") as f:
+        data = json.load(f)
+        if room_id in data.get("rooms", {}):
+            data["rooms"][room_id]["state"] = state
+            f.seek(0)
+            json.dump(data, f, indent=2)
+            f.truncate()
+            return f"Updated {room_id} to {state}"
+        return f"Error: Room {room_id} not found"
+
+# --- Spatial Dashboard State Tools ---
+@mcp.tool()
+def get_keep_state() -> str:
+    """Returns the current spatial state of Ravenstack Keep rooms from castle_map.json."""
+    p = Path("/root/ReClaw-2.0/data/castle_map.json")
+    return p.read_text() if p.exists() else json.dumps({"error": "castle_map.json not found"})
+
+@mcp.tool()
+def update_room_state(room_id: str, state: str) -> str:
+    """Updates the rendering state of a room in castle_map.json (UNFORGED, LIVE, LOCKED, WORK, WAIT)."""
+    p = Path("/root/ReClaw-2.0/data/castle_map.json")
+    if not p.exists():
+        return "Error: castle_map.json missing"
+    with open(p, "r+") as f:
+        data = json.load(f)
+        if room_id in data.get("rooms", {}):
+            data["rooms"][room_id]["state"] = state
+            f.seek(0)
+            json.dump(data, f, indent=2)
+            f.truncate()
+            return f"Updated {room_id} to {state}"
+        return f"Error: Room {room_id} not found"
+
+# --- Spatial Dashboard State Tools ---
+@mcp.tool()
+def get_keep_state() -> str:
+    """Returns the current spatial state of Ravenstack Keep rooms from castle_map.json."""
+    p = Path("/root/ReClaw-2.0/data/castle_map.json")
+    return p.read_text() if p.exists() else json.dumps({"error": "castle_map.json not found"})
+
+@mcp.tool()
+def update_room_state(room_id: str, state: str) -> str:
+    """Updates the rendering state of a room in castle_map.json (UNFORGED, LIVE, LOCKED, WORK, WAIT)."""
+    p = Path("/root/ReClaw-2.0/data/castle_map.json")
+    if not p.exists():
+        return "Error: castle_map.json missing"
+    with open(p, "r+") as f:
+        data = json.load(f)
+        if room_id in data.get("rooms", {}):
+            data["rooms"][room_id]["state"] = state
+            f.seek(0)
+            json.dump(data, f, indent=2)
+            f.truncate()
+            return f"Updated {room_id} to {state}"
+        return f"Error: Room {room_id} not found"
