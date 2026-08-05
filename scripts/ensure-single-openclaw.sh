@@ -144,6 +144,11 @@ if [[ ${#PORT_PIDS[@]} -gt 1 ]]; then
       if [[ "$comm" == "docker-proxy" ]] || [[ "$cmd" == *"/docker-proxy"* ]] || [[ "$cmd" == *"docker-proxy"* ]]; then
         continue
       fi
+      # tailscaled Tailscale Serve also binds :18789 on tailnet IP (HTTPS proxy to gateway).
+      # Killing it drops remote Office/Control UI every guard cycle. Never kill it.
+      if [[ "$comm" == "tailscaled" ]] || [[ "$cmd" == *"/usr/sbin/tailscaled"* ]] || [[ "$cmd" == *"tailscaled"* ]]; then
+        continue
+      fi
       # containerd / dockerd helpers
       if [[ "$comm" == "dockerd" || "$comm" == "containerd" || "$comm" == containerd-shim* ]]; then
         continue
@@ -241,6 +246,10 @@ for pid in "${PORT_PIDS[@]:-}"; do
   comm=$(cat "/proc/${pid}/comm" 2>/dev/null || true)
   cmd=$(tr '\0' ' ' <"/proc/${pid}/cmdline" 2>/dev/null || true)
   if [[ "$comm" == "docker-proxy" ]] || [[ "$cmd" == *docker-proxy* ]]; then
+    continue
+  fi
+  # Tailscale Serve listener on tailnet :18789 is not a second gateway
+  if [[ "$comm" == "tailscaled" ]] || [[ "$cmd" == *tailscaled* ]]; then
     continue
   fi
   unrelated=$((unrelated + 1))
