@@ -7,10 +7,19 @@
 #   bash boydscomp-node-service-install.sh
 set -euo pipefail
 
-HOST="${OPENCLAW_GATEWAY_HOST:-100.108.130.82}"
+# After Tailscale Serve put HTTPS on :18789, node hosts MUST use wss + --tls.
+# MagicDNS name is preferred over raw Tailscale IP.
+HOST="${OPENCLAW_GATEWAY_HOST:-openclaw.tail20a090.ts.net}"
 PORT="${OPENCLAW_GATEWAY_PORT:-18789}"
 NAME="${OPENCLAW_NODE_DISPLAY_NAME:-Linux PC (boydscomp)}"
-URL="${OPENCLAW_GATEWAY_URL:-ws://${HOST}:${PORT}}"
+TLS="${OPENCLAW_GATEWAY_TLS:-1}"
+if [[ "$TLS" == "1" || "$TLS" == "true" ]]; then
+  URL="${OPENCLAW_GATEWAY_URL:-wss://${HOST}:${PORT}}"
+  TLS_FLAG=(--tls)
+else
+  URL="${OPENCLAW_GATEWAY_URL:-ws://${HOST}:${PORT}}"
+  TLS_FLAG=()
+fi
 
 if [[ -z "${OPENCLAW_GATEWAY_TOKEN:-}" ]]; then
   echo "ERROR: set OPENCLAW_GATEWAY_TOKEN first"
@@ -30,11 +39,18 @@ fi
 echo "=== openclaw version ==="
 openclaw --version
 
-echo "=== health ${HOST}:${PORT} ==="
-curl -sf --max-time 5 "http://${HOST}:18789/health" || {
-  echo "ERROR: cannot reach fortress gateway health"
-  exit 1
-}
+echo "=== health ${HOST}:${PORT} (https if TLS) ==="
+if [[ "$TLS" == "1" || "$TLS" == "true" ]]; then
+  curl -skf --max-time 5 "https://${HOST}:${PORT}/health" || {
+    echo "ERROR: cannot reach fortress gateway health over HTTPS"
+    exit 1
+  }
+else
+  curl -sf --max-time 5 "http://${HOST}:${PORT}/health" || {
+    echo "ERROR: cannot reach fortress gateway health"
+    exit 1
+  }
+fi
 echo
 
 echo "=== install node service ==="
@@ -42,6 +58,7 @@ openclaw node install \
   --host "$HOST" \
   --port "$PORT" \
   --display-name "$NAME" \
+  "${TLS_FLAG[@]}" \
   --force
 
 echo "=== start ==="
