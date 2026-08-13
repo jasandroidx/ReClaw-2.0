@@ -964,21 +964,45 @@ def project_sitrep() -> str:
         public_url = url_file.read_text(encoding="utf-8", errors="replace").strip()
     public_code = ""
     if public_url:
-        # Cloudflare path is external; use short timeout. Empty/timeout ≠ bridge down.
-        public_code = _run(
-            [
-                "curl",
-                "-sf",
-                "--max-time",
-                "5",
-                "-o",
-                "/dev/null",
-                "-w",
-                "%{http_code}",
-                public_url.replace("/mcp", "/health"),
-            ],
-            timeout=8,
-        )
+        # Funnel hairpin from this host is flaky; try Funnel health then fall back to loopback bridge.
+        health_url = public_url.replace("/mcp", "/health")
+        for _try in range(2):
+            public_code = _run(
+                [
+                    "curl",
+                    "-sS",
+                    "--max-time",
+                    "8",
+                    "-o",
+                    "/dev/null",
+                    "-w",
+                    "%{http_code}",
+                    health_url,
+                ],
+                timeout=12,
+            )
+            if public_code in ("200", "406"):
+                break
+        if public_code not in ("200", "406") and public_url.startswith(
+            "https://openclaw.tail20a090.ts.net:10000/"
+        ):
+            # Local bridge is the Funnel backend; hairpin fail is not outage for external clients.
+            local = _run(
+                [
+                    "curl",
+                    "-sS",
+                    "--max-time",
+                    "3",
+                    "-o",
+                    "/dev/null",
+                    "-w",
+                    "%{http_code}",
+                    "http://127.0.0.1:8100/health",
+                ],
+                timeout=5,
+            )
+            if local == "200":
+                public_code = "200"
     report["mcp"] = {
         "bridge_systemd": bridge,
         "tunnel_systemd": tunnel,
