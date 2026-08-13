@@ -1023,7 +1023,7 @@ def project_sitrep() -> str:
     # Sanitize curl noise; Funnel hairpin from this host is flaky — loopback backend proves path.
     pc = "".join(ch for ch in (public_code or "") if ch.isdigit())[:3]
     report["mcp"]["public_health_http"] = pc or None
-    if public_url.startswith("https://openclaw.tail20a090.ts.net:10000/"):
+    if ("/rk7m2q9x" in (public_url or "") and "openclaw.tail20a090.ts.net" in (public_url or "")):
         local = _run(
             [
                 "curl",
@@ -1059,7 +1059,7 @@ def project_sitrep() -> str:
     elif "trycloudflare" in (public_url or ""):
         gaps.append("MCP public URL is trycloudflare (rotates) — switch to Funnel SOT")
         actions.append(
-            "echo -n https://openclaw.tail20a090.ts.net:10000/rk7m2q9x/mcp > "
+            "echo -n https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp > "
             "/root/ReClaw-2.0/data/mcp_public_url.txt"
         )
     elif not public_url:

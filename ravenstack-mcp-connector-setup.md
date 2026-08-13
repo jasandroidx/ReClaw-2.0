@@ -60,7 +60,7 @@ Need stack action from chat?
   ├─ On Hetzner Grok Build → reclaw-platform__* or ravenstack__* (stdio)
   ├─ Client on Tailscale only → https://openclaw.tail20a090.ts.net:8100/mcp
   ├─ grok.com / public internet → URL in data/mcp_public_url.txt
-  │     (current: https://locate-retailer-dana-les.trycloudflare.com/mcp)
+  │     (current: https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp)
   └─ Offline MCP → shell fallback (post-deploy-healthcheck, git, vault paths)
 
 Read vs write?
@@ -74,7 +74,7 @@ Read vs write?
 
 | Plane | URL | Audience |
 |-------|-----|----------|
-| **Public tunnel (MCP)** | `https://locate-retailer-dana-les.trycloudflare.com/mcp` | grok.com Custom Connector, remote HTTPS |
+| **Public tunnel (MCP)** | `https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp` | grok.com Custom Connector, remote HTTPS |
 | **Tailscale IP (MCP)** | `https://openclaw.tail20a090.ts.net:8100/mcp` | Tailnet devices only |
 | **Tailscale health** | `https://openclaw.tail20a090.ts.net:8100/health` | Liveness JSON |
 | **URL file (SOT for public)** | `/root/ReClaw-2.0/data/mcp_public_url.txt` | May change on tunnel restart |

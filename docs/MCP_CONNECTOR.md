@@ -1,11 +1,17 @@
 # Ravenstack / ReClaw Platform MCP Connector
 
+> **Canonical public MCP (2026-08-13):** Funnel **:443** secret path  
+> `https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp` (health `https://openclaw.tail20a090.ts.net/rk7m2q9x/health`)  
+> Anthropic connectors need port 443 — not :10000.  
+> Root `/` is NOT on Funnel. Quick tunnels disabled.  
+
+
 **Last verified:** 2026-07-10  
 **Vault SOT (full map):** `/root/obsidian_vault/Ravenstack/mcp-connector.md` + ORACLE section **MCP Connector**  
 **Process:** `scripts/reclaw_platform_mcp_server.py` (FastMCP name: `reclaw-platform`)
 
 > **Canonical public MCP (2026-08-13):** Tailscale Funnel
-> `https://openclaw.tail20a090.ts.net:10000/rk7m2q9x/mcp` (health `…/health`)
+> `https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp` (health `…/health`)
 > **Gateway→MCP (in Docker):** `https://openclaw.tail20a090.ts.net:8100/mcp` (HTTPS Serve).
 > Never plain `http://100.x:8100` (Serve is HTTPS). Quick tunnel unit disabled.
 

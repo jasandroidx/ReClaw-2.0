@@ -41,7 +41,7 @@
 
 | Plane | Endpoint |
 |-------|----------|
-| Public | `data/mcp_public_url.txt` → e.g. `https://locate-retailer-dana-les.trycloudflare.com/mcp` |
+| Public | `data/mcp_public_url.txt` → e.g. `https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp` |
 | Tailscale | `https://openclaw.tail20a090.ts.net:8100/mcp` · `…/health` |
 | Knowledge | Vault `Ravenstack/mcp-connector.md` + ORACLE MCP section |
 
