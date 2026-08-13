@@ -1,5 +1,7 @@
 # Ravenstack / ReClaw Platform MCP Connector
 
+**Operator cheat sheet (who uses which URL):** `docs/MCP-URLS.md` / vault `Ravenstack/ops/MCP-URLS.md`
+
 > **Canonical public MCP (2026-08-13):** Funnel **:443** secret path  
 > `https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp` (health `https://openclaw.tail20a090.ts.net/rk7m2q9x/health`)  
 > Anthropic connectors need port 443 — not :10000.  
