@@ -70,6 +70,145 @@ def _safe_path(base: Path, rel: str) -> Path:
     return p
 
 
+def _git(cwd, *args, timeout: int = 15):
+    """Run git in cwd. Returns (returncode, stripped stdout)."""
+    try:
+        proc = subprocess.run(
+            ["git", *args], cwd=str(cwd), capture_output=True, text=True, timeout=timeout
+        )
+        return proc.returncode, (proc.stdout or "").strip()
+    except Exception as e:  # noqa: BLE001
+        return 1, str(e)
+
+
+def _durability(p: Path) -> dict:
+    """Is this file actually durable, or does it live on one machine only?
+
+    A write succeeding says nothing about whether the work survives the session.
+    This answers the second question so a caller cannot claim durability it
+    does not have.
+    """
+    rc, repo_root = _git(p.parent, "rev-parse", "--show-toplevel")
+    if rc != 0 or not repo_root:
+        return {
+            "git_repo": False,
+            "durability": "unknown",
+            "committed": False,
+            "pushed": False,
+            "warning": (
+                f"NOT VERSIONED — {p} is not inside a git repo. Durability cannot be "
+                "verified. Do not describe this file as saved, shared, backed up, or "
+                "cross-session memory."
+            ),
+        }
+
+    root = Path(repo_root)
+    try:
+        rel = p.resolve().relative_to(root).as_posix()
+    except ValueError:
+        rel = p.name
+
+    _, branch = _git(root, "rev-parse", "--abbrev-ref", "HEAD")
+    tracked_rc, _ = _git(root, "ls-files", "--error-unmatch", "--", rel)
+    _, porcelain = _git(root, "status", "--porcelain", "--", rel)
+    committed = tracked_rc == 0 and porcelain == ""
+
+    pushed = False
+    upstream = None
+    if committed:
+        rc_up, up = _git(root, "rev-parse", "--abbrev-ref", "@{u}")
+        if rc_up == 0 and up:
+            upstream = up
+            rc_sha, sha = _git(root, "log", "-1", "--format=%H", "--", rel)
+            if rc_sha == 0 and sha:
+                rc_anc, _ = _git(root, "merge-base", "--is-ancestor", sha, upstream)
+                pushed = rc_anc == 0
+
+    _, all_dirty = _git(root, "status", "--porcelain")
+    dirty_count = len([ln for ln in all_dirty.splitlines() if ln.strip()])
+
+    if pushed:
+        durability, warning = "pushed", None
+    elif committed:
+        durability = "committed-not-pushed"
+        warning = (
+            f"PARTIALLY DURABLE — committed to '{branch}' on this machine but not on "
+            f"the remote{f' ({upstream})' if upstream else ''}. It survives a restart, "
+            "not a lost box, and no other clone can see it. Push before calling it shared."
+        )
+    else:
+        durability = "local-only"
+        warning = (
+            f"NOT DURABLE — this file exists only at {p} and is uncommitted on branch "
+            f"'{branch}'. Any session that clones the repo cannot see it. Do NOT describe "
+            "it as saved, shared, backed up, or cross-session memory until it is committed "
+            "and pushed."
+        )
+
+    out = {
+        "git_repo": True,
+        "repo": str(root),
+        "branch": branch,
+        "upstream": upstream,
+        "committed": committed,
+        "pushed": pushed,
+        "durability": durability,
+        "repo_uncommitted_files": dirty_count,
+    }
+    if warning:
+        out["warning"] = warning
+    if committed and upstream:
+        out["note"] = (
+            "'pushed' is measured against the local remote-tracking ref, which reflects "
+            "the last fetch. Fetch first if the answer must be current."
+        )
+    return out
+
+
+def _receipt(p: Path, base: Path, intended: str | None = None, action: str = "wrote") -> str:
+    """Proof-of-write receipt: what is on disk, and whether it survives the session.
+
+    The hash is taken from bytes read back off disk, never from the string we
+    meant to write — an echo of intent is not evidence.
+    """
+    import hashlib
+
+    if not p.exists():
+        return json.dumps(
+            {
+                "ok": False,
+                "action": action,
+                "error": "file does not exist after write",
+                "path": p.name,
+                "abs_path": str(p),
+            },
+            indent=2,
+        )
+
+    raw = p.read_bytes()
+    receipt = {
+        "ok": True,
+        "action": action,
+        "path": p.resolve().relative_to(base.resolve()).as_posix()
+        if str(p.resolve()).startswith(str(base.resolve()))
+        else str(p),
+        "abs_path": str(p),
+        "bytes": len(raw),
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "verified_on_disk": True,
+    }
+    if intended is not None:
+        matches = raw == intended.encode("utf-8")
+        receipt["verified_on_disk"] = matches
+        if not matches:
+            receipt["ok"] = False
+            receipt["error"] = (
+                "content on disk does not match what was written — do not report success"
+            )
+    receipt.update(_durability(p))
+    return json.dumps(receipt, indent=2)
+
+
 def _curl(url: str, method: str = "GET", body: dict | None = None, timeout: int = 120) -> str:
     cmd = ["curl", "-sf", "-X", method, url]
     if TOKEN and "127.0.0.1:8000" in url:
@@ -121,16 +260,48 @@ def list_knowledge_topics() -> str:
     return "\n".join(files[:100])
 
 
+def _km_receipt(result, action: str) -> str:
+    """Turn a KnowledgeManager return value into a durability receipt when it names a file."""
+    raw = str(result)
+    try:
+        p = Path(raw)
+        if p.is_absolute() and p.is_file():
+            return _receipt(p, VAULT, action=action)
+    except (OSError, ValueError):
+        pass
+    return json.dumps(
+        {
+            "ok": True,
+            "action": action,
+            "result": raw[:2000],
+            "durability": "unknown",
+            "warning": (
+                "This tool did not return a file path, so durability could not be "
+                "verified. Call vault_durability before describing the result as saved."
+            ),
+        },
+        indent=2,
+    )
+
+
 @mcp.tool()
 def ingest_to_ravenstack(source: str, content_or_path: str) -> str:
-    """Ingest distilled content into Ravenstack backlog (ORACLE rules)."""
-    return str(_km().ingest_document(source, content_or_path, auto_categorize=True))
+    """Ingest distilled content into Ravenstack backlog (ORACLE rules).
+
+    Returns a durability receipt — see write_vault_file.
+    """
+    return _km_receipt(
+        _km().ingest_document(source, content_or_path, auto_categorize=True), "ingested"
+    )
 
 
 @mcp.tool()
 def save_ravenstack_note(source: str, distilled: str, potential_for: str = "revenue-loops") -> str:
-    """Write a distilled note to Ravenstack backlog with frontmatter."""
-    return str(_km().save_to_backlog(source, distilled, potential_for))
+    """Write a distilled note to Ravenstack backlog with frontmatter.
+
+    Returns a durability receipt — see write_vault_file.
+    """
+    return _km_receipt(_km().save_to_backlog(source, distilled, potential_for), "saved")
 
 
 # --- Vault read/write (real-time) ---
@@ -147,11 +318,56 @@ def read_vault_file(relative_path: str, max_chars: int = 12000) -> str:
 
 @mcp.tool()
 def write_vault_file(relative_path: str, content: str) -> str:
-    """Write or update a file under the Obsidian vault. Creates parent dirs."""
+    """Write or update a file under the Obsidian vault. Creates parent dirs.
+
+    Returns a JSON receipt: sha256 of the bytes actually on disk, plus whether
+    the file is committed and pushed. A write succeeding does not make the work
+    durable — read `durability` and `warning` before telling anyone it is saved.
+    """
     p = _safe_path(VAULT, relative_path)
+    existed = p.exists()
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(content, encoding="utf-8")
-    return f"wrote {len(content)} chars → {p}"
+    return _receipt(p, VAULT, intended=content, action="updated" if existed else "created")
+
+
+@mcp.tool()
+def vault_durability(relative_path: str = "") -> str:
+    """Will this survive the session? Check one vault file, or sweep the whole vault.
+
+    With a path: durability receipt for that file. Without: every uncommitted
+    file in the vault. Call this before claiming work is saved or shared, and
+    at session end before reporting anything as durable.
+    """
+    if relative_path:
+        p = _safe_path(VAULT, relative_path)
+        if not p.exists():
+            return json.dumps(
+                {"ok": False, "path": relative_path, "error": "not found"}, indent=2
+            )
+        return _receipt(p, VAULT, action="checked")
+
+    rc, root = _git(VAULT, "rev-parse", "--show-toplevel")
+    if rc != 0:
+        return json.dumps({"git_repo": False, "vault": str(VAULT)}, indent=2)
+    _, branch = _git(root, "rev-parse", "--abbrev-ref", "HEAD")
+    _, porcelain = _git(root, "status", "--porcelain")
+    files = [ln[3:] for ln in porcelain.splitlines() if ln.strip()]
+    _, ahead = _git(root, "rev-list", "--count", "@{u}..HEAD")
+    out = {
+        "vault": str(root),
+        "branch": branch,
+        "uncommitted_files": len(files),
+        "commits_ahead_of_remote": ahead if ahead.isdigit() else "unknown",
+        "files": files[:100],
+    }
+    if files or (ahead.isdigit() and int(ahead) > 0):
+        out["warning"] = (
+            f"{len(files)} uncommitted file(s), {ahead} unpushed commit(s). This work "
+            "exists on one machine. No session that clones the repo can see it. Commit "
+            "and push before describing any of it as saved, shared, or cross-session memory."
+        )
+    return json.dumps(out, indent=2)
 
 
 @mcp.tool()
@@ -262,7 +478,25 @@ STDIO over SSH:
 
 WRITE TOOLS: write_vault_file, save_ravenstack_note, ingest_to_ravenstack, run_pike_winslow
 READ TOOLS: read_vault_file, read_repo_file, query_knowledge, read_oracle
-OPS: stack_health, docker_status, git_status
+OPS: stack_health, docker_status, git_status, vault_durability
+
+WRITE RECEIPTS (why writes return JSON, not "wrote N chars"):
+  A successful write says nothing about whether the work survives the session.
+  Every write tool returns sha256 of the bytes read back OFF DISK — not an echo
+  of what was sent — plus committed / pushed / durability.
+
+  durability: "pushed"               → safe to call saved and shared
+              "committed-not-pushed" → survives restart, not a lost box
+              "local-only"           → ONE MACHINE. No clone can see it.
+              "unknown"              → not versioned; claim nothing
+
+  The vault (/root/obsidian_vault) and the vault repo (github.com/jasandroidx/
+  obsidian-vault) are two different things wearing one name. A write to the
+  first is not durable until it reaches the second. Say which one you mean.
+
+  Call vault_durability with no arguments before ending a session — it lists
+  every uncommitted file. Do not report work as saved while that list is
+  non-empty.
 
 Also available separately: ravenstack, reclaw-api, reclaw-fs, obsidian MCPs.
 """
