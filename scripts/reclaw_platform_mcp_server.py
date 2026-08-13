@@ -995,9 +995,32 @@ def project_sitrep() -> str:
     if bridge != "active":
         gaps.append("MCP bridge inactive")
         actions.append("sudo systemctl restart reclaw-mcp-bridge && journalctl -u reclaw-mcp-bridge -n 40 --no-pager")
-    if tunnel != "active":
-        gaps.append("MCP public tunnel inactive")
-        actions.append("sudo systemctl restart reclaw-mcp-tunnel && journalctl -u reclaw-mcp-tunnel -n 30 --no-pager")
+    # Public plane is Tailscale Funnel (stable). Quick tunnel unit is intentionally disabled.
+    # Only gap if public URL missing or public health fails (and URL is not Funnel-healthy).
+    funnel_ok = (
+        public_url.startswith("https://openclaw.tail20a090.ts.net:10000/")
+        and public_code in ("200", "406")
+    )
+    if funnel_ok:
+        report["mcp"]["public_plane"] = "funnel"
+        report["mcp"]["tunnel_note"] = "reclaw-mcp-tunnel disabled by design; Funnel is canonical public MCP"
+    elif tunnel != "active" and not funnel_ok:
+        if public_url and "trycloudflare" in public_url:
+            gaps.append("MCP public URL is trycloudflare (rotates) — switch to Funnel SOT")
+            actions.append(
+                "echo -n https://openclaw.tail20a090.ts.net:10000/rk7m2q9x/mcp > /root/ReClaw-2.0/data/mcp_public_url.txt"
+            )
+        elif public_code and public_code not in ("200", "406"):
+            gaps.append(f"MCP public health HTTP {public_code}")
+            actions.append("Check Tailscale Funnel: tailscale funnel status; curl public health URL")
+        elif not public_url:
+            gaps.append("MCP public URL file missing")
+            actions.append("Write Funnel URL to data/mcp_public_url.txt")
+        else:
+            # tunnel inactive without Funnel proof — warn soft only if health empty
+            if not public_code:
+                gaps.append("MCP public health unreachable (not using working Funnel?)")
+                actions.append("Verify Funnel path /rk7m2q9x and data/mcp_public_url.txt")
 
     # --- Pipeline (reuse distilled logic) ---
     try:
