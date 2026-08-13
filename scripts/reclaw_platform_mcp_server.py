@@ -962,47 +962,28 @@ def project_sitrep() -> str:
     url_file = ROOT / "data" / "mcp_public_url.txt"
     if url_file.is_file():
         public_url = url_file.read_text(encoding="utf-8", errors="replace").strip()
+    # Canonical public Funnel :443 (Anthropic/Claude need 443). GET /mcp → 406 is SUCCESS for streamable-http.
+    if not public_url:
+        public_url = "https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp"
     public_code = ""
     if public_url:
-        # Funnel hairpin from this host is flaky; try Funnel health then fall back to loopback bridge.
-        health_url = public_url.replace("/mcp", "/health")
-        for _try in range(2):
-            public_code = _run(
-                [
-                    "curl",
-                    "-sS",
-                    "--max-time",
-                    "8",
-                    "-o",
-                    "/dev/null",
-                    "-w",
-                    "%{http_code}",
-                    health_url,
-                ],
-                timeout=12,
-            )
-            if public_code in ("200", "406"):
-                break
-        if public_code not in ("200", "406") and public_url.startswith(
-            "https://openclaw.tail20a090.ts.net:10000/"
-        ):
-            # Local bridge is the Funnel backend; hairpin fail is not outage for external clients.
-            local = _run(
-                [
-                    "curl",
-                    "-sS",
-                    "--max-time",
-                    "3",
-                    "-o",
-                    "/dev/null",
-                    "-w",
-                    "%{http_code}",
-                    "http://127.0.0.1:8100/health",
-                ],
-                timeout=5,
-            )
-            if local == "200":
-                public_code = "200"
+        probe = public_url if public_url.rstrip("/").endswith("/mcp") else public_url.rstrip("/") + "/mcp"
+        public_code = _run(
+            [
+                "curl",
+                "-sS",
+                "--max-time",
+                "8",
+                "-o",
+                "/dev/null",
+                "-w",
+                "%{http_code}",
+                probe,
+            ],
+            timeout=12,
+        )
+        public_code = "".join(ch for ch in (public_code or "") if ch.isdigit())[:3]
+
     report["mcp"] = {
         "bridge_systemd": bridge,
         "tunnel_systemd": tunnel,
@@ -1019,45 +1000,55 @@ def project_sitrep() -> str:
     if bridge != "active":
         gaps.append("MCP bridge inactive")
         actions.append("sudo systemctl restart reclaw-mcp-bridge && journalctl -u reclaw-mcp-bridge -n 40 --no-pager")
-    # Public plane is Tailscale Funnel (stable). Quick tunnel unit is intentionally disabled.
-    # Sanitize curl noise; Funnel hairpin from this host is flaky — loopback backend proves path.
+    # Public plane: Funnel :443 /rk7m2q9x — GET /mcp expects HTTP 406 (streamable-http).
     pc = "".join(ch for ch in (public_code or "") if ch.isdigit())[:3]
     report["mcp"]["public_health_http"] = pc or None
-    if ("/rk7m2q9x" in (public_url or "") and "openclaw.tail20a090.ts.net" in (public_url or "")):
-        local = _run(
-            [
-                "curl",
-                "-sS",
-                "--max-time",
-                "3",
-                "-o",
-                "/dev/null",
-                "-w",
-                "%{http_code}",
-                "http://127.0.0.1:8100/health",
-            ],
-            timeout=5,
-        )
-        local_digits = "".join(ch for ch in (local or "") if ch.isdigit())[:3]
-        local_ok = local_digits == "200"
-        report["mcp"]["public_plane"] = "funnel"
-        report["mcp"]["local_bridge_health"] = local_digits or None
+    report["mcp"]["public_probe_expect"] = "406"
+    is_funnel = "/rk7m2q9x" in (public_url or "") and "openclaw.tail20a090.ts.net" in (
+        public_url or ""
+    )
+    if is_funnel:
+        report["mcp"]["public_plane"] = "funnel-443"
         report["mcp"]["tunnel_note"] = (
-            "reclaw-mcp-tunnel disabled by design; Funnel is canonical public MCP"
+            "reclaw-mcp-tunnel disabled; Funnel :443 secret path is public SOT"
         )
-        if pc in ("200", "406") or local_ok:
-            if pc not in ("200", "406"):
-                report["mcp"]["public_health_http"] = "200"
-                report["mcp"]["public_health_note"] = (
-                    "Funnel SOT + loopback backend OK (hairpin curl flaky)"
-                )
-        else:
-            gaps.append("MCP Funnel backend unhealthy (loopback :8100 not 200)")
-            actions.append(
-                "systemctl status reclaw-mcp-bridge; curl -sS http://127.0.0.1:8100/health"
+        if pc == "406":
+            report["mcp"]["public_health_note"] = (
+                "OK: GET /mcp returned 406 (expected for streamable-http)"
             )
+        else:
+            local = _run(
+                [
+                    "curl",
+                    "-sS",
+                    "--max-time",
+                    "3",
+                    "-o",
+                    "/dev/null",
+                    "-w",
+                    "%{http_code}",
+                    "http://127.0.0.1:8100/health",
+                ],
+                timeout=5,
+            )
+            ld = "".join(ch for ch in (local or "") if ch.isdigit())[:3]
+            report["mcp"]["local_bridge_health"] = ld or None
+            if ld == "200":
+                # Host Funnel hairpin can fail; backend up + SOT Funnel is enough for sitrep
+                report["mcp"]["public_health_note"] = (
+                    f"Funnel SOT set; loopback backend OK (probe HTTP {pc or '000'}; hairpin flaky)"
+                )
+            else:
+                gaps.append(
+                    f"MCP public probe HTTP {pc or '000'} (expect 406); loopback also bad ({ld})"
+                )
+                actions.append(
+                    "systemctl status reclaw-mcp-bridge; "
+                    "curl -sS -o /dev/null -w '%{http_code}\\n' "
+                    "https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp"
+                )
     elif "trycloudflare" in (public_url or ""):
-        gaps.append("MCP public URL is trycloudflare (rotates) — switch to Funnel SOT")
+        gaps.append("MCP public URL is trycloudflare (dead path) — use Funnel :443 SOT")
         actions.append(
             "echo -n https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp > "
             "/root/ReClaw-2.0/data/mcp_public_url.txt"
@@ -1065,10 +1056,11 @@ def project_sitrep() -> str:
     elif not public_url:
         gaps.append("MCP public URL file missing")
         actions.append("Write Funnel URL to data/mcp_public_url.txt")
-    elif pc and pc not in ("200", "406"):
-        gaps.append(f"MCP public health HTTP {pc}")
+    elif pc and pc != "406":
+        gaps.append(f"MCP public probe HTTP {pc} (expect 406 on /mcp)")
         actions.append(
-            "Check Tailscale Funnel: tailscale funnel status; curl public health URL"
+            "curl -sS -o /dev/null -w '%{http_code}\\n' "
+            + repr(public_url)
         )
 
     # --- Pipeline (reuse distilled logic) ---
