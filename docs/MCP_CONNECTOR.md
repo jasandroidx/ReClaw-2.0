@@ -4,6 +4,12 @@
 **Vault SOT (full map):** `/root/obsidian_vault/Ravenstack/mcp-connector.md` + ORACLE section **MCP Connector**  
 **Process:** `scripts/reclaw_platform_mcp_server.py` (FastMCP name: `reclaw-platform`)
 
+> **Canonical public MCP (2026-08-13):** Tailscale Funnel
+> `https://openclaw.tail20a090.ts.net:10000/rk7m2q9x/mcp` (health `…/health`)
+> **Gateway→MCP (in Docker):** `https://openclaw.tail20a090.ts.net:8100/mcp` (HTTPS Serve).
+> Never plain `http://100.x:8100` (Serve is HTTPS). Quick tunnel unit disabled.
+
+
 ## What it is
 
 One MCP server so agents can **see and change** the stack in real time: vault R/W, RAG/ORACLE, rural_data pipeline, Docker/git/health. **20 tools** (incl. `project_sitrep`). Prefer MCP over raw shell for these actions.
@@ -31,7 +37,7 @@ Client (Grok Build / grok.com / Tailnet device)
 | Plane | Endpoint | Audience |
 |-------|----------|----------|
 | **stdio** | Grok Build on Hetzner | Best local operator path |
-| **Tailscale** | `http://100.108.130.82:8100/mcp` · health `…/health` | Tailnet only |
+| **Tailscale** | `https://openclaw.tail20a090.ts.net:8100/mcp` · health `…/health` | Tailnet only |
 | **Public** | Read `data/mcp_public_url.txt` (must end `/mcp`) | grok.com Custom Connector |
 
 Health JSON example:
@@ -76,7 +82,7 @@ Health JSON example:
 
 ```bash
 # Health
-curl -sS http://100.108.130.82:8100/health
+curl -sS https://openclaw.tail20a090.ts.net:8100/health
 
 # Bridge / tunnel
 systemctl status reclaw-mcp-bridge reclaw-mcp-tunnel
@@ -97,7 +103,7 @@ cd /root/ReClaw-2.0 && grok mcp doctor reclaw-platform   # expect 20 tools
 **Tailnet device:**
 ```toml
 [mcp_servers.reclaw-platform]
-url = "http://100.108.130.82:8100/mcp"
+url = "https://openclaw.tail20a090.ts.net:8100/mcp"
 ```
 
 **grok.com:** Custom Connector → URL from `data/mcp_public_url.txt`

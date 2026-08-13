@@ -707,7 +707,7 @@ xAI supports custom MCP at **[grok.com/connectors](https://grok.com/connectors)*
 | 3 | In grok.com Custom Connector: **Name** `ReClaw Platform` · **URL** = contents of `data/mcp_public_url.txt` (must end `/mcp`) |
 | 4 | Test: *"use ravenstack connector to stack_health"* or *"Use ReClaw to query knowledge for Pike County"* |
 
-**Live planes (2026-07-10):** Public URL SOT `data/mcp_public_url.txt` (may rotate) · Tailnet `http://100.108.130.82:8100/mcp`. Full rules: vault `Ravenstack/mcp-connector.md` + repo `docs/MCP_CONNECTOR.md`.
+**Live planes (2026-07-10):** Public URL SOT `data/mcp_public_url.txt` (may rotate) · Tailnet `https://openclaw.tail20a090.ts.net:8100/mcp`. Full rules: vault `Ravenstack/mcp-connector.md` + repo `docs/MCP_CONNECTOR.md`.
 
 **Security:** The MCP HTTP endpoint has **no auth** today. Treat the public tunnel URL like a secret. Prefer Tailscale for private ops. Path-sandbox on vault/repo tools. Mutations require explicit user intent.
 

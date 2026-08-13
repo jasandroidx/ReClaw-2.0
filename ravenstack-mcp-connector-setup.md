@@ -58,7 +58,7 @@ Client (Grok Build / grok.com / Tailnet device)
 ```
 Need stack action from chat?
   ├─ On Hetzner Grok Build → reclaw-platform__* or ravenstack__* (stdio)
-  ├─ Client on Tailscale only → http://100.108.130.82:8100/mcp
+  ├─ Client on Tailscale only → https://openclaw.tail20a090.ts.net:8100/mcp
   ├─ grok.com / public internet → URL in data/mcp_public_url.txt
   │     (current: https://locate-retailer-dana-les.trycloudflare.com/mcp)
   └─ Offline MCP → shell fallback (post-deploy-healthcheck, git, vault paths)
@@ -75,8 +75,8 @@ Read vs write?
 | Plane | URL | Audience |
 |-------|-----|----------|
 | **Public tunnel (MCP)** | `https://locate-retailer-dana-les.trycloudflare.com/mcp` | grok.com Custom Connector, remote HTTPS |
-| **Tailscale IP (MCP)** | `http://100.108.130.82:8100/mcp` | Tailnet devices only |
-| **Tailscale health** | `http://100.108.130.82:8100/health` | Liveness JSON |
+| **Tailscale IP (MCP)** | `https://openclaw.tail20a090.ts.net:8100/mcp` | Tailnet devices only |
+| **Tailscale health** | `https://openclaw.tail20a090.ts.net:8100/health` | Liveness JSON |
 | **URL file (SOT for public)** | `/root/ReClaw-2.0/data/mcp_public_url.txt` | May change on tunnel restart |
 | **Tunnel host file** | `/root/ReClaw-2.0/data/mcp_tunnel_host.txt` | DNS-rebinding allowlist |
 | **stdio** | Grok Build on Hetzner | Best local operator path |
@@ -169,7 +169,7 @@ args = ["/root/ReClaw-2.0/scripts/reclaw_platform_mcp_server.py"]
 
 ```toml
 [mcp_servers.reclaw-platform]
-url = "http://100.108.130.82:8100/mcp"
+url = "https://openclaw.tail20a090.ts.net:8100/mcp"
 ```
 
 ### grok.com Custom Connector
@@ -193,7 +193,7 @@ ssh root@178.156.235.36 '/root/ReClaw-2.0/.venv/bin/python /root/ReClaw-2.0/scri
 cd /root/ReClaw-2.0
 
 # Health
-curl -sS http://100.108.130.82:8100/health
+curl -sS https://openclaw.tail20a090.ts.net:8100/health
 curl -sS http://127.0.0.1:8100/health
 
 # Bridge / tunnel

@@ -64,7 +64,7 @@ cp -a /root/.openclaw/openclaw.json \
 systemctl is-active reclaw-mcp-bridge reclaw-mcp-tunnel
 curl -sf http://127.0.0.1:8100/health
 cat /root/ReClaw-2.0/data/mcp_public_url.txt   # public grok.com connector (rotates)
-# Tailscale MCP: http://100.108.130.82:8100/mcp
+# Tailscale MCP: https://openclaw.tail20a090.ts.net:8100/mcp
 systemctl restart reclaw-mcp-tunnel   # if public dead; then re-read URL file
 ```
 

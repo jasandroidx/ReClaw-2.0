@@ -35,7 +35,7 @@ A standard **MCP (Model Context Protocol)** server named **reclaw-platform**, ru
 - Process: `scripts/reclaw_platform_mcp_server.py`
 - Local port: **8100**
 - Public HTTPS (SuperGrok): Cloudflare tunnel → must end with **`/mcp`**
-- Tailnet: `http://100.108.130.82:8100/mcp`
+- Tailnet: `https://openclaw.tail20a090.ts.net:8100/mcp`
 
 **URL source of truth on the server:**  
 `/root/ReClaw-2.0/data/mcp_public_url.txt`  
@@ -285,7 +285,7 @@ Using SuperGrok for daily ops **saves Build tokens** for real engineering. That�
 | Plane | Endpoint |
 |-------|----------|
 | Public (SuperGrok) | Contents of `data/mcp_public_url.txt` (must end `/mcp`) |
-| Tailscale IP | `http://100.108.130.82:8100/mcp` · health `…/health` |
+| Tailscale IP | `https://openclaw.tail20a090.ts.net:8100/mcp` · health `…/health` |
 | Health check | `GET …/health` → `{"status":"ok","service":"reclaw-platform",…}` |
 
 Server ops (if something dies — you or Build):

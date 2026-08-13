@@ -165,7 +165,7 @@ def register_extensions(
             "security": {
                 "http_auth": "none — treat public URL as secret",
                 "prefer": "Tailscale when possible",
-                "tunnel_type": "cloudflared quick tunnel (hostname may rotate on restart)",
+                "tunnel_type": "disabled - public plane is Tailscale Funnel (stable)",
                 "upgrade_path": "Named Cloudflare tunnel + optional Access/OAuth for auth",
             },
             "tool_surface": "reclaw-platform (primary) + stacked Firecrawl/GitHub/Chrome DevTools",
@@ -178,11 +178,11 @@ def register_extensions(
         """Return the current public SuperGrok connector URL (from data/mcp_public_url.txt)."""
         url = _read_public_url()
         if not url:
-            return "missing data/mcp_public_url.txt — start/restart reclaw-mcp-tunnel"
+            return "missing data/mcp_public_url.txt — set Funnel URL in data/mcp_public_url.txt"
         note = ""
         if not url.endswith("/mcp"):
             note = "\nWARNING: URL should end with /mcp"
-        return f"{url}{note}\n\nSOT file: {root / 'data' / 'mcp_public_url.txt'}\nRefresh: systemctl restart reclaw-mcp-tunnel"
+        return f"{url}{note}\n\nSOT file: {root / 'data' / 'mcp_public_url.txt'}\nRefresh: Funnel SOT stable; do not use quick tunnel"
 
 
     @mcp.tool()

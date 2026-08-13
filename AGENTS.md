@@ -208,7 +208,7 @@ Chat: *"use ravenstack connector to [tool]"*. Live map: vault `Ravenstack/mcp-co
 
 Remote HTTP (live):
 - **Public (grok.com):** `data/mcp_public_url.txt` (cloudflared; may rotate)
-- **Tailscale:** `http://100.108.130.82:8100/mcp` · health `…/health`
+- **Tailscale:** `https://openclaw.tail20a090.ts.net:8100/mcp` · health `…/health`
 
 Remote stdio: `ssh root@178.156.235.36 '/root/ReClaw-2.0/.venv/bin/python /root/ReClaw-2.0/scripts/reclaw_platform_mcp_server.py'`
 

@@ -11,7 +11,7 @@
 #   3) Use ONLY the MagicDNS wss URL below — never a rotating public IP
 #
 # Serve multi-path keeps ReClaw API + MCP on the same hostname (no public Funnel).
-# grok.com MCP stays on cloudflared (data/mcp_public_url.txt).
+# grok.com MCP uses Funnel (mcp_public_url.txt) (data/mcp_public_url.txt).
 set -euo pipefail
 
 MCP_PORT="${FASTMCP_PORT:-8100}"

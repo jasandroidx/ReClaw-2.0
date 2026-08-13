@@ -42,7 +42,7 @@
 | Plane | Endpoint |
 |-------|----------|
 | Public | `data/mcp_public_url.txt` → e.g. `https://locate-retailer-dana-les.trycloudflare.com/mcp` |
-| Tailscale | `http://100.108.130.82:8100/mcp` · `…/health` |
+| Tailscale | `https://openclaw.tail20a090.ts.net:8100/mcp` · `…/health` |
 | Knowledge | Vault `Ravenstack/mcp-connector.md` + ORACLE MCP section |
 
 **Chat:** *"use ravenstack connector to [tool]"* → `reclaw-platform__*` / `ravenstack__*` (17+ tools).

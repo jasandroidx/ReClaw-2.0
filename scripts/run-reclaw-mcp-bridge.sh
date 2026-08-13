@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # HTTP MCP bridge — streamable-http on :8100 for Tailscale clients.
-# Clients connect to: http://100.108.130.82:8100/mcp
-# Health:            http://100.108.130.82:8100/health
+# Clients connect to: https://openclaw.tail20a090.ts.net:8100/mcp
+# Health:            https://openclaw.tail20a090.ts.net:8100/health
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source /root/.env 2>/dev/null || true
@@ -12,11 +12,11 @@ export MCP_TRANSPORT=streamable-http
 
 # Canonical Tailscale IP for this host (openclaw).
 export TAILSCALE_IP="${TAILSCALE_IP:-$(tailscale ip -4 2>/dev/null || echo 100.108.130.82)}"
-# Bind all interfaces so localhost healthchecks + tailnet IP both work.
+# Bind loopback only — Tailscale Serve owns :8100 on MagicDNS; cloudflared proxies 127.0.0.1:8100.
 # Clients must still use the Tailscale URL, not the public eth0 IP.
 # Listen all interfaces; UFW allows 8100 only on tailscale0 (not public eth0).
 # cloudflared + local clients use 127.0.0.1; tailnet can use Serve or :8100 on ts0.
-export FASTMCP_HOST="${FASTMCP_HOST:-0.0.0.0}"
+export FASTMCP_HOST="${FASTMCP_HOST:-127.0.0.1}"
 export FASTMCP_PORT="${FASTMCP_PORT:-8100}"
 export MCP_PUBLIC_MODE="${MCP_PUBLIC_MODE:-1}"
 # Stateless sessions — required for OpenClaw: no sticky mcp-session-id (survives restart).

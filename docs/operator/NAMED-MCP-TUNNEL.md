@@ -38,7 +38,7 @@ Until Access is on, treat the URL as a secret (same as quick tunnel).
 ## Fallback
 
 Quick tunnel remains: `scripts/run-mcp-public-tunnel.sh` + `reclaw-mcp-tunnel.service` (current default).  
-Tailscale always preferred for private ops: `http://100.108.130.82:8100/mcp`.
+Tailscale always preferred for private ops: `https://openclaw.tail20a090.ts.net:8100/mcp`.
 
 ## Verify
 

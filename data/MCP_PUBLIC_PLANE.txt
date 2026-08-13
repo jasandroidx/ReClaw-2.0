@@ -1,0 +1,6 @@
+canonical=funnel
+public_mcp_url=https://openclaw.tail20a090.ts.net:10000/rk7m2q9x/mcp
+public_health=https://openclaw.tail20a090.ts.net:10000/rk7m2q9x/health
+tailnet_mcp=https://openclaw.tail20a090.ts.net:8100/mcp
+updated=2026-08-13T00:54:06Z
+note=Do not use trycloudflare quick tunnels. Funnel hostname is stable.

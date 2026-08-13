@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
-# Capture cloudflared quick-tunnel URL for grok.com Custom Connector.
+# DEPRECATED quick-tunnel URL capture.
+# Canonical public MCP is Tailscale Funnel (stable MagicDNS).
+# Do NOT write trycloudflare hostnames into data/mcp_public_url.txt.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-sleep 3
-url=$(journalctl -u reclaw-mcp-tunnel --no-pager -n 80 2>/dev/null | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1 || true)
-if [[ -z "$url" ]]; then
-  exit 0
-fi
-host="${url#https://}"
+FUNNEL="https://openclaw.tail20a090.ts.net:10000/rk7m2q9x/mcp"
 mkdir -p data
-echo "${url}/mcp" >data/mcp_public_url.txt
-echo "$host" >data/mcp_tunnel_host.txt
-systemctl restart reclaw-mcp-bridge 2>/dev/null || true
+# Always re-assert Funnel as public SOT if missing or trycloudflare
+cur=""
+if [[ -f data/mcp_public_url.txt ]]; then
+  cur=$(tr -d "[:space:]" < data/mcp_public_url.txt)
+fi
+if [[ -z "$cur" || "$cur" == *trycloudflare* ]]; then
+  echo "$FUNNEL" > data/mcp_public_url.txt
+  echo "openclaw.tail20a090.ts.net" > data/mcp_tunnel_host.txt
+  echo "sync-mcp-tunnel-url: enforced Funnel SOT -> $FUNNEL"
+else
+  echo "sync-mcp-tunnel-url: leaving SOT ($cur); quick tunnel disabled"
+fi
+exit 0
