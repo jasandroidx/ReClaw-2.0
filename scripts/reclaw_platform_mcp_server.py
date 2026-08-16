@@ -279,6 +279,61 @@ def save_ravenstack_note(source: str, distilled: str, potential_for: str = "reve
     return str(_km().save_to_backlog(source, distilled, potential_for))
 
 
+# --- The Oracle (deterministic routing + refusal) ---
+
+
+def _parse_frontmatter(content: str) -> dict:
+    """Pull the YAML frontmatter block off a note. Absent block -> {}."""
+    if not content.startswith("---"):
+        return {}
+    end = content.find("\n---", 3)
+    if end == -1:
+        return {}
+    try:
+        import yaml
+
+        data = yaml.safe_load(content[3:end]) or {}
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+@mcp.tool()
+def oracle_ask(question: str) -> str:
+    """Ask the Oracle where something belongs in the vault.
+
+    Deterministic — she reads Ravenstack/oracle-routes.yaml and answers from
+    it, or states plainly that no rule exists. She never guesses a location.
+    """
+    from core import oracle
+
+    return oracle.ask(question)
+
+
+@mcp.tool()
+def oracle_check(relative_path: str, frontmatter_json: str = "{}") -> str:
+    """Ask whether a write would be permitted, without performing it.
+
+    frontmatter_json: JSON object of the frontmatter you intend to write.
+    """
+    from core import oracle
+
+    try:
+        fm = json.loads(frontmatter_json) if frontmatter_json.strip() else {}
+        if not isinstance(fm, dict):
+            return "frontmatter_json must be a JSON object"
+    except json.JSONDecodeError as exc:
+        return f"frontmatter_json is not valid JSON: {exc}"
+
+    v = oracle.check(relative_path, fm)
+    out = [("PERMITTED" if v.ok else "REFUSED") + f" — {v.message}"]
+    if v.kind:
+        out.append(f"route: {v.kind}")
+    for w in v.warnings:
+        out.append(f"warning: {w}")
+    return "\n".join(out)
+
+
 # --- Vault read/write (real-time) ---
 
 
@@ -315,11 +370,26 @@ def connector_guide() -> str:
 
 @mcp.tool()
 def write_vault_file(relative_path: str, content: str) -> str:
-    """Write or update a file under the Obsidian vault. Creates parent dirs."""
+    """Write or update a file under the Obsidian vault. Creates parent dirs.
+
+    The Oracle rules on every write. She refuses forbidden paths, live secrets,
+    and notes missing required frontmatter. The check runs here rather than in
+    the caller so a client that has never read a word of Ravenstack still
+    cannot write to the wrong place — enforcement, not advice.
+    """
+    from core import oracle
+
+    verdict = oracle.check(relative_path, _parse_frontmatter(content), content)
+    if not verdict.ok:
+        return f"REFUSED — {verdict.message}"
+
     p = _safe_path(VAULT, relative_path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(content, encoding="utf-8")
-    return f"wrote {len(content)} chars → {p}"
+    msg = f"wrote {len(content)} chars → {p}"
+    if verdict.warnings:
+        msg += " (" + "; ".join(verdict.warnings) + ")"
+    return msg
 
 
 def _repo_path_denied(rel: str, path: Path) -> str | None:
