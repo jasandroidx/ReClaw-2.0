@@ -18,6 +18,7 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -1536,6 +1537,121 @@ Also available separately: ravenstack, reclaw-api, reclaw-fs, obsidian,
 """
 
 
+# --- Spatial Dashboard State Tools (Ravenstack Keep) ---
+#
+# These MUST be defined above the __main__ block. They were previously appended
+# three times *below* `mcp.run()`, which blocks forever when the module is run as
+# a script — so the decorators never executed and neither tool was ever
+# registered. Their absence from the live connector's tool list confirmed it.
+
+_KEEP_MAP = ROOT / "data" / "castle_map.json"
+
+# castle_map.json stores rooms as a LIST of objects, and a room's runtime status
+# lives at rooms[].agent.status — not rooms[room_id].state. The old code did
+# `if room_id in data.get("rooms", {})`, a membership test of a string against a
+# list of dicts, which is always False: every call returned "Room not found".
+_KEEP_STATES = {
+    "UNFORGED", "LIVE", "LOCKED", "WORK", "WAIT",
+    "COMMANDING", "HAMMERING", "IDLE", "FAILED",
+}
+
+
+def _keep_load() -> dict | None:
+    if not _KEEP_MAP.is_file():
+        return None
+    return json.loads(_KEEP_MAP.read_text(encoding="utf-8"))
+
+
+def _keep_find(data: dict, room_id: str) -> dict | None:
+    """Match a room by id, then slug — both are used across the Keep UIs."""
+    rooms = data.get("rooms") or []
+    for key in ("id", "slug"):
+        for room in rooms:
+            if isinstance(room, dict) and room.get(key) == room_id:
+                return room
+    return None
+
+
+@mcp.tool()
+def get_keep_state() -> str:
+    """Current spatial state of Ravenstack Keep rooms (data/castle_map.json)."""
+    data = _keep_load()
+    if data is None:
+        return json.dumps({"error": f"castle_map.json not found at {_KEEP_MAP}"})
+    rooms = data.get("rooms") or []
+    return json.dumps(
+        {
+            "title": data.get("title"),
+            "last_updated": data.get("last_updated"),
+            "room_count": len(rooms),
+            "rooms": [
+                {
+                    "id": r.get("id"),
+                    "slug": r.get("slug"),
+                    "name": r.get("name"),
+                    "empty": bool(r.get("empty")),
+                    "agent": (r.get("agent") or {}).get("name"),
+                    "status": (r.get("agent") or {}).get("status"),
+                    "forged_at": r.get("forged_at"),
+                    "last_event": r.get("last_event"),
+                }
+                for r in rooms
+                if isinstance(r, dict)
+            ],
+        },
+        indent=2,
+    )
+
+
+@mcp.tool()
+def update_room_state(room_id: str, state: str, confirm: bool = False) -> str:
+    """Set a Keep room's agent status. Gated write — pass confirm=true.
+
+    room_id accepts either the room id ("grant-hall-empty") or slug ("grant-hall").
+    state: UNFORGED, LIVE, LOCKED, WORK, WAIT, COMMANDING, HAMMERING, IDLE, FAILED.
+    """
+    state = (state or "").strip().upper()
+    if state not in _KEEP_STATES:
+        return f"Error: unknown state {state!r}. Valid: {', '.join(sorted(_KEEP_STATES))}"
+    if not confirm:
+        return (
+            f"Refused: this writes {_KEEP_MAP}. "
+            f"Re-call with confirm=true to set {room_id} -> {state}."
+        )
+
+    data = _keep_load()
+    if data is None:
+        return f"Error: castle_map.json missing at {_KEEP_MAP}"
+
+    room = _keep_find(data, room_id)
+    if room is None:
+        known = ", ".join(
+            str(r.get("id")) for r in (data.get("rooms") or []) if isinstance(r, dict)
+        )
+        return f"Error: room {room_id!r} not found. Known rooms: {known}"
+
+    agent = room.setdefault("agent", {})
+    previous = agent.get("status")
+    agent["status"] = state
+
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    room["last_event"] = stamp
+    data["last_updated"] = stamp
+    if state == "UNFORGED":
+        room["empty"] = True
+    else:
+        room["empty"] = False
+        # castle_map.json ships "forged_at": null for unforged rooms, so setdefault
+        # would leave it null forever — stamp it whenever it is unset.
+        if not room.get("forged_at"):
+            room["forged_at"] = stamp
+
+    # Atomic replace — the old r+/truncate could leave a half-written map on crash.
+    tmp = _KEEP_MAP.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(_KEEP_MAP)
+    return f"Updated {room.get('id')} ({room.get('name')}): {previous} -> {state}"
+
 # Register Tier A–D operator tools (same package dir as this file)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from reclaw_platform_mcp_extensions import register_extensions  # noqa: E402
@@ -1562,71 +1678,3 @@ if __name__ == "__main__":
     if transport not in ("stdio", "sse", "streamable-http"):
         transport = "stdio"
     mcp.run(transport=transport)  # type: ignore[arg-type]
-# --- Spatial Dashboard State Tools ---
-@mcp.tool()
-def get_keep_state() -> str:
-    """Returns the current spatial state of Ravenstack Keep rooms from castle_map.json."""
-    p = Path("/root/ReClaw-2.0/data/castle_map.json")
-    return p.read_text() if p.exists() else json.dumps({"error": "castle_map.json not found"})
-
-@mcp.tool()
-def update_room_state(room_id: str, state: str) -> str:
-    """Updates the rendering state of a room in castle_map.json (UNFORGED, LIVE, LOCKED, WORK, WAIT)."""
-    p = Path("/root/ReClaw-2.0/data/castle_map.json")
-    if not p.exists():
-        return "Error: castle_map.json missing"
-    with open(p, "r+") as f:
-        data = json.load(f)
-        if room_id in data.get("rooms", {}):
-            data["rooms"][room_id]["state"] = state
-            f.seek(0)
-            json.dump(data, f, indent=2)
-            f.truncate()
-            return f"Updated {room_id} to {state}"
-        return f"Error: Room {room_id} not found"
-
-# --- Spatial Dashboard State Tools ---
-@mcp.tool()
-def get_keep_state() -> str:
-    """Returns the current spatial state of Ravenstack Keep rooms from castle_map.json."""
-    p = Path("/root/ReClaw-2.0/data/castle_map.json")
-    return p.read_text() if p.exists() else json.dumps({"error": "castle_map.json not found"})
-
-@mcp.tool()
-def update_room_state(room_id: str, state: str) -> str:
-    """Updates the rendering state of a room in castle_map.json (UNFORGED, LIVE, LOCKED, WORK, WAIT)."""
-    p = Path("/root/ReClaw-2.0/data/castle_map.json")
-    if not p.exists():
-        return "Error: castle_map.json missing"
-    with open(p, "r+") as f:
-        data = json.load(f)
-        if room_id in data.get("rooms", {}):
-            data["rooms"][room_id]["state"] = state
-            f.seek(0)
-            json.dump(data, f, indent=2)
-            f.truncate()
-            return f"Updated {room_id} to {state}"
-        return f"Error: Room {room_id} not found"
-
-# --- Spatial Dashboard State Tools ---
-@mcp.tool()
-def get_keep_state() -> str:
-    """Returns the current spatial state of Ravenstack Keep rooms from castle_map.json."""
-    p = Path("/root/ReClaw-2.0/data/castle_map.json")
-    return p.read_text() if p.exists() else json.dumps({"error": "castle_map.json not found"})
-
-@mcp.tool()
-def update_room_state(room_id: str, state: str) -> str:
-    """Updates the rendering state of a room in castle_map.json (UNFORGED, LIVE, LOCKED, WORK, WAIT)."""
-    p = Path("/root/ReClaw-2.0/data/castle_map.json")
-    if not p.exists():
-        return "Error: castle_map.json missing"
-    with open(p, "r+") as f:
-        data = json.load(f)
-        if room_id in data.get("rooms", {}):
-            data["rooms"][room_id]["state"] = state
-            f.seek(0)
-            json.dump(data, f, indent=2)
-            f.truncate()
-            return f"Updated {room_id} to {state}"
-        return f"Error: Room {room_id} not found"
