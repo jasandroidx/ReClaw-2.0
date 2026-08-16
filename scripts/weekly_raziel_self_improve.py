@@ -1,6 +1,6 @@
 import os, subprocess, datetime
 
-vault = "/root/obsidian-vault/Ravenstack/ops/audits"
+vault = "/root/obsidian_vault/Ravenstack/ops/audits"
 os.makedirs(vault, exist_ok=True)
 today = datetime.date.today().isoformat()
 report = f"{vault}/Weekly-Audit-{today}.md"
