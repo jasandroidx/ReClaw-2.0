@@ -15,10 +15,15 @@ Run HTTP bridge (tailnet only):
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+# stderr only — stdout is the MCP protocol channel in stdio transport mode.
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger("reclaw_platform")
 
 ROOT = Path(__file__).resolve().parent.parent
 VAULT = Path(os.environ.get("RECLAW_OBSIDIAN_VAULT_PATH", "/root/obsidian_vault"))
@@ -578,6 +583,9 @@ def _run(cmd: list[str], cwd: Path | None = None, timeout: int = 30) -> str:
         )
         return ((proc.stdout or "") + (proc.stderr or "")).strip()
     except Exception as e:
+        # Never swallow silently: this failure won't raise to the caller (they
+        # get a plain "error: ..." string back), so log it here or it's gone.
+        logger.warning("_run failed: cmd=%s cwd=%s error=%s", cmd, cwd or ROOT, e)
         return f"error: {e}"
 
 
