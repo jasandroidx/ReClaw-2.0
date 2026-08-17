@@ -1,6 +1,9 @@
 [Unit]
 Description=ReClaw MCP HTTP Bridge (streamable-http on :8100)
-After=network.target docker.service
+After=network-online.target tailscaled.service docker.service
+Wants=network-online.target tailscaled.service
+StartLimitIntervalSec=300
+StartLimitBurst=10
 
 [Service]
 Type=simple
@@ -8,10 +11,9 @@ User=root
 WorkingDirectory=/root/ReClaw-2.0
 EnvironmentFile=-/root/.env
 ExecStart=/root/ReClaw-2.0/scripts/run-reclaw-mcp-bridge.sh
-Restart=on-failure
-RestartSec=10
-StartLimitIntervalSec=60
-StartLimitBurst=5
+Restart=always
+RestartSec=3
+OOMPolicy=continue
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=reclaw-mcp-bridge
