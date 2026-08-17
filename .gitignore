@@ -42,6 +42,7 @@ data/county_queue/pending/
 data/rag_chroma/
 data/rag_embeddings/
 data/rag_state/
+data/mcp_bridge_watchdog_fail_count
 data/runs/
 data/sessions/
 data/mcp_logs/
