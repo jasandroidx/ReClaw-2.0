@@ -141,6 +141,13 @@ This rule overrides polish, speed, and ego. Evidence or admit the gap.
 - When the user wants to move fast, match their pace — **without** lying or faking progress.
 - When something is unclear or risky, ask for clarification instead of guessing.
 
+## Known gotchas (hard-won, 2026-08-17)
+
+- **Vault path is `/root/obsidian_vault` (underscore).** `/root/obsidian-vault` (hyphen) is a typo path that two scripts wrote to silently for 2+ weeks before anyone noticed — none of it was git-tracked, RAG-synced, or visible to any MCP vault tool. If you're about to `mkdir`/`open`/`write_vault_file` against a vault-looking path, double-check the underscore. See `Ravenstack/memory/OBSERVATIONAL.md` ("sitrep crash-loop root-caused + fixed").
+- **`docker compose logs` has no `--no-follow` flag.** Logs don't follow by default; passing `--no-follow` just errors with `unknown flag`. Use `docker compose logs --tail=N <service>` (no follow flag needed) or `-f`/`--follow` if you actually want to follow.
+- **Never restart `reclaw-mcp-bridge.service` on a single failed health probe.** It's single-worker/blocking — a full `sitrep`/`project_sitrep` call (esp. its `openclaw doctor --lint` step) legitimately blocks every route, including `/health`, for 30-90s+. The watchdog at `scripts/reclaw-mcp-bridge-watchdog.sh` (root's crontab, every minute) only restarts after 3 consecutive failed probes for this reason — don't replace it with a single-probe restart-on-fail one-liner.
+- **`_run()` in `scripts/reclaw_platform_mcp_server.py` swallows subprocess failures into a plain string** (`f"error: {e}"`) instead of raising or logging. Callers that don't explicitly check for an `"error:"` prefix will treat a failed command as if it returned real (empty-ish) output. Don't assume a non-crashing call succeeded — check the return value.
+
 ## Single OpenClaw gateway (hard rule on this host)
 - **Only** `cd /root/ReClaw-2.0 && docker compose up -d openclaw-gateway`.
 - Host CLI is wrapped by `/usr/local/bin/openclaw` — it **blocks** starting a second gateway.
