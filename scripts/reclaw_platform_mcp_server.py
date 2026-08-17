@@ -31,8 +31,48 @@ sys.path.insert(0, str(ROOT))
 os.environ.setdefault("RECLAW_KNOWLEDGE_PATH", str(VAULT / "Ravenstack"))
 os.environ.setdefault("RECLAW_OBSIDIAN_VAULT_PATH", str(VAULT))
 
+from mcp.server.auth.provider import AccessToken, TokenVerifier
+from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+
+
+def _gateway_token() -> str:
+    """Resolve gateway token at call time (env may load after process start)."""
+    tok = os.environ.get("RECLAW_GATEWAY_TOKEN", "").strip()
+    if tok and tok != "${RECLAW_GATEWAY_TOKEN}":
+        return tok
+    # bridge script sources /root/.env — also try common env file once
+    for path in (Path("/root/.env"), ROOT / ".env"):
+        try:
+            if not path.is_file():
+                continue
+            for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("RECLAW_GATEWAY_TOKEN="):
+                    return line.split("=", 1)[1].strip().strip('"').strip("'")
+        except OSError:
+            continue
+    return ""
+
+
+class _StaticBearerTokenVerifier(TokenVerifier):
+    """Single shared-secret bearer check for the /mcp route only (not /health).
+
+    Opt-in: only wired into FastMCP when RECLAW_MCP_REQUIRE_AUTH=1. Reuses
+    RECLAW_GATEWAY_TOKEN (the same secret reclaw-platform already sends to
+    reclaw-api) rather than inventing a second one to rotate. No OAuth
+    server, no issuer_url, no scopes — this is deliberately simple, matching
+    the bearer-token pattern already used elsewhere in this stack (see
+    _gateway_token() above). Do not silently disable: BOARD.md 2026-07-30
+    flagged unauthenticated vault-write/queue-approve MCP tools as the
+    highest-priority open item — see Ravenstack/protocols for context.
+    """
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        expected = _gateway_token()
+        if not expected or token != expected:
+            return None
+        return AccessToken(token=token, client_id="reclaw-mcp-client", scopes=[])
 
 from core.config import get_settings
 from core.knowledge import KnowledgeManager
@@ -46,8 +86,32 @@ _port = int(os.environ.get("FASTMCP_PORT", "8100"))
 # hitting -32600 "Session not found" when clients reused a session after bridge restart
 # or after DELETE/terminate. Default ON for HTTP bridge; set MCP_STATELESS_HTTP=0 to disable.
 _stateless_http = os.environ.get("MCP_STATELESS_HTTP", "1").lower() in ("1", "true", "yes")
+# Opt-in bearer auth on /mcp (not /health). OFF by default: flipping this on
+# locks out every existing client (OpenClaw, Grok Build's HTTP entry, any
+# claude.ai custom connector) until each is updated with the token — do not
+# enable without updating client configs in the same change. See
+# _StaticBearerTokenVerifier above and Ravenstack/protocols for the BOARD.md
+# context this closes.
+_require_mcp_auth = os.environ.get("RECLAW_MCP_REQUIRE_AUTH", "").lower() in ("1", "true", "yes")
+if _require_mcp_auth and not _gateway_token():
+    logger.warning(
+        "RECLAW_MCP_REQUIRE_AUTH=1 but RECLAW_GATEWAY_TOKEN is unset/empty — "
+        "every request will be rejected. Set the token or disable auth."
+    )
 mcp = FastMCP(
     "reclaw-platform",
+    token_verifier=_StaticBearerTokenVerifier() if _require_mcp_auth else None,
+    # SDK requires *some* AuthSettings whenever token_verifier is set, even
+    # though we're not using its OAuth-server side (no auth_server_provider
+    # configured, so no auth routes get added — just the bearer middleware).
+    auth=(
+        AuthSettings(
+            issuer_url=f"https://{_TSNET_HOST}",
+            resource_server_url=f"https://{_TSNET_HOST}:{_port}",
+        )
+        if _require_mcp_auth
+        else None
+    ),
     instructions=(
         "You are connected LIVE to the user's ReClaw server via this MCP connector. "
         "THIS chat can call tools and get results immediately. "
@@ -82,24 +146,6 @@ mcp = FastMCP(
 )
 GATEWAY = os.environ.get("RECLAW_GATEWAY_URL", "http://127.0.0.1:8000")
 OPENCLAW = os.environ.get("OPENCLAW_GATEWAY_URL", "http://127.0.0.1:18789")
-
-
-def _gateway_token() -> str:
-    """Resolve gateway token at call time (env may load after process start)."""
-    tok = os.environ.get("RECLAW_GATEWAY_TOKEN", "").strip()
-    if tok and tok != "${RECLAW_GATEWAY_TOKEN}":
-        return tok
-    # bridge script sources /root/.env — also try common env file once
-    for path in (Path("/root/.env"), ROOT / ".env"):
-        try:
-            if not path.is_file():
-                continue
-            for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-                if line.startswith("RECLAW_GATEWAY_TOKEN="):
-                    return line.split("=", 1)[1].strip().strip('"').strip("'")
-        except OSError:
-            continue
-    return ""
 
 
 @mcp.custom_route("/health", methods=["GET"], name="health")
