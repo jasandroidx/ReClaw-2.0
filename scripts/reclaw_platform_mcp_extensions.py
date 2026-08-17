@@ -466,16 +466,24 @@ def register_extensions(
             return json.dumps(cfg, indent=2)
         agents = cfg.get("agents") or {}
         defaults = agents.get("defaults") or {}
-        # list named agents if present
+        # Real agent roster lives under agents.list[] (an array of per-agent
+        # configs), not as top-level dict keys. The old code looped
+        # agents.items() expecting a flat dict, so isinstance(v, dict) was
+        # never true for the "list" key (a list) and named_agents was always
+        # {} regardless of what's actually configured. Confirmed 2026-08-17:
+        # BOARD.md's "named_agents is empty, per-agent routing is gone"
+        # concern was this reporting bug, not a real config gap.
         named = {}
-        for k, v in agents.items():
-            if k == "defaults":
+        for entry in agents.get("list") or []:
+            if not isinstance(entry, dict):
                 continue
-            if isinstance(v, dict):
-                named[k] = {
-                    "model": v.get("model"),
-                    "workspace": v.get("workspace") or v.get("agentDir"),
-                }
+            key = entry.get("id") or entry.get("name")
+            if not key:
+                continue
+            named[key] = {
+                "model": entry.get("model"),
+                "workspace": entry.get("workspace") or entry.get("agentDir"),
+            }
         providers = ((cfg.get("models") or {}).get("providers") or {})
         provider_summary = {
             name: [m.get("id") for m in (p.get("models") or []) if isinstance(m, dict)]
