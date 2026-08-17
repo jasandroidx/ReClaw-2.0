@@ -51,17 +51,35 @@ _stateless_http = os.environ.get("MCP_STATELESS_HTTP", "1").lower() in ("1", "tr
 mcp = FastMCP(
     "reclaw-platform",
     instructions=(
-        "You are connected LIVE to the user's ReClaw server via this MCP connector. "
-        "THIS chat can call tools and get results immediately. "
-        "FORBIDDEN: telling the user to open Grok Build, paste into Build, SSH, or run terminal "
-        "commands for anything these tools can do. That is wrong and frustrates the user. "
-        "STATUS: call project_sitrep, sitrep, or morning_digest — show the result. "
-        "QUEUE: county_queue_card / pending_gates (read); approve/reject ONLY with confirm=true "
-        "when the human explicitly asks. "
-        "OPERATOR GUIDE: connector_guide or skill_stack_map. "
-        "Also: pipeline_status, inspect_session, query_knowledge, connector_status, "
-        "docker_status, openclaw_models, ollama_models, git_vault_status. "
-        "Truth + provenance only. Prefer reads; gated writes need explicit human intent."
+        "RAVENSTACK — Jason's fortress. You are connected LIVE; these tools act "
+        "on the real system.\n\n"
+        "BEFORE YOU BUILD ANYTHING, call what_exists(). Duplicate construction "
+        "has already cost real time here: two competing versions of the same UI "
+        "were built a week apart by sessions that did not know about each other. "
+        "If what_exists() says a component is built, DO NOT build a second one. "
+        "Extend it, or tell Jason plainly that it should be replaced and why.\n\n"
+        "WHERE THINGS GO: call oracle_ask('where does X go?'). The Oracle is a "
+        "lookup, not a model — if she says no rule exists, that is a real answer. "
+        "Ask Jason rather than inventing a location. Vault writes are checked in "
+        "code and will be REFUSED if the path or frontmatter is wrong.\n\n"
+        "TRUTH: every claim carries a source. If you do not have a sourced "
+        "answer, say so. Never produce a plausible one. This is the fortress's "
+        "first rule and the reason the Oracle exists.\n\n"
+        "GATES ARE THE PRODUCT: mutations require confirm=true and explicit "
+        "human intent. Never approve a gate to make a flow complete or a demo "
+        "run. County approve/reject, capability grants and spec approvals are "
+        "Jason's decisions, not yours.\n\n"
+        "STATE: never assume it — fetch it. Use stack_health, pipeline_status, "
+        "pending_gates, connector_status, git_vault_status. NEVER call "
+        "project_sitrep, sitrep or github_gap_suggestions; they hang for 60s+ "
+        "and return nothing.\n\n"
+        "PREFER TOOLS over asking Jason to run commands — that is what they are "
+        "for. But if something genuinely cannot be done through a tool (writing "
+        "to a host you cannot reach, a browser sign-in), say so plainly and give "
+        "him the exact steps. Do not pretend a limit does not exist.\n\n"
+        "WHEN YOU FINISH SOMETHING, add it to the Ledger "
+        "(Ravenstack/LEDGER.yaml) so the next model — whatever vendor — knows "
+        "it exists."
     ),
     # Option 2: clients hit this host's Tailscale IP directly.
     host=os.environ.get("FASTMCP_HOST", _TS_IP),
@@ -277,6 +295,61 @@ def ingest_to_ravenstack(source: str, content_or_path: str) -> str:
 def save_ravenstack_note(source: str, distilled: str, potential_for: str = "revenue-loops") -> str:
     """Write a distilled note to Ravenstack backlog with frontmatter."""
     return str(_km().save_to_backlog(source, distilled, potential_for))
+
+
+@mcp.tool()
+def what_exists(component: str = "") -> str:
+    """What is already built in Ravenstack. CALL THIS BEFORE BUILDING ANYTHING.
+
+    Reads Ravenstack/LEDGER.yaml. Pass a component name for detail, or leave
+    empty for the full inventory. A component marked `built` must not be
+    rebuilt or duplicated — extend it instead.
+    """
+    import yaml
+
+    ledger = VAULT / "Ravenstack" / "LEDGER.yaml"
+    if not ledger.is_file():
+        return f"No ledger at {ledger}. Treat nothing as known-built; ask Jason before building."
+    try:
+        data = yaml.safe_load(ledger.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        return f"Ledger is unreadable ({exc}). Ask Jason before building."
+
+    comps = data.get("components") or {}
+    key = component.strip().lower().replace("-", "_")
+
+    if key:
+        entry = comps.get(key) or next(
+            (v for k, v in comps.items() if key in k or key in str(v.get("what", "")).lower()),
+            None,
+        )
+        if not entry:
+            known = ", ".join(sorted(comps))
+            return f"'{component}' is not in the Ledger. Known: {known}\n\nIf you are about to build it, ask Jason first — it may exist unrecorded."
+        return yaml.safe_dump({component: entry}, sort_keys=False, width=88)
+
+    def first(v, default: str = "") -> str:
+        """First line of a field, tolerant of missing/blank/non-string values."""
+        parts = str(v or "").strip().splitlines()
+        return parts[0] if parts else default
+
+    lines = [f"RAVENSTACK LEDGER (updated {data.get('updated', '?')}) — do not rebuild anything marked built.", ""]
+    for name, e in comps.items():
+        e = e or {}
+        desc = first(e.get("what")) or first(e.get("state")) or first(e.get("decision")) or "(no description)"
+        lines.append(f"[{str(e.get('status', '?')).upper()}] {name} — {desc[:90]}")
+        for label in ("do_not", "warning", "risk", "decision", "state"):
+            if e.get(label) and label != "decision" or (label == "decision" and e.get("what")):
+                v = first(e.get(label))
+                if v:
+                    lines.append(f"    {label.upper().replace('_', ' ')}: {v[:88]}")
+    if data.get("open_work"):
+        lines += ["", "Known open (not new discoveries):"] + [f"  - {w}" for w in data["open_work"]]
+    if data.get("deliberate_absences"):
+        lines += ["", "Deliberate absences (not bugs):"] + [
+            f"  - {a.get('what')}: {a.get('why')}" for a in data["deliberate_absences"]
+        ]
+    return "\n".join(lines)
 
 
 # --- The Oracle (deterministic routing + refusal) ---
