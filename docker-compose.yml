@@ -28,6 +28,8 @@ services:
     # Permanent outbox (host /root/outbox → container path agents can write).
     # Host path /root is 0700 and not traversable by uid 1000, so mount under /home/node.
     - /root/outbox:/home/node/outbox:rw
+    # Obsidian app:// origin allowlist patch (re-apply after image upgrade)
+    - /root/openclaw-patches/auth-B27MflKU.js:/app/dist/auth-B27MflKU.js:ro
   reclaw-api:
     build:
       context: .
