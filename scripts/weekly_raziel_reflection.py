@@ -4,7 +4,7 @@ import json
 import urllib.request
 import datetime
 
-VAULT_DIR = "/root/obsidian-vault/Ravenstack/ops/audits"
+VAULT_DIR = "/root/obsidian_vault/Ravenstack/ops/audits"
 today = datetime.date.today().isoformat()
 audit_file = f"{VAULT_DIR}/Weekly-Audit-{today}.md"
 reflection_file = f"{VAULT_DIR}/Weekly-Reflection-{today}.md"
