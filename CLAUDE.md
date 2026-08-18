@@ -141,6 +141,16 @@ This rule overrides polish, speed, and ego. Evidence or admit the gap.
 - When the user wants to move fast, match their pace — **without** lying or faking progress.
 - When something is unclear or risky, ask for clarification instead of guessing.
 
+## Status vocabulary (retrofitted from ecc:terminal-ops, 2026-08-18)
+
+When reporting on repo work, use exact status words instead of vague success language:
+**inspected / changed locally / verified locally / committed / pushed / blocked.**
+Don't claim "fixed" until the proving command was rerun. Don't claim "pushed" unless the branch actually moved upstream. This sharpens (doesn't replace) the Honesty & evidence rule above.
+
+## Confirm before running (retrofitted from ecc:safety-guard, 2026-08-18)
+
+Always confirm before: `rm -rf` near `/`, `~`, or a project root; `git push --force`; `git reset --hard`; `git checkout .` (discards all changes); `docker compose down -v` (drops volumes); `systemctl stop`/`restart` on a service with live user sessions (check WRITE-GATES first — `reclaw-mcp-bridge` restarts are lower-risk than `openclaw-gateway` restarts, which drop Discord); deleting a remote git branch; `chmod 777`; any command with `--no-verify`. This is Claude Code's own safety layer, not a substitute for the Ravenstack-specific WRITE-GATES classes above.
+
 ## Known gotchas (hard-won, 2026-08-17)
 
 - **Vault path is `/root/obsidian_vault` (underscore).** `/root/obsidian-vault` (hyphen) is a typo path that two scripts wrote to silently for 2+ weeks before anyone noticed — none of it was git-tracked, RAG-synced, or visible to any MCP vault tool. If you're about to `mkdir`/`open`/`write_vault_file` against a vault-looking path, double-check the underscore. See `Ravenstack/memory/OBSERVATIONAL.md` ("sitrep crash-loop root-caused + fixed").
