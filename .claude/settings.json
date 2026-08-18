@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat /root/obsidian_vault/Ravenstack/ops/SESSION-START.md 2>/dev/null || echo 'Ravenstack SESSION-START.md not found at /root/obsidian_vault/Ravenstack/ops/SESSION-START.md -- read the vault manually (human phrase: read vault).'"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'SESSION END REMINDER (Ravenstack): if this session did material work -- commits, vault writes, config/agent changes -- append a dated entry to Ravenstack/memory/OBSERVATIONAL.md before finishing. Format: objective + current state, evidence/commands already run, files or systems touched, concrete next action. See the file header for the full convention. Do not skip this because the session is ending quietly -- unlogged work is exactly what went stale for 2 weeks on 2026-08-17.'"
+          }
+        ]
+      }
+    ]
+  }
+}
