@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -342,11 +343,14 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
-        sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
+        # Using os.scandir to avoid additional stat() calls
+        sorted_entries = sorted(
+            (e for e in os.scandir(sess_root) if e.is_dir()),
+            key=lambda e: e.stat().st_mtime,
             reverse=True,
         )[:5]
+
+        sorted_sessions = [Path(e.path) for e in sorted_entries]
 
         for sess_dir in sorted_sessions:
             recent_sessions.append({"session_id": sess_dir.name})
@@ -428,9 +432,10 @@ def list_sessions(limit: int = 20):
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    # Using os.scandir to avoid additional stat() calls
+    for e in sorted(os.scandir(sess_root), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+        if e.is_dir():
+            items.append({"session_id": e.name, "path": e.path})
     return {"count": len(items), "sessions": items}
 
 
