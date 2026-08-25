@@ -1,0 +1,3 @@
+## 2024-05-19 - Avoid Path.iterdir() for sorted directory listings
+**Learning:** Calling `Path.iterdir()` and then `path.stat()` on each item results in an extra `stat` system call per file. `os.scandir()` instead returns `os.DirEntry` objects which cache their file attributes, including `st_mtime`. Benchmarks confirm using `os.scandir()` provides a measurable performance gain for folders containing many files (e.g., `data/sessions/`).
+**Action:** Always prefer `os.scandir()` over `Path.iterdir()` or `Path.glob()` when iteration depends on retrieving filesystem metadata, mapping to `pathlib.Path` only when its specific methods are needed later.
