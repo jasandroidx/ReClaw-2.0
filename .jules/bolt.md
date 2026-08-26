@@ -1,0 +1,3 @@
+## 2024-05-18 - pathlib.Path.iterdir() performance bottleneck
+**Learning:** `pathlib.Path.iterdir()` or `pathlib.Path.glob()` combined with `.stat()` can be slow on large directories because `iterdir()` doesn't utilize cached stat info, leading to redundant syscalls. `os.scandir()` caches stat information implicitly via `os.DirEntry`.
+**Action:** Replace `iterdir()`/`glob()` followed by `.stat()` sorting with `os.scandir()` to improve directory iteration and sorting performance. Remember that `os.scandir()` yields `os.DirEntry` objects, so explicit conversion to `Path(entry.path)` is needed if `Path` methods are used subsequently.

@@ -14,8 +14,9 @@ Run HTTP bridge (tailnet only):
 
 from __future__ import annotations
 
-import json
 import os
+import json
+
 import subprocess
 import sys
 from pathlib import Path
@@ -186,13 +187,17 @@ def rag_sync_vault() -> str:
 
 
 @mcp.tool()
+
 def list_pipeline_sessions(limit: int = 8) -> str:
     """List recent isolated pipeline session folders."""
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-    return "\n".join(d.name for d in dirs[:limit])
+    # ⚡ Bolt: os.scandir drastically speeds up session iteration on dense data stores
+    with os.scandir(sessions) as it:
+        dirs = [e for e in it if e.is_dir()]
+    top_dirs = sorted(dirs, key=lambda e: e.stat().st_mtime, reverse=True)[:limit]
+    return "\n".join(d.name for d in top_dirs)
 
 
 # --- Stack ops ---
