@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
-import json
 import os
+import json
+
 import subprocess
 from pathlib import Path
 
@@ -103,13 +104,17 @@ def rag_vault_sync() -> str:
 
 
 @mcp.tool()
+
 def list_recent_sessions(limit: int = 5) -> str:
     """List recent isolated session directories for audit."""
     sessions = REPO / "data" / "sessions"
     if not sessions.exists():
         return "no sessions dir"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-    return "\n".join(d.name for d in dirs[:limit])
+    # ⚡ Bolt: os.scandir drastically speeds up session iteration on dense data stores
+    with os.scandir(sessions) as it:
+        dirs = [e for e in it if e.is_dir()]
+    top_dirs = sorted(dirs, key=lambda e: e.stat().st_mtime, reverse=True)[:limit]
+    return "\n".join(d.name for d in top_dirs)
 
 
 if __name__ == "__main__":

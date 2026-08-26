@@ -13,6 +13,7 @@ Usage:
 """
 
 from __future__ import annotations
+import os
 
 import json
 import logging
@@ -74,14 +75,22 @@ class JobRegistry:
 
     def list(self, limit: int = 20) -> list[dict[str, Any]]:
         """Return up to `limit` most-recently-modified job records."""
+        # ⚡ Bolt: Use os.scandir to speed up sorting by mtime and avoid redundant stat() calls
+        entries = []
+        if self._dir.exists():
+            with os.scandir(self._dir) as it:
+                entries = [e for e in it if e.name.endswith(".status.json")]
+
         status_files = sorted(
-            self._dir.glob("*.status.json"),
-            key=lambda p: p.stat().st_mtime,
+            entries,
+            key=lambda e: e.stat().st_mtime,
             reverse=True,
-        )
+        )[:limit]
+
         results = []
-        for p in status_files[:limit]:
+        for entry in status_files:
             try:
+                p = Path(entry.path)
                 data = json.loads(p.read_text())
                 results.append(data)
             except Exception:
