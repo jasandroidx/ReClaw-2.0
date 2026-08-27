@@ -21,6 +21,7 @@ Core endpoints:
 
 from __future__ import annotations
 
+import os
 import asyncio
 import json
 from datetime import datetime
@@ -342,17 +343,19 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
+        # Optimization: use os.scandir for cached st_mtime instead of Path.iterdir().stat()
         sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
+            (entry for entry in os.scandir(sess_root) if entry.is_dir()),
+            key=lambda e: e.stat().st_mtime,
             reverse=True,
         )[:5]
 
-        for sess_dir in sorted_sessions:
-            recent_sessions.append({"session_id": sess_dir.name})
+        for entry in sorted_sessions:
+            sess_dir = Path(entry.path)
+            recent_sessions.append({"session_id": entry.name})
             try:
                 from core.security import SecurityManager
-                sec = SecurityManager(sess_dir, sess_dir.name)
+                sec = SecurityManager(sess_dir, entry.name)
                 for req in sec.get_pending_requests():
                     pending_approvals.append({
                         "session_id": sess_dir.name,
@@ -428,9 +431,10 @@ def list_sessions(limit: int = 20):
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    # Optimization: use os.scandir for cached st_mtime instead of Path.iterdir().stat()
+    for entry in sorted(os.scandir(sess_root), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+        if entry.is_dir():
+            items.append({"session_id": entry.name, "path": entry.path})
     return {"count": len(items), "sessions": items}
 
 
