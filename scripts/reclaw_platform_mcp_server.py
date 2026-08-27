@@ -191,7 +191,12 @@ def list_pipeline_sessions(limit: int = 8) -> str:
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    # Optimization: use os.scandir for cached st_mtime instead of Path.iterdir().stat()
+    dirs = sorted(
+        (entry for entry in os.scandir(sessions) if entry.is_dir()),
+        key=lambda e: e.stat().st_mtime,
+        reverse=True
+    )
     return "\n".join(d.name for d in dirs[:limit])
 
 
