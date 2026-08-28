@@ -1,0 +1,3 @@
+## 2024-05-18 - pathlib.Path.glob vs os.scandir for sorting files by modification time
+**Learning:** In the ReClaw API, listing and sorting run files using `pathlib.Path.glob("*.json")` and `p.stat().st_mtime` can be slow. A benchmark shows `os.scandir` is about 2x faster because `os.scandir()` returns `os.DirEntry` objects which cache their `stat()` results, whereas `Path.stat()` makes a syscall each time.
+**Action:** Replace `settings.runs_dir.glob("*.json")` and similar file discovery logic in `api/main.py` and `core/job_registry.py` with `os.scandir()` when we need to sort files by modification time, keeping in mind to convert to `Path` objects if downstream logic expects them.
