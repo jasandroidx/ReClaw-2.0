@@ -21,6 +21,7 @@ Core endpoints:
 
 from __future__ import annotations
 
+import os
 import asyncio
 import json
 from datetime import datetime
@@ -268,10 +269,15 @@ def get_job(job_id: str):
 @app.get("/jobs/latest")
 def latest_job():
     """Return metadata for the most recent run on disk."""
-    runs = sorted(settings.runs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not settings.runs_dir.exists():
+        return {"message": "No runs yet"}
+
+    entries = [e for e in os.scandir(settings.runs_dir) if e.is_file() and e.name.endswith(".json")]
+    runs = sorted(entries, key=lambda e: e.stat().st_mtime, reverse=True)
+
     if not runs:
         return {"message": "No runs yet"}
-    latest_path = runs[0]
+    latest_path = Path(runs[0].path)
     try:
         data = json.loads(latest_path.read_text())
         # lightweight summary
@@ -292,9 +298,13 @@ def latest_job():
 def list_packages(limit: int = 20):
     """List recent completed packages from disk (lightweight index)."""
     items = []
-    for p in sorted(settings.runs_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+    if not settings.runs_dir.exists():
+        return {"count": len(items), "packages": items}
+
+    entries = [e for e in os.scandir(settings.runs_dir) if e.is_file() and e.name.endswith(".json")]
+    for e in sorted(entries, key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
         try:
-            d = json.loads(p.read_text())
+            d = json.loads(Path(e.path).read_text())
             items.append({
                 "id": d.get("id"),
                 "county": d.get("county"),
@@ -343,19 +353,19 @@ def get_state():
 
     if sess_root.exists():
         sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
+            (e for e in os.scandir(sess_root) if e.is_dir()),
+            key=lambda e: e.stat().st_mtime,
             reverse=True,
         )[:5]
 
-        for sess_dir in sorted_sessions:
-            recent_sessions.append({"session_id": sess_dir.name})
+        for sess_entry in sorted_sessions:
+            recent_sessions.append({"session_id": sess_entry.name})
             try:
                 from core.security import SecurityManager
-                sec = SecurityManager(sess_dir, sess_dir.name)
+                sec = SecurityManager(Path(sess_entry.path), sess_entry.name)
                 for req in sec.get_pending_requests():
                     pending_approvals.append({
-                        "session_id": sess_dir.name,
+                        "session_id": sess_entry.name,
                         **req.model_dump(),
                     })
             except Exception:
@@ -428,9 +438,9 @@ def list_sessions(limit: int = 20):
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    for e in sorted(os.scandir(sess_root), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+        if e.is_dir():
+            items.append({"session_id": e.name, "path": e.path})
     return {"count": len(items), "sessions": items}
 
 
