@@ -1,0 +1,3 @@
+## 2024-08-30 - Faster Directory Traversal using os.scandir()
+**Learning:** `pathlib.Path.iterdir()` coupled with `path.stat().st_mtime` for sorting is inefficient because it requires a separate `stat()` system call for every file in the directory. `os.scandir()` caches these attributes on Windows and most Unix systems, saving expensive system calls. This is a critical learning for directory-heavy operations in this application.
+**Action:** When sorting or filtering directories by file attributes (like modified time), always use `os.scandir()` to avoid redundant `stat()` syscalls. Explicitly convert `entry.path` back to `Path(entry.path)` if `pathlib` features are needed downstream.
