@@ -22,6 +22,7 @@ Core endpoints:
 from __future__ import annotations
 
 import asyncio
+import os
 import json
 from datetime import datetime
 from pathlib import Path
@@ -342,11 +343,12 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
-        sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )[:5]
+        # ⚡ Bolt Optimization: Use os.scandir to avoid redundant stat() syscalls for mtime sorting
+        with os.scandir(sess_root) as it:
+            entries = [e for e in it if e.is_dir()]
+            sorted_entries = sorted(entries, key=lambda e: e.stat().st_mtime, reverse=True)[:5]
+
+        sorted_sessions = [Path(e.path) for e in sorted_entries]
 
         for sess_dir in sorted_sessions:
             recent_sessions.append({"session_id": sess_dir.name})
@@ -428,9 +430,13 @@ def list_sessions(limit: int = 20):
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    # ⚡ Bolt Optimization: Use os.scandir to avoid redundant stat() syscalls for mtime sorting
+    with os.scandir(sess_root) as it:
+        entries = [e for e in it if e.is_dir()]
+        sorted_entries = sorted(entries, key=lambda e: e.stat().st_mtime, reverse=True)[:limit]
+
+    for e in sorted_entries:
+        items.append({"session_id": e.name, "path": e.path})
     return {"count": len(items), "sessions": items}
 
 
