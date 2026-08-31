@@ -1,0 +1,3 @@
+## 2024-05-24 - Optimizing directory iteration
+**Learning:** `os.scandir()` provides a significant performance boost over `pathlib.Path.iterdir()` or `pathlib.Path.glob()` when querying file metadata (like `st_mtime`) because `os.scandir()` yields `DirEntry` objects that cache this metadata, avoiding additional system calls.
+**Action:** When sorting or filtering directory contents by metadata (e.g., modified time), always use `os.scandir()` instead of `pathlib` methods, especially in high-traffic endpoints or large directories. Remember to check if the directory exists first to prevent `FileNotFoundError` in fresh environments.
