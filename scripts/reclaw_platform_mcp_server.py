@@ -188,11 +188,23 @@ def rag_sync_vault() -> str:
 @mcp.tool()
 def list_pipeline_sessions(limit: int = 8) -> str:
     """List recent isolated pipeline session folders."""
+    import os
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-    return "\n".join(d.name for d in dirs[:limit])
+
+    # ⚡ Bolt Optimization: Using os.scandir() instead of Path.iterdir() allows sorting
+    # by modification time to utilize cached stat() calls, reducing I/O overhead.
+    entries = []
+    try:
+        with os.scandir(sessions) as it:
+            for entry in it:
+                entries.append(entry)
+        entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+    except OSError:
+        pass
+
+    return "\n".join(d.name for d in entries[:limit])
 
 
 # --- Stack ops ---

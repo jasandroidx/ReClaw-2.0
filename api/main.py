@@ -268,10 +268,25 @@ def get_job(job_id: str):
 @app.get("/jobs/latest")
 def latest_job():
     """Return metadata for the most recent run on disk."""
-    runs = sorted(settings.runs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if not runs:
+    import os
+    from pathlib import Path
+
+    # ⚡ Bolt Optimization: Using os.scandir() instead of pathlib.Path.glob() avoids
+    # duplicate stat() calls by caching metadata like st_mtime in DirEntry objects.
+    entries = []
+    if settings.runs_dir.exists():
+        try:
+            with os.scandir(settings.runs_dir) as it:
+                for entry in it:
+                    if entry.is_file() and entry.name.endswith(".json"):
+                        entries.append(entry)
+            entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+        except OSError:
+            pass
+
+    if not entries:
         return {"message": "No runs yet"}
-    latest_path = runs[0]
+    latest_path = Path(entries[0].path)
     try:
         data = json.loads(latest_path.read_text())
         # lightweight summary
@@ -291,10 +306,26 @@ def latest_job():
 @app.get("/packages")
 def list_packages(limit: int = 20):
     """List recent completed packages from disk (lightweight index)."""
-    items = []
-    for p in sorted(settings.runs_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+    import os
+    from pathlib import Path
+
+    # ⚡ Bolt Optimization: os.scandir() replaces Path.glob() for faster
+    # directory traversal by utilizing cached DirEntry metadata.
+    entries = []
+    if settings.runs_dir.exists():
         try:
-            d = json.loads(p.read_text())
+            with os.scandir(settings.runs_dir) as it:
+                for entry in it:
+                    if entry.is_file() and entry.name.endswith(".json"):
+                        entries.append(entry)
+            entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+        except OSError:
+            pass
+
+    items = []
+    for e in entries[:limit]:
+        try:
+            d = json.loads(Path(e.path).read_text())
             items.append({
                 "id": d.get("id"),
                 "county": d.get("county"),
@@ -342,11 +373,21 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
-        sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )[:5]
+        import os
+        from pathlib import Path
+
+        # ⚡ Bolt Optimization: Switched from Path.iterdir() to os.scandir() to
+        # leverage cached st_mtime metadata on DirEntry during sorting.
+        entries = []
+        try:
+            with os.scandir(sess_root) as it:
+                for entry in it:
+                    if entry.is_dir():
+                        entries.append(entry)
+            entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+            sorted_sessions = [Path(e.path) for e in entries[:5]]
+        except OSError:
+            sorted_sessions = []
 
         for sess_dir in sorted_sessions:
             recent_sessions.append({"session_id": sess_dir.name})
@@ -424,13 +465,26 @@ def list_approvals(session_id: str):
 @app.get("/sessions")
 def list_sessions(limit: int = 20):
     """List recent isolated sessions (audit trail)."""
+    import os
     sess_root = settings.data_dir / "sessions"
     if not sess_root.exists():
         return {"sessions": []}
+
+    # ⚡ Bolt Optimization: Replaced iterdir() with os.scandir() to improve
+    # sort performance by using cached stat() metadata on DirEntry.
+    entries = []
+    try:
+        with os.scandir(sess_root) as it:
+            for entry in it:
+                if entry.is_dir():
+                    entries.append(entry)
+        entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+    except OSError:
+        pass
+
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    for e in entries[:limit]:
+        items.append({"session_id": e.name, "path": e.path})
     return {"count": len(items), "sessions": items}
 
 
