@@ -74,15 +74,24 @@ class JobRegistry:
 
     def list(self, limit: int = 20) -> list[dict[str, Any]]:
         """Return up to `limit` most-recently-modified job records."""
-        status_files = sorted(
-            self._dir.glob("*.status.json"),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )
-        results = []
-        for p in status_files[:limit]:
+        import os
+        entries = []
+        if self._dir.exists():
             try:
-                data = json.loads(p.read_text())
+                with os.scandir(self._dir) as it:
+                    for entry in it:
+                        if entry.is_file() and entry.name.endswith(".status.json"):
+                            entries.append(entry)
+            except OSError:
+                pass
+
+        entries.sort(key=lambda e: e.stat().st_mtime, reverse=True)
+
+        results = []
+        for entry in entries[:limit]:
+            try:
+                with open(entry.path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
                 results.append(data)
             except Exception:
                 continue
