@@ -108,7 +108,12 @@ def list_recent_sessions(limit: int = 5) -> str:
     sessions = REPO / "data" / "sessions"
     if not sessions.exists():
         return "no sessions dir"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    with os.scandir(sessions) as it:
+        dirs = sorted(
+            (e for e in it if e.is_dir()),
+            key=lambda e: e.stat().st_mtime,
+            reverse=True
+        )
     return "\n".join(d.name for d in dirs[:limit])
 
 
