@@ -146,6 +146,50 @@ class AnalysisPackage(BaseModel):
     summary: str = ""
 
 
+class ShortScript(BaseModel):
+    """One short-form video idea: hook + script + title."""
+    slug: str
+    platform: Literal["tiktok", "shorts", "reels"] = "shorts"
+    title: str
+    hook: str
+    script: str  # 30–60s spoken text (beats joined or prose)
+    call_to_action: str | None = None
+    source_flag_category: str | None = None
+    engagement_score: float = Field(ge=0.0, le=1.0, default=0.75)
+    provenance: str | None = None  # evidence trace from red flag
+    caption: str | None = None
+    hashtags: str | None = None
+    disclaimer: str | None = None
+    beats: list[str] = Field(default_factory=list)  # timed vertical beats
+
+
+class LongFormScript(BaseModel):
+    """8-12 min YouTube script (mid-roll ad eligible when >=8 min)."""
+    markdown: str
+    words: int = 0
+    runtime_min: float = 0.0
+    titles: list[str] = Field(default_factory=list)
+    worthy: bool = False
+    worthiness_score: int = 0
+    worthiness_reasons: list[str] = Field(default_factory=list)
+    disclaimer: str = ""
+    channel: str = "The Local Auditor"
+
+
+class ContentStudioOutput(BaseModel):
+    """Handoff from Content Studio before Orchestrator final assembly."""
+    id: str = Field(default_factory=lambda: f"content-{uuid4().hex[:12]}")
+    county: str
+    primary_area: str
+    generated_at: datetime = Field(default_factory=now_utc)
+    short_scripts: list[ShortScript] = Field(default_factory=list)
+    long_form: LongFormScript | None = None
+    distribution_meta: dict[str, Any] = Field(default_factory=dict)
+    video_title_ideas: list[str] = Field(default_factory=list)
+    scripts_pruned: int = 0
+    summary: str = ""
+
+
 class ContentPackage(BaseModel):
     """
     Final assembled package from Orchestrator.
@@ -161,6 +205,9 @@ class ContentPackage(BaseModel):
     tags: list[str] = Field(default_factory=lambda: ["rural-data", "pike", "faceless-channel"])
     video_title_ideas: list[str] = Field(default_factory=list)
     key_stats: dict[str, Any] = Field(default_factory=dict)  # for voiceover / thumbnails
+    short_scripts: list[ShortScript] = Field(default_factory=list)
+    long_form: LongFormScript | None = None
+    approval_status: Literal["pending_approval", "approved", "published"] = "pending_approval"
 
     def to_obsidian_frontmatter(self) -> dict[str, Any]:
         """Frontmatter for Obsidian .md output. Matches what writer expects."""
@@ -175,6 +222,12 @@ class ContentPackage(BaseModel):
             "risk_score": getattr(self.analysis, "overall_risk_score", 5.0),
             "flags": len(getattr(self.analysis, "red_flags", [])),
             "insights": len(getattr(self.analysis, "insights", [])),
+            "short_scripts": len(self.short_scripts),
+            "long_form_runtime_min": (
+                self.long_form.runtime_min if self.long_form else None
+            ),
+            "long_form_worthy": self.long_form.worthy if self.long_form else False,
+            "approval_status": self.approval_status,
         }
 
 # Future visual office / agent frontend event contract (first-class, disk-based)
@@ -250,6 +303,31 @@ class ForgePackage(BaseModel):
         path.write_text(content)
         self.obsidian_path = str(path)
         return str(path)
+
+
+class CompliancePackage(BaseModel):
+    """
+    Output of Silent Auditor Agent.
+    Contains flagged anomalies and compliance audit results.
+    """
+    id: str = Field(default_factory=lambda: f"compliance-{uuid4().hex[:12]}")
+    county: str
+    generated_at: datetime = Field(default_factory=now_utc)
+    red_flags: list[RedFlag] = Field(default_factory=list)
+    overall_risk_score: float = Field(ge=0.0, le=10.0, default=3.0)
+    summary: str = ""
+    source_file: str | None = None
+    total_records_audited: int = 0
+
+    def to_obsidian_frontmatter(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "county": self.county,
+            "date": self.generated_at.date().isoformat(),
+            "risk_score": self.overall_risk_score,
+            "flags": len(self.red_flags),
+            "tags": ["compliance", "red-flag", "silent-auditor"],
+        }
 
 
 # CellBlueprint, AgentDesk, and ClawforgeCompiler are defined in core/cell.py (dedicated per plan.md).

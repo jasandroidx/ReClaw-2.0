@@ -1,0 +1,202 @@
+# Audit tool discovery backlog — Indiana county faceless-auditor channel.
+# Updated: 2026-07-06 via Firecrawl CLI + GitHub API search.
+# Rule: every implemented detector must return row-level provenance (Gateway/SBOA/salary row).
+
+pipeline_review:
+  date: 2026-07-06
+  repos_cloned: scratch/pipeline-review/
+  verdict: >
+    ReClaw budget stack (ECOD+IF+YoY+peer) beats Jabonsote for county budgets.
+    sf-vendor + audit-analytics beat us on vendor-level checks but need transaction
+    data Indiana Gateway does not provide. Ported IQR + Nigrini MAD + fund concentration.
+  jabonsote_deepseek_if:
+    strengths: [transaction_timestamp, categorical_onehot, streamlit_pdf, faiss_qa]
+    weaknesses: [no_ecod, no_yoy, no_peer_county, no_county_isolation, cloud_deepseek_default]
+    use_when: county check register CSV with payment_date + vendor_name arrives
+    skip: duplicate as second app — steal PDF report pattern only
+    reclaw_lab:
+      module: tools/transaction_anomaly.py
+      streamlit: scratch/county-anomaly-lab/app.py
+      note: IF + rules on uploaded AP register; production queue still uses red_flag_engine
+  sf_vendor_audit:
+    strengths: [9_named_tests, duplicate_po, sole_source_dept, stale_encumbrance, nigrini_mad_multi_digit]
+    gateway_gap: ent_name is rollup not vendor — duplicate test false-positives on Governmental Activities
+    ported: [iqr_3x_outlier, benford_mad, fund_line_concentration]
+    blocked_until_check_register: [duplicate_payment, encumbrance_utilization, negative_credits]
+  audit_analytics_toolkit:
+    strengths: [ground_truth_tests, duplicate_7d_window, threshold_split_cluster, off_hours, sod, round_rate_benchmark]
+    gateway_gap: needs posting_ts, vendor_id, entry_id per journal line
+    ported: [benford_mad, MAD_bands]
+    best_reference: ISA 240 journal-entry testing playbook
+  procurement_fraud_audit:
+    strengths: [row_index_provenance, vendor_key_normalize, rolling_calendar_window]
+    gateway_gap: payment_date required
+  gateway_schema_truth:
+    disbursement_fields: [year, cnty_cd, ent_name, unit_name, fund_name, disburse_name, amount]
+    missing_for_full_procurement: [vendor_payee, payment_date, invoice_id, po_number, bank_account]
+    implication: Tier-3 SBOA PDF + county check registers unlock sf-vendor-class hooks
+
+meta:
+  discovery_method: [firecrawl_cli, github_api, prior_session_research, pipeline_review_2026-07-06]
+  firecrawl_cache: data/cache/firecrawl/
+  strategy: data/audit_strategy.yaml
+  mistakes: data/audit_pipeline_mistakes.yaml
+
+already_wired:
+  - id: dogegpt_pipeline
+    source: ingestion/pipeline_budget_anomalies.py
+    detectors: [ECOD, IsolationForest, robust_zscore, YoY_spike]
+  - id: split_purchase
+    source: tools/split_purchase_detector.py
+    statute: IC 36-1-12-19
+    gap: no payment dates in Gateway flat file — FY-level only
+  - id: local_auditor_live
+    source: tools/local_auditor_live.py
+    detectors: [benford_chi_sq, vendor_concentration, round_number_cluster, cross_source_contrast]
+  - id: gateway_salary_export
+    source: tools/gateway_salary_export.py
+    cached_counties: [Pike, Spencer, Warrick]
+  - id: firecrawl_discovery
+    source: tools/firecrawl_discovery.py
+    tier: 3
+    use_for: [sboa_index, county_site_pdfs, dor_budget_links]
+
+p0_implement_next:
+  - id: sf_vendor_audit
+    repo: https://github.com/osman-abdelmagid/sf-vendor-audit
+    why: "9 procurement procedures on real vendor payments — duplicate PO, concentration, round amounts, full Nigrini MAD Benford"
+    adapt_to: gateway_disbursements ent_name + amount columns
+    effort: medium
+    youtube_hook: "Same vendor paid twice for the exact amount"
+
+  - id: procurement_fraud_audit
+    repo: https://github.com/Sandyyy123/procurement-fraud-audit
+    why: "Rolling 7-day duplicate vendor window, split-threshold, shared bank account — every flag cites exact row"
+    adapt_to: needs payment dates — Gateway gap; use SBOA check register PDFs or county open data when found
+    effort: medium-high
+    youtube_hook: "Seven payments in seven days — same vendor"
+
+  - id: audit_analytics_toolkit
+    repo: https://github.com/azizghaus14/audit-analytics-toolkit
+    why: "CAATs bundle: Benford, duplicate payments, threshold splitting, outlier SQL"
+    adapt_to: disbursement CSV directly
+    effort: low-medium
+
+  - id: pybenford
+    repo: https://github.com/anirbanmukherjee2709/pybenford
+    why: "Replace basic chi-sq with Nigrini MAD first/second/two-digit tests"
+    adapt_to: tools/local_auditor_live.py _benford_test
+    effort: low
+    note: smoke_test_only per audit_strategy.yaml — never headline alone
+
+  - id: benfordslaw_pkg
+    repo: https://github.com/erdogant/benfordslaw
+    why: "Maintained benfordslaw pip package — alternative to pybenford"
+    effort: low
+
+  - id: smart_audit_exceptions_sql
+    repo: https://github.com/roozanaggarwal/smart-audit-exceptions-sql
+    why: "SQL templates for duplicate payments, high-risk vendors"
+    adapt_to: load Gateway disbursements into SQLite view layer
+    effort: medium
+
+  - id: sboa_pdf_ingest
+    source: https://audit.sboa.in.gov/
+    why: "Narrative provenance — 'SBOA already flagged this' beats statistical anomaly for video hooks"
+    implement_via: firecrawl map + scrape PDF links → data/cache/sboa/{county}/
+    effort: medium
+
+integrated_from_external_llm_suggestions:
+  - id: transaction_anomaly
+    module: tools/transaction_anomaly.py
+    wired: red_flag_engine layer 3g + inbox_loader file_kind tagging
+    triggers_when: data/inbox/*_ap_register.csv or check register with vendor+date+amount
+  - id: fiscal_health_msu
+    module: tools/fiscal_health.py
+    wired: red_flag_engine layer 3f
+    ratios: [fund_balance_to_expenditures, temp_loans_to_expenditures, misc_revenue_share]
+  - id: streamlit_lab
+    path: scratch/county-anomaly-lab/app.py
+    note: optional exploration UI — not production queue
+  skipped_duplicate:
+    - second_streamlit_production_app
+    - faiss_chat (use existing Chroma RAG until SBOA PDF corpus lands)
+    - jabonsote_deepseek_cloud_default
+  - id: corebt_fraud_detection_blog
+    url: https://www.corebt.com/blog/strengthening-payment-security-government-fraud-detection-for-compliance-managers-and-auditors/
+    source: Core Business Technologies (Mar 2024)
+    verdict: commercial_thought_leadership — validates ReClaw positioning, no new algorithms
+    reclaw_coverage:
+      vendor_payment_fraud: [split_purchase_detector, transaction_anomaly, vendor_concentration]
+      payroll_fraud: [gateway_salary_export, salary_shock, double_dip]
+      procurement_fraud: [split_purchase IC 36-1-12-19, round_number_cluster, sboa_ingest]
+      data_analytics_anomaly: [benford_analysis, isolation_forest, red_flag_engine]
+      continuous_monitoring: county_queue batch — not real-time payment rails
+    gap_vs_core_platform: [MFA, PCI, live_payment_intercept, automated_reconciliation]
+    cite_for_video: ACFE median $100K loss; 50% fraud from weak controls (fair-report framing)
+
+p1_soon:
+  - id: anomalies_public_procurement
+    repo: https://github.com/Ellie190/Anomalies-in-Public-Procurement
+    why: "Tender/procurement anomaly methodology (EU data but reusable patterns)"
+    effort: medium
+
+  - id: tbfy_anomaly_tool
+    repo: https://github.com/TBFY/anomaly-detection-tool
+    why: "3-layer public procurement anomaly pipeline"
+    effort: high
+
+  - id: ap_close_engine
+    repo: https://github.com/ai-frankie/ap-close-engine
+    why: "Duplicate-payment detection, 3-way match concepts"
+    effort: medium
+
+  - id: fraudlens_ai
+    repo: https://github.com/thenishantraj/fraudlens-ai
+    why: "Bid-rigging / procurement forensic patterns"
+    effort: high
+
+  - id: openrefine_vendor_normalize
+    source: DOGEGPT Context/OpenRefine book
+    why: "Fuzzy vendor dedupe — 'Consulting LLC' vs 'Consulting Svcs' concentration"
+    implement_via: CLI batch or openrefine-py
+    effort: medium
+
+  - id: govtracker_dashboard
+    repo: https://github.com/shafeeqsadiq/GovTracker-Dashboard
+    why: "SQL anomaly views on government contracts — pattern reference for USASpending layer"
+    effort: low (reference)
+
+p2_reference_only:
+  - id: odia
+    repo: https://github.com/SynTechRev/ODIA
+    why: "20-detector civic engine — mine patterns, don't deploy whole platform (CA/legal focus)"
+  - id: dipankar_gov_spending
+    repo: https://github.com/dipankar-chaki/anomaly-detection-gov-spending
+    why: "IsolationForest on gov spending — generic benchmark"
+  - id: fac_single_audit
+    url: https://www.fac.gov/
+    why: "Federal grant single audits — cross-source for grant-heavy counties"
+
+indiana_sources:
+  tier1_automated:
+    - gateway_disbursements: https://gateway.ifionline.org/public/download.aspx
+    - gateway_budgets: same flat file
+    - gateway_salaries: tools/gateway_salary_export.py
+  tier3_firecrawl:
+    - sboa_index: https://audit.sboa.in.gov/
+    - sboa_county_list: https://www.in.gov/sboa/political-subdivisions/counties/audit-reports/
+    - gateway_report_builder: https://gateway.ifionline.org/report_builder/
+    - dor_budget_orders: https://www.in.gov/dor/budget-and-claims/budget-orders/
+
+viral_hook_detectors:
+  strong:
+    - named_salary_outlier
+    - duplicate_vendor_same_amount
+    - split_threshold_same_vendor_fy
+    - sboa_prior_finding_cite
+    - vague_vendor_round_amount
+  weak_block:
+    - category_only_sum
+    - benford_alone
+    - cross_county_contrast_without_isolation_check

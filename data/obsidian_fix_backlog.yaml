@@ -1,0 +1,48 @@
+# Obsidian integration — fix-later backlog (2026-07-06)
+# Pipeline works via filesystem; these are enhancements, not blockers.
+
+status: deferred
+vault_root: /root/obsidian_vault
+vault_git: jasandroidx/obsidian-vault
+docs: docs/OBSIDIAN-VAULT-SOT.md
+bridge_module: tools/obsidian_bridge.py
+
+working_now:
+  - obsidian_bridge publish (package + audit-flags + County Audit Index)
+  - RECLAW_OBSIDIAN_VAULT_PATH on host .env
+  - reclaw-platform read_vault_file / write_vault_file
+  - reclaw-fs direct vault access
+  - vault git commit + push after county runs
+
+fix_later:
+  - id: docker-vault-env
+    priority: P1
+    task: Restart reclaw-api container; verify /vault mount and RECLAW_OBSIDIAN_VAULT_PATH
+    verify: curl run-sync writes to /root/obsidian_vault/Rural Data/ not outputs/obsidian
+
+  - id: pc-sync
+    priority: P1
+    task: Jason chooses git-pull vs Syncthing for Windows Obsidian ↔ Hetzner vault
+    note: Vault repo already on GitHub; pull on PC to see Spencer/Pike packages
+
+  - id: obsidian-mcp-pc
+    priority: P2
+    task: Install Local REST API plugin in Obsidian desktop; OBSIDIAN_API_KEY in Cursor config
+    note: Only needed for live Obsidian app MCP from PC — not for server automation
+
+  - id: rag-auto-sync
+    priority: P2
+    task: Wire rag_sync_vault after orchestrator publish_package_to_vault
+    module: rag/vault_sync.py or reclaw-platform__rag_sync_vault
+
+  - id: obsidian-filename-null
+    priority: P2
+    task: Ensure county-queue ReviewCard.obsidian_file always populated from pkg.obsidian_filename
+
+  - id: omnisearch
+    priority: P3
+    task: Optional Omnisearch plugin for obsidian-mcp-server BM25 mode
+
+  - id: dataview-index
+    priority: P3
+    task: Add Dataview blocks to County Audit Index for sortable flag/risk table

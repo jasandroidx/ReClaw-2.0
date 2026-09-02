@@ -110,10 +110,30 @@ class ObsidianWriter:
         lines.append("## Research Summary\n")
         lines.append(r.summary.strip() + "\n\n")
 
+        # Multi-year budget trend
+        hist_budgets = sorted(
+            [b for b in r.budgets if "certified total" in b.entity.lower()],
+            key=lambda b: b.fiscal_year,
+        )
+        if len(hist_budgets) >= 2:
+            lines.append("## Multi-Year Budget Trend (Certified Totals)\n")
+            trend_rows = [
+                {
+                    "Year": f"FY{b.fiscal_year}",
+                    "Certified Total": f"${b.total_expenditures:,}" if b.total_expenditures else "?",
+                    "Notes": (b.notes or "")[:80],
+                }
+                for b in hist_budgets
+            ]
+            lines.append(render_table(trend_rows, ["Year", "Certified Total", "Notes"]))
+            lines.append("_Source: Indiana Gateway certified budget totals_\n\n")
+
         # Budget snapshot
         if r.budgets:
-            lines.append("## Budget Snapshot\n")
+            lines.append("## Budget Snapshot (Current Year Detail)\n")
             for b in r.budgets:
+                if "certified total" in b.entity.lower():
+                    continue
                 lines.append(f"**{b.entity} — FY{b.fiscal_year}**\n")
                 if b.total_revenue:
                     lines.append(f"- Revenue: ${b.total_revenue:,}")
@@ -146,9 +166,37 @@ class ObsidianWriter:
             lines.append(render_table(sample, ["Parcel", "Address", "Acres", "Assessed", "Class"]))
             lines.append("_Full list in sidecar JSON. Use for maps / deeper research._\n\n")
 
+        # Salary shock list (individual public records)
+        try:
+            from tools.public_data_loaders import load_salary_detail_records_for_county
+
+            from tools.county_data_fetch import resolve_county
+
+            _meta = resolve_county(pkg.county) or {}
+            detail = load_salary_detail_records_for_county(
+                pkg.county, gateway_code=_meta.get("gateway_code")
+            )
+            if detail:
+                top = sorted(detail, key=lambda x: x["compensation"], reverse=True)[:12]
+                lines.append("## Salary Shock — Top Taxpayer Talking Points\n")
+                lines.append("_Public record from Indiana Gateway salary search._\n\n")
+                shock_rows = [
+                    {
+                        "Name": rec["name"],
+                        "Title": rec["job_title"],
+                        "Dept": rec["department_readable"],
+                        "Pay": f"${rec['compensation']:,}",
+                    }
+                    for rec in top
+                ]
+                lines.append(render_table(shock_rows, ["Name", "Title", "Dept", "Pay"]))
+                lines.append("")
+        except Exception:
+            pass
+
         # Salaries (if any)
         if r.salaries:
-            lines.append("## Public Payroll Highlights\n")
+            lines.append("## Public Payroll Highlights (By Department)\n")
             sal_rows = [
                 {
                     "Dept": s.department,
@@ -205,6 +253,49 @@ class ObsidianWriter:
                 lines.append(f"- {t}")
             lines.append("")
 
+        # Long-form YouTube script (8-12 min, mid-roll eligible)
+        if pkg.long_form and pkg.long_form.worthy:
+            lf = pkg.long_form
+            lines.append("## Long-Form Script (YouTube 8-12 min)\n")
+            lines.append(
+                f"_Status: **{pkg.approval_status}** · ~{lf.runtime_min} min ({lf.words} words) · "
+                f"worthiness score {lf.worthiness_score}_\n"
+            )
+            if lf.worthiness_reasons:
+                lines.append("Worthiness: " + "; ".join(lf.worthiness_reasons) + "\n")
+            if lf.titles:
+                lines.append("**Title options:**\n")
+                for t in lf.titles:
+                    lines.append(f"- {t}")
+                lines.append("")
+            lines.append(lf.markdown + "\n")
+            lines.append("---\n")
+
+        # Short-form scripts (Content Studio)
+        if pkg.short_scripts:
+            lines.append("## Short-Form Scripts (Content Studio)\n")
+            lines.append(f"_Status: **{pkg.approval_status}** — review before publish._\n")
+            for script in pkg.short_scripts:
+                lines.append(f"### {script.title}\n")
+                lines.append(f"- **Platform:** {script.platform}")
+                lines.append(f"- **Slug:** `{script.slug}`")
+                lines.append(f"- **Engagement score:** {script.engagement_score}")
+                if script.source_flag_category:
+                    lines.append(f"- **Source flag:** {script.source_flag_category}")
+                lines.append(f"\n**Hook:** {script.hook}\n")
+                lines.append(f"**Script:**\n\n{script.script}\n")
+                if script.call_to_action:
+                    lines.append(f"**CTA:** {script.call_to_action}\n")
+                if script.caption:
+                    lines.append(f"**Caption:** {script.caption}\n")
+                if script.hashtags:
+                    lines.append(f"**Hashtags:** {script.hashtags}\n")
+                if script.disclaimer:
+                    lines.append(f"_Disclaimer: {script.disclaimer}_\n")
+                if script.provenance:
+                    lines.append(f"_Provenance: {script.provenance}_\n")
+                lines.append("---\n")
+
         # Sources & provenance
         lines.append("## Sources & Provenance\n")
         for src in r.sources:
@@ -221,12 +312,12 @@ class ObsidianWriter:
         return "\n".join(lines)
 
     def distill_with_kimi(self, content: str, source_name: str = "document") -> str:
-        """Kimi (Moonshot) distillation per RAVENSTACK-ORACLE for high-value, structured output. Production replacement for placeholder."""
+        """Kimi (Moonshot) distillation per RAVENSTACK-OCULAI for high-value, structured output. Production replacement for placeholder."""
         import httpx
         import os
         settings = self.settings or get_settings()
-        token = os.getenv("KIMI_API_KEY") or os.getenv("XAI_API_KEY") or settings.reclaw_gateway_token[:20]  # fallback
-        prompt = f"""You are an Oracle-guided distiller for Ravenstack Knowledge Vault. Follow RAVENSTACK-ORACLE exactly:
+        token = os.getenv("KIMI_API_KEY") or os.getenv("XAI_API_KEY") or settings.gateway_token[:20]  # fallback
+        prompt = f"""You are an Oculai-guided distiller for Ravenstack Knowledge Vault. Follow RAVENSTACK-OCULAI exactly:
 
 - ONLY high-value, actionable. No bloat, no raw text >200 words verbatim.
 - Structure: YAML frontmatter (title, source, ingest_date, tags, potential_for=["marketplace", "rural", "agents", "clawhub"], status: "vault" or "backlog").
@@ -257,10 +348,10 @@ Output ONLY the full Markdown (no explanation)."""
             resp.raise_for_status()
             return resp.json()["choices"][0]["message"]["content"].strip()
         except Exception as e:
-            return f"# Distilled from {source_name} (Kimi fallback: {str(e)[:80]})\n\n{content[:1000]}\n\nConsult Oracle for manual review."
+            return f"# Distilled from {source_name} (Kimi fallback: {str(e)[:80]})\n\n{content[:1000]}\n\nConsult Oculai for manual review."
 
     def ingest_document(self, file_path: str | Path, source_name: str = "uploaded", model: str = "kimi_claw") -> Path:
-        """Production-grade ingest for PDFs/books/notes: extract, Kimi distill per Oracle, write to Knowledge Vault, update index, emit visual event for Fortress. Callable from API/CLI/MCP buttons. Supports batch via folder."""
+        """Production-grade ingest for PDFs/books/notes: extract, Kimi distill per Oculai, write to Knowledge Vault, update index, emit visual event for Fortress. Callable from API/CLI/MCP buttons. Supports batch via folder."""
         from pathlib import Path
         from datetime import datetime
         import pypdf  # added to requirements
@@ -280,7 +371,7 @@ Output ONLY the full Markdown (no explanation)."""
         
         distilled = self.distill_with_kimi(text, source_name or path.name)
         
-        # Simple direct write for general documents (avoids rural-specific ContentPackage validation; follows Oracle for clean MD)
+        # Simple direct write for general documents (avoids rural-specific ContentPackage validation; follows Oculai for clean MD)
         from datetime import datetime
         from pathlib import Path
         date_str = datetime.now().strftime("%Y-%m-%d")
@@ -300,5 +391,5 @@ Output ONLY the full Markdown (no explanation)."""
         md_path.write_text(content, encoding="utf-8")
         # Auto-update RAG index (stub; extend with build_index/TF-IDF if available in future)
         # self.build_index() if hasattr(self, 'build_index') else None
-        print(f"✅ Ingested to Knowledge Vault: {md_path} (Kimi distilled per Oracle, RAG updated, visible/searchable in Fortress chamber and dashboard).")
+        print(f"✅ Ingested to Knowledge Vault: {md_path} (Kimi distilled per Oculai, RAG updated, visible/searchable in Fortress chamber and dashboard).")
         return md_path

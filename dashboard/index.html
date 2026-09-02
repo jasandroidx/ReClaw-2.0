@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Ravenstack Fortress - Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#090c14;--surface:#0e1420;--surface-2:#141b2d;--border:rgba(80,180,255,0.12);--accent:#38c6ff;--accent-glow:rgba(56,198,255,0.25);--amber:#ffb344;--green:#39d98a;--red:#ff5370;--purple:#c792ea;--text:#d0e8ff;--text-muted:#6a8dad;--font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;--radius:10px}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font)}
+    ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--surface)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+    body{display:flex;flex-direction:column;min-height:100vh}
+    header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo-eye{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#38c6ff,#5b2fad);box-shadow:0 0 18px var(--accent-glow);animation:pulse-eye 2.8s ease-in-out infinite}
+    @keyframes pulse-eye{0%,100%{box-shadow:0 0 18px var(--accent-glow)}50%{box-shadow:0 0 38px rgba(56,198,255,0.5)}}
+    h1{font-size:1.25rem;font-weight:700;letter-spacing:.04em;color:var(--accent)}
+    .subtitle{font-size:.78rem;color:var(--text-muted);margin-top:1px}
+    .status-bar{display:flex;align-items:center;gap:10px}
+    .pill{font-family:var(--mono);font-size:.72rem;padding:4px 12px;border-radius:99px;border:1px solid currentColor}
+    .pill.live{color:var(--green);border-color:var(--green);background:rgba(57,217,138,.08)}
+    .pill.stale{color:var(--amber);border-color:var(--amber);background:rgba(255,179,68,.08)}
+    .pill.error{color:var(--red);border-color:var(--red);background:rgba(255,83,112,.08)}
+    #last-updated{font-size:.72rem;color:var(--text-muted);font-family:var(--mono)}
+    main{flex:1;display:grid;grid-template-columns:340px 1fr;grid-template-rows:auto auto 1fr;gap:20px;padding:24px 32px;max-width:1400px;width:100%;margin:0 auto}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;position:relative;overflow:hidden;transition:border-color .25s}
+    .card:hover{border-color:rgba(80,180,255,0.28)}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0;transition:opacity .3s}
+    .card:hover::before{opacity:1}
+    .card-title{font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+    .queue-card{grid-column:1;grid-row:1/4}
+    .big-stat{font-size:3.2rem;font-weight:900;line-height:1;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+    .big-stat-label{font-size:.78rem;color:var(--text-muted);margin-bottom:12px}
+    .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+    .stat-box{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center}
+    .stat-box .n{font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--accent)}
+    .stat-box .l{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+    .hint{font-size:.78rem;color:var(--amber);margin-top:8px;line-height:1.35}
+    .git-line{font-family:var(--mono);font-size:.72rem;color:var(--text-muted);margin-top:10px;word-break:break-all}
+    .queue-county{background:var(--surface-2);border-radius:8px;padding:14px 16px;margin-bottom:16px;border:1px solid var(--border)}
+    .queue-county h3{font-size:1.05rem;font-weight:700;color:var(--text)}
+    .queue-county .meta{font-size:.75rem;color:var(--text-muted);margin-top:4px;font-family:var(--mono)}
+    .review-card{background:var(--surface-2);border-radius:8px;padding:14px 16px;border:1px solid rgba(255,179,68,.2)}
+    .rc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+    .badge{font-size:.65rem;font-weight:600;padding:2px 8px;border-radius:99px;font-family:var(--mono);text-transform:uppercase}
+    .badge.pending{background:rgba(255,179,68,.15);color:var(--amber)}
+    .badge.approved{background:rgba(57,217,138,.15);color:var(--green)}
+    .badge.rejected{background:rgba(255,83,112,.15);color:var(--red)}
+    .badge.running{background:rgba(56,198,255,.15);color:var(--accent)}
+    .badge.completed{background:rgba(57,217,138,.15);color:var(--green)}
+    .badge.failed{background:rgba(255,83,112,.15);color:var(--red)}
+    .rc-stat{display:flex;justify-content:space-between;font-size:.78rem;margin-top:6px}
+    .rc-stat .label{color:var(--text-muted)}.rc-stat .value{font-family:var(--mono);color:var(--text)}
+    .risk-bar{margin-top:10px;height:4px;background:var(--surface);border-radius:2px;overflow:hidden}
+    .risk-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+    .jobs-card{grid-column:2;grid-row:1}.approvals-card{grid-column:2;grid-row:2}.sessions-card{grid-column:2;grid-row:3}
+    .job-list,.approval-list,.session-list{display:flex;flex-direction:column;gap:8px}
+    .job-item{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:.82rem}
+    .job-id{font-family:var(--mono);color:var(--accent);font-size:.75rem}.job-county{font-weight:600}
+    .job-time{font-family:var(--mono);font-size:.7rem;color:var(--text-muted)}
+    .approval-item{display:flex;align-items:center;justify-content:space-between;background:rgba(255,179,68,.06);border:1px solid rgba(255,179,68,.18);border-radius:8px;padding:10px 14px;font-size:.82rem}
+    .cap{font-family:var(--mono);color:var(--amber);font-size:.78rem}.sess{font-size:.7rem;color:var(--text-muted);margin-top:2px}
+    .session-row{display:flex;align-items:center;gap:12px;font-size:.78rem;font-family:var(--mono);color:var(--text-muted);padding:6px 8px;border-radius:6px}
+    .session-row:hover{background:var(--surface-2);color:var(--text)}.session-row::before{content:"\2192";color:var(--accent)}
+    .empty{text-align:center;padding:28px 0;color:var(--text-muted);font-size:.82rem}
+    .empty .icon{font-size:2rem;margin-bottom:8px;opacity:.4}
+    .pulse-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1.2s ease-in-out infinite;margin-right:6px}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+    footer{text-align:center;padding:14px;font-size:.7rem;color:var(--text-muted);border-top:1px solid var(--border)}
+    footer a{color:var(--accent);text-decoration:none}
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-eye"></div>
+    <div><h1>Ravenstack Fortress</h1><div class="subtitle">ReClaw 2.0 &mdash; Command Center</div></div>
+  </div>
+  <div class="status-bar">
+    <span class="pill stale" id="conn-pill">Connecting&hellip;</span>
+    <span class="pill stale" id="net-pill">Network&hellip;</span>
+    <span id="last-updated">&mdash;</span>
+  </div>
+</header>
+<main>
+  <div class="card queue-card">
+    <div class="card-title"><span class="dot"></span>County Queue</div>
+    <div class="big-stat" id="q-cursor">&mdash;</div>
+    <div class="big-stat-label">queue cursor</div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="n" id="st-approved">—</div><div class="l">Approved</div></div>
+      <div class="stat-box"><div class="n" id="st-rejected">—</div><div class="l">Rejected</div></div>
+      <div class="stat-box"><div class="n" id="st-remaining">—</div><div class="l">Remaining</div></div>
+    </div>
+    <div class="queue-county"><h3 id="q-next-name">&mdash;</h3><div class="meta" id="q-next-meta">Loading&hellip;</div></div>
+    <div class="card-title" style="margin-top:20px"><span class="dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span>Pending Review</div>
+    <div class="review-card" id="review-section"><div class="empty"><div class="icon">&#x1F4CB;</div>No pending card</div></div>
+    <div class="card-title" style="margin-top:20px"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>Operator hints</div>
+    <div id="hints" class="hint">—</div>
+    <div class="git-line" id="git-line">git: —</div>
+  </div>
+  <div class="card jobs-card">
+    <div class="card-title"><span class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Stack services (from /state)</div>
+    <div class="job-list" id="svc-list"><div class="empty">Probing&hellip;</div></div>
+    <div class="card-title" style="margin-top:20px"><span class="dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></span>Active Jobs</div>
+    <div class="job-list" id="running-jobs"><div class="empty"><div class="icon">&#x1F4A4;</div>No active jobs</div></div>
+    <div class="card-title" style="margin-top:20px"><span class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></span>Recent Jobs</div>
+    <div class="job-list" id="recent-jobs"><div class="empty"><div class="icon">&#x1F4ED;</div>No runs yet</div></div>
+  </div>
+  <div class="card approvals-card">
+    <div class="card-title"><span class="dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span>Pending Approvals</div>
+    <div class="approval-list" id="approvals-list"><div class="empty"><div class="icon">&#x2705;</div>All clear</div></div>
+  </div>
+  <div class="card sessions-card">
+    <div class="card-title"><span class="dot"></span>Recent Sessions</div>
+    <div class="session-list" id="sessions-list"><div class="empty"><div class="icon">&#x1F4C1;</div>No sessions yet</div></div>
+  </div>
+</main>
+<footer>ReClaw 2.0 &mdash; Command Center (single truth: <code>/state</code>) &nbsp;|&nbsp;
+  <a id="link-health" href="#" target="_blank">API /health</a> &nbsp;
+  <a id="link-state" href="#" target="_blank">API /state</a> &nbsp;
+  <a href="status.json" target="_blank">status.json</a>
+</footer>
+<script>
+const API=`http://${location.hostname}:8000`;
+const $=id=>document.getElementById(id);
+$("link-health").href=`${API}/health`;
+$("link-state").href=`${API}/state`;
+function rel(s){if(!s)return"&mdash;";const d=Math.floor((Date.now()-new Date(s))/1000);return d<60?d+"s ago":d<3600?Math.floor(d/60)+"m ago":Math.floor(d/3600)+"h ago"}
+function rc(s){return s>=.75?"var(--red)":s>=.4?"var(--amber)":"var(--green)"}
+function badge(s){return`<span class="badge ${s}">${s}</span>`}
+function svcOk(v){if(!v)return false;return v.ok===true||["ok","healthy","live"].includes(v.status)}
+let errs=0;
+async function poll(){
+  try{
+    const r=await fetch(`${API}/state`,{signal:AbortSignal.timeout(8000)});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const d=await r.json();errs=0;
+    $("conn-pill").className="pill live";$("conn-pill").textContent="Live";
+    const net=d.network||"UNKNOWN";
+    const np=$("net-pill");
+    np.textContent=net;
+    np.className="pill "+(net==="CONNECTED"?"live":net==="PARTIAL"||net==="DEGRADED"?"stale":"error");
+    $("last-updated").textContent="Updated "+new Date().toLocaleTimeString()+(d.network_detail?" · "+d.network_detail:"");
+    const cq=d.county_queue||{};
+    $("q-cursor").textContent=`${cq.cursor??0}/${cq.total_counties??"?"}`;
+    $("st-approved").textContent=cq.approved_count??0;
+    $("st-rejected").textContent=cq.rejected_count??0;
+    $("st-remaining").textContent=cq.remaining??"—";
+    const cur=cq.current_county||cq.next_county;
+    $("q-next-name").textContent=cur?cur.name:(cq.queue_status||"Queue");
+    $("q-next-meta").textContent=cur
+      ?`FIPS ${cur.fips||"?"} · pos ${cur.worklist_position??"?"} · ${cq.queue_status||"?"}`
+      :`status ${cq.queue_status||"?"}`;
+    const rc2=cq.pending_review||cq.pending_card;
+    const rs=$("review-section");
+    if(rc2){const risk=rc2.risk_score??0;rs.innerHTML=`<div class="rc-header"><h4>${rc2.county||"&mdash;"}</h4>${badge(rc2.status||"pending_approval")}</div><div class="rc-stat"><span class="label">Risk</span><span class="value" style="color:${rc(risk)}">${(risk*100).toFixed(0)}%</span></div><div class="risk-bar"><div class="risk-bar-fill" style="width:${Math.min(100,(risk*100)).toFixed(0)}%;background:${rc(risk)}"></div></div><div class="rc-stat"><span class="label">Flags</span><span class="value">${rc2.flag_count??0}</span></div><div class="rc-stat"><span class="label">Shorts</span><span class="value">${rc2.short_count??0}</span></div>${rc2.recommendation?`<div class="rc-stat"><span class="label">Rec</span><span class="value" style="color:var(--accent);max-width:60%;text-align:right">${rc2.recommendation}</span></div>`:""}${rc2.top_finding?`<div class="rc-stat" style="display:block;margin-top:8px"><span class="label">Finding: </span><span class="value" style="color:var(--amber)">${rc2.top_finding}</span></div>`:""}${rc2.obsidian_file?`<div class="rc-stat" style="margin-top:6px"><span class="label">Vault</span><span class="value" style="font-size:.7rem">${rc2.obsidian_file}</span></div>`:""}`;}
+    else rs.innerHTML=`<div class="empty"><div class="icon">&#x1F4CB;</div>No pending card</div>`;
+    const hints=d.operator_hints||[];
+    $("hints").innerHTML=hints.length?hints.map(h=>`• ${h}`).join("<br>"):"No operator hints right now.";
+    const g=d.git||{};
+    $("git-line").textContent=g.error?`git: ${g.error}`:`git: ${g.branch||"?"} · ${g.head||"?"}${g.dirty?" · DIRTY":" · clean"}`;
+    const svc=d.services||{};
+    const rows=[["reclaw_api","ReClaw API"],["openclaw","OpenClaw"],["mcp","MCP bridge"]];
+    $("svc-list").innerHTML=rows.map(([k,label])=>{
+      const v=svc[k]||{};const ok=svcOk(v);
+      return `<div class="job-item"><div><div class="job-county">${label}</div><div class="job-id">${v.probed_via||v.detail||""}</div></div>${badge(ok?"completed":"failed")}<div class="job-time">${ok?(v.status||"ok"):"down"}</div></div>`;
+    }).join("")+(d.mcp?.tailnet_serve?`<div class="job-item"><div><div class="job-county">MCP Serve</div><div class="job-id">${d.mcp.tailnet_serve}</div></div>${badge("completed")}<div class="job-time">tailnet</div></div>`:"");
+    const run=d.jobs?.running||[];
+    $("running-jobs").innerHTML=run.length?run.map(j=>`<div class="job-item"><div><div class="job-county"><span class="pulse-dot"></span>${j.county||"?"}/${j.area||"?"}</div><div class="job-id">${j.job_id}</div></div>${badge("running")}<div class="job-time">${rel(j.started_at)}</div></div>`).join(""):`<div class="empty"><div class="icon">&#x1F4A4;</div>No active jobs</div>`;
+    const rec=d.jobs?.recent||[];
+    $("recent-jobs").innerHTML=rec.length?rec.slice(0,8).map(j=>`<div class="job-item"><div><div class="job-county">${j.county||"?"}/${j.area||"?"}</div><div class="job-id">${j.job_id}${j.risk_score!=null?" · risk "+j.risk_score:""}</div></div>${badge(j.status||"unknown")}<div class="job-time">${rel(j.finished_at||j.started_at)}</div></div>`).join(""):`<div class="empty"><div class="icon">&#x1F4ED;</div>No runs yet</div>`;
+    const ap=d.pending_approvals||[];
+    $("approvals-list").innerHTML=ap.length?ap.map(a=>`<div class="approval-item"><div><div class="cap">${a.capability||a.name||"?"}</div><div class="sess">Session: ${a.session_id}</div></div><span class="badge pending">Awaiting</span></div>`).join(""):`<div class="empty"><div class="icon">&#x2705;</div>All clear</div>`;
+    const ses=d.sessions||[];
+    $("sessions-list").innerHTML=ses.length?ses.map(s=>`<div class="session-row">${s.session_id}</div>`).join(""):`<div class="empty"><div class="icon">&#x1F4C1;</div>No sessions yet</div>`;
+  }catch(e){
+    errs++;
+    const p=$("conn-pill");
+    if(errs>=3){p.className="pill error";p.textContent="Offline";}
+    else{p.className="pill stale";p.textContent="Retrying…";}
+    $("last-updated").textContent="Error: "+e.message;
+  }
+}
+poll();setInterval(poll,5000);
+</script>
+</body>
+</html>

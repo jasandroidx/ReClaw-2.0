@@ -1,0 +1,5 @@
+{
+  "name": "reclaw-ops",
+  "version": "1.0.0",
+  "description": "ReClaw 2.0 Hetzner operator: reclaw-build skill + project MCP merge"
+}

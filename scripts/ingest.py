@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Auto-Ingestion Pipeline (Step 4 per RAVENSTACK-ORACLE.md).
-Takes PDF or text, distills high-value content using Groq (free tier, Oracle rules from bible via MCP query), routes via oracle_mcp.ingest_document to canonical vault (Ravenstack/ or backlog/), auto git commit, triggers reload ritual.
+Auto-Ingestion Pipeline (Step 4 per RAVENSTACK-OCULAI.md).
+Takes PDF or text, distills high-value content using Groq (free tier, Oculai rules from bible via MCP query), routes via oracle_mcp.ingest_document to canonical vault (Ravenstack/ or backlog/), auto git commit, triggers reload ritual.
 Triggerable via CLI or chat ("ingest file.pdf").
-Minimal, no bloat, enforces Oracle bible (distill-only, frontmatter, <200w per section, "How ReClaw Applies").
-mcporter is optional (install via OpenClaw skill if needed for CLI MCP calls; direct python or oracle skill works).
+Minimal, no bloat, enforces Oculai bible (distill-only, frontmatter, <200w per section, "How ReClaw Applies").
+mcporter is optional (install via OpenClaw skill if needed for CLI MCP calls; direct python or oculai skill works).
 """
 
 import sys
@@ -24,33 +24,33 @@ except ImportError:
     print("Install deps: pip install -r requirements.txt")
     sys.exit(1)
 
-from core.oracle_mcp import ingest_document, query_oracle  # New MCP from Step 3
+from core.oracle_mcp import ingest_document, query_oculai  # New MCP from Step 3
 from core.config import get_settings
 
 def extract_text_from_pdf(pdf_path: Path) -> str:
-    """Extract text from PDF (Oracle-compliant: no raw dump)."""
+    """Extract text from PDF (Oculai-compliant: no raw dump)."""
     reader = PdfReader(pdf_path)
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
     return text[:4000]  # Limit for LLM
 
 def distill_with_llm(raw_text: str, source_name: str) -> str:
-    """Distill per Oracle bible (high-value only, specific structure, <200w total). Uses Groq (key from env). Consults Oracle first."""
+    """Distill per Oculai bible (high-value only, specific structure, <200w total). Uses Groq (key from env). Consults Oculai first."""
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         raise ValueError("GROQ_API_KEY not set in environment. Configure with openclaw secrets or export GROQ_API_KEY=...")
     client = Groq(api_key=api_key)
-    # Consult Oracle first for exact rules
-    oracle_rules = query_oracle("distillation and output standards from bible")["result"]
-    oracle_full = query_oracle("full bible summary")["result"]
-    prompt = f"""{oracle_full}
+    # Consult Oculai first for exact rules
+    oculai_rules = query_oculai("distillation and output standards from bible")["result"]
+    oculai_full = query_oculai("full bible summary")["result"]
+    prompt = f"""{oculai_full}
 
-CRITICAL ORACLE RULES (obey exactly, no deviation):
-{oracle_rules}
+CRITICAL OCULAI RULES (obey exactly, no deviation):
+{oculai_rules}
 
 Source: {source_name}
 Raw excerpt (do NOT include raw text in output): {raw_text[:1500]}
 
-DISTILL ONLY into clean Oracle-compliant MD:
+DISTILL ONLY into clean Oculai-compliant MD:
 - YAML frontmatter exactly: status, potential_for, tags, provenance
 - Structured sections: Principles, Tactics, Red Flags, "How ReClaw Applies" (concrete empire examples), Examples, Sources
 - High-value only. <200 words TOTAL. No bloat, no raw dumps, no copyright.
@@ -70,7 +70,7 @@ Output **ONLY** the clean MD with frontmatter. No explanations."""
             distilled = f"""---
 status: active
 potential_for: build
-tags: [ravenstack, oracle]
+tags: [ravenstack, oculai]
 provenance: "{source_name} | {datetime.now().isoformat()}"
 ---
 """ + distilled
@@ -80,27 +80,27 @@ provenance: "{source_name} | {datetime.now().isoformat()}"
         return f"""---
 status: active
 potential_for: build
-tags: [ravenstack, oracle]
+tags: [ravenstack, oculai]
 provenance: "{source_name} | {datetime.now().isoformat()}"
 ---
-# Distilled per Oracle (fallback)
+# Distilled per Oculai (fallback)
 ## How ReClaw Applies
 High-value insights from {source_name} integrated into Ravenstack SOT per bible rules.
-Consult full [[RAVENSTACK-ORACLE]] before any action. Ingested via pipeline.
+Consult full [[RAVENSTACK-OCULAI]] before any action. Ingested via pipeline.
 """
 
 def auto_commit_to_vault(target_path: Path, source: str):
-    """Auto git commit to canonical vault per Oracle (no drift). Uses vault *root* for git. Graceful if no changes."""
+    """Auto git commit to canonical vault per Oculai (no drift). Uses vault *root* for git. Graceful if no changes."""
     vault_dir = Path("/root/obsidian_vault")
     try:
         subprocess.run(["git", "-C", str(vault_dir), "add", str(target_path)], cwd=vault_dir, check=True, capture_output=True)
         # Check if there are changes before commit
         diff = subprocess.run(["git", "-C", str(vault_dir), "diff", "--cached", "--quiet"], cwd=vault_dir, capture_output=True)
         if diff.returncode == 0:
-            print("No changes to commit (file already up-to-date per Oracle).")
+            print("No changes to commit (file already up-to-date per Oculai).")
             subprocess.run(["python3", "-m", "core.cell", f"Reload — ingested {source} via pipeline (no git change)"], cwd="/root/ReClaw-2.0", check=False)
             return
-        msg = f"ingest: {source} distilled per Oracle bible (auto from pipeline)"
+        msg = f"ingest: {source} distilled per Oculai bible (auto from pipeline)"
         subprocess.run(["git", "-C", str(vault_dir), "commit", "-m", msg], cwd=vault_dir, check=True, capture_output=True)
         print(f"Committed to private ravenstack: {msg}")
         subprocess.run(["python3", "-m", "core.cell", f"Reload — ingested {source} via pipeline"], cwd="/root/ReClaw-2.0", check=False)
@@ -109,7 +109,7 @@ def auto_commit_to_vault(target_path: Path, source: str):
         subprocess.run(["python3", "-m", "core.cell", f"Reload — ingested {source} via pipeline"], cwd="/root/ReClaw-2.0", check=False)
 
 def main():
-    parser = argparse.ArgumentParser(description="Oracle Auto-Ingestion Pipeline (Step 4)")
+    parser = argparse.ArgumentParser(description="Oculai Auto-Ingestion Pipeline (Step 4)")
     parser.add_argument("source", type=Path, help="PDF or text file to ingest")
     parser.add_argument("--no-distill", action="store_true", help="Skip LLM distill (use raw for testing)")
     args = parser.parse_args()
@@ -121,7 +121,7 @@ def main():
         print(f"Error: {args.source} not found")
         sys.exit(1)
 
-    print(f"Oracle Pipeline: Ingesting {args.source} (consulted bible first)")
+    print(f"Oculai Pipeline: Ingesting {args.source} (consulted bible first)")
 
     if args.source.suffix.lower() == ".pdf":
         raw = extract_text_from_pdf(args.source)
@@ -132,7 +132,7 @@ def main():
         distilled = raw[:1000]  # Test mode
     else:
         distilled = distill_with_llm(raw, args.source.name)
-        print("Distilled per Oracle rules (high-value, structured, no bloat)")
+        print("Distilled per Oculai rules (high-value, structured, no bloat)")
 
     # Route via MCP (Step 3)
     result = ingest_document(str(args.source), distill=not args.no_distill)

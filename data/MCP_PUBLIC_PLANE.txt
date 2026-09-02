@@ -1,0 +1,6 @@
+canonical=funnel-443
+public_mcp_url=https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp
+public_health=https://openclaw.tail20a090.ts.net/rk7m2q9x/health
+tailnet_mcp=https://openclaw.tail20a090.ts.net:8100/mcp
+updated=2026-08-13T01:22:08Z
+note=Funnel on :443 with secret path /rk7m2q9x only. No / on 443. No :10000. No trycloudflare.

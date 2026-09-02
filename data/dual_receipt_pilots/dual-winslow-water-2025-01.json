@@ -1,0 +1,89 @@
+{
+  "generated_at": "2026-07-22T07:21:28.022622+00:00",
+  "pilot_id": "dual-winslow-water-2025-01",
+  "place": "Winslow, Indiana",
+  "county": "Pike",
+  "area": "Winslow",
+  "template": "bill_shock_dual_receipt",
+  "heat_rank": "2_bill_shock",
+  "pain_leg": {
+    "source": "local_news",
+    "summary": "Explosive town hall; residents angry/confused over proposed water and sewer rate hikes; fixed-income fear; 'this town needs to get it together.'",
+    "quotes": [
+      "When you jump it from 3% to 42% or 54%, that's scary for people\u2026 especially on a fixed budget.",
+      "This town needs to get it together."
+    ],
+    "urls": [
+      "https://www.14news.com/2025/01/14/neighbors-voice-their-anger-over-proposed-water-rate-hike-winslow/",
+      "https://www.14news.com/2025/01/16/this-town-needs-get-it-together-winslow-residents-left-questions-after-explosive-town-hall-meeting/"
+    ]
+  },
+  "money_leg": {
+    "source": "local_news_official_meeting",
+    "summary": "Proposed ~45% water rate increase and ~10% sewer increase; council cites aging water system repairs. Resident/former council president analysis: many minimum-use customers (~2,000 gal) see about a $13 monthly bump.",
+    "exact_dollar": "$13",
+    "contrast": "45% water / 10% sewer proposed vs prior ~3% expectations; peer-size bill concern",
+    "actor": "Winslow Town Council",
+    "actor_type": "place_utility",
+    "urls": [
+      "https://www.14news.com/2025/01/14/neighbors-voice-their-anger-over-proposed-water-rate-hike-winslow/",
+      "https://www.14news.com/2025/01/16/this-town-needs-get-it-together-winslow-residents-left-questions-after-explosive-town-hall-meeting/",
+      "https://www.tristatehomepage.com/news/water-rates-proposed-to-increase-by-nearly-50-in-winslow/"
+    ]
+  },
+  "legal": {
+    "mode": "fair_report",
+    "attribution": "According to 14News (WFIE) reporting on Winslow town council meetings, January 2025.",
+    "forbidden": [
+      "fraud",
+      "embezzled",
+      "stole",
+      "corrupt",
+      "criminal"
+    ],
+    "note": "Rate ordinance / council proceeding \u2014 no criminal imputation."
+  },
+  "hook_options": [
+    "Did you know Winslow, Indiana proposed a 45% water rate hike \u2014 about $13 more a month for many minimum users \u2014 while residents at a packed town hall said people on fixed budgets are scared? (14News, Jan 2025)",
+    "Did you know a small Indiana town hall erupted over a jump from ~3% expectations to a proposed 42\u201354% water bill shock \u2014 with a second reading set after the shouting? (14News, Winslow)"
+  ],
+  "script_60s": {
+    "0_03": "Did you know Winslow, Indiana floated a ~45% water rate hike?",
+    "0_15": "14News covered the town hall: 45% water, 10% sewer. Council said aging pipes and repairs. Residents said fixed budgets can't absorb a jump like that.",
+    "0_35": "A former council president who pulled documents said many low-use homes might see about $13 more a month \u2014 small on paper, dealbreaker for some.",
+    "0_50": "Fair report of public meetings and news \u2014 not an accusation of crime.",
+    "0_60": "Follow for more Indiana public-record stories. Sources in description."
+  },
+  "claim_gate": {
+    "ok": true,
+    "claim": {
+      "county": "Pike",
+      "actor": "Winslow Town Council",
+      "actor_type": "person",
+      "exact_dollar": "$13.00",
+      "contrast": "45% water / 10% sewer proposed vs prior ~3% expectations; peer-size bill concern",
+      "receipt_path": "https://www.14news.com/2025/01/14/neighbors-voice-their-anger-over-proposed-water-rate-hike-winslow/",
+      "report_id": "2025",
+      "page": "",
+      "source_category": "rate_shock",
+      "description": "Winslow Town Council: proposed water rate increase ~45% / sewer ~10% in Winslow, Indiana. Many minimum-use customers ~$13 monthly bump. Contrast: 45% water / 10% sewer proposed vs prior ~3% expectations; peer-size bill concern. Pain: Explosive town hall; residents angry/confused over proposed water and sewer rate hikes; fixed-income fear; 'this town needs to get it together.'",
+      "passes_gate": true,
+      "missing": [],
+      "notes": []
+    },
+    "checklist": {
+      "exact_actor_spelling_100r_or_sboa": true,
+      "financial_variance_matches_report": true,
+      "contrast_metric_identified": true,
+      "report_id_and_page_logged": true
+    }
+  },
+  "claim_gate_ok": true,
+  "human_gate": "pending_approval",
+  "do_not": [
+    "auto-publish",
+    "unfreeze county mill",
+    "invent criminal intent",
+    "use Gateway AFR ent_name as vendor"
+  ]
+}

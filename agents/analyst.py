@@ -28,6 +28,13 @@ from core.handoff import (
 )
 from core.security import SecurityManager
 from core.session import Session
+from tools.public_data_loaders import (
+    REPO_ROOT,
+    load_multi_year_budget_totals,
+    load_salary_detail_records_for_county,
+)
+from tools.red_flag_engine import scan_all_red_flags
+from tools.taxpayer_red_flags import scan_taxpayer_red_flags
 
 
 class AnalystAgent:
@@ -67,8 +74,57 @@ class AnalystAgent:
         county = research.county
         area = research.primary_area
 
+        # === Taxpayer watchdog scan (multi-year budgets, salaries, disbursements) ===
+        cache_dir = REPO_ROOT / "data" / "cache"
+        if self.session:
+            sess_cache = self.session.base_dir / "sources"
+            if sess_cache.exists():
+                cache_dir = sess_cache.parent  # prefer session-adjacent cache
+        engine = scan_all_red_flags(research, cache_dir=REPO_ROOT / "data" / "cache")
+        red_flags.extend(engine.red_flags)
+        insights.extend(engine.insights)
+        content_angles.extend(engine.content_angles)
+        budget_implications.extend(engine.budget_implications)
+        video_titles: list[str] = list(engine.video_titles)
+
+        # === Supplemental excerpts not already captured by red_flag_engine ===
+        known = {f.description[:80] for f in red_flags}
+        for excerpt in research.raw_excerpts[:8]:
+            if excerpt[:80] in known:
+                continue
+            lower = excerpt.lower()
+            severity = "medium"
+            category = "budget_anomaly"
+            if "ecod" in lower or "isolationforest" in lower or "flagged" in lower:
+                severity = "high"
+                category = "statistical_anomaly"
+            elif "vendor" in lower or "disbursement" in lower:
+                category = "procurement"
+            red_flags.append(
+                RedFlag(
+                    severity=severity,
+                    category=category,
+                    description=excerpt[:500],
+                    evidence="Indiana Gateway / DOGEGPT pipeline (see ResearchPackage.sources)",
+                    recommended_action="Pull supporting lines from gateway disbursements or budget CSV for video script.",
+                )
+            )
+            content_angles.append(excerpt[:120])
+
         # === Budget analysis ===
         for b in research.budgets:
+            highway_spend = b.major_funds.get("HIGHWAY", 0) or b.major_funds.get("LOCAL ROAD & STREET", 0)
+            if highway_spend > 500_000:
+                insights.append(
+                    Insight(
+                        category="infrastructure",
+                        title=f"{b.entity} certified highway/road funds: ${highway_spend:,}",
+                        detail="From DOR budget certification (real public data). Road pressure is the dominant rural budget story.",
+                        supporting_numbers=[f"Highway/road certified: ${highway_spend:,}"],
+                        suggested_angle=f"Where {b.entity}'s road money actually goes — certified budget breakdown",
+                    )
+                )
+
             if b.surplus_deficit is not None and b.surplus_deficit < 0:
                 deficit_pct = abs(b.surplus_deficit) / max(b.total_expenditures or 1, 1) * 100
                 red_flags.append(
@@ -162,20 +218,46 @@ class AnalystAgent:
                 )
             )
 
-        # Content angles (always produce some)
+        from tools.county_data_fetch import resolve_county
+
+        _meta = resolve_county(county) or {}
+        trend = load_multi_year_budget_totals(
+            county_label=f"{county} County, IN",
+            gateway_code=_meta.get("gateway_code"),
+        )
+        if trend and len(trend) >= 2:
+            y0, y1 = trend[0], trend[-1]
+            if y0["amount"] > 0:
+                cum = (y1["amount"] - y0["amount"]) / y0["amount"] * 100
+                budget_implications.append(
+                    f"Certified spending {y0['year']}→{y1['year']}: {cum:+.1f}% — taxpayers should compare to their property tax bills."
+                )
+
+        # Salary shock titles for Shorts (county-specific cache only — no cross-county fallback)
+        salary_records = load_salary_detail_records_for_county(
+            county, gateway_code=_meta.get("gateway_code")
+        )
+        if salary_records:
+            top = sorted(salary_records, key=lambda r: r["compensation"], reverse=True)[:5]
+            for rec in top:
+                video_titles.append(
+                    f"Taxpayers paid {rec['name']} ${rec['compensation']:,} as {rec['job_title']} in {county} County"
+                )
+
+        content_angles.extend(video_titles[:6])
+
         if not content_angles:
             content_angles = [
-                f"How {county} County's 2025 budget actually affects Winslow residents (the numbers no one reads)",
-                "Rural Indiana property under $50k — the good, the bad, and the foundation issues",
-                f"Why Pike County road crews make ${research.salaries[0].avg_salary if research.salaries else 42}k and what that means for your taxes",
+                f"How {county} County's budget grew since 2022 — the numbers no one reads",
+                f"{county} County salary transparency: who got paid the most with your tax dollars",
             ]
 
-        overall_risk = min(10.0, 2.0 + len(red_flags) * 1.8 + (1.0 if has_deficit else 0))
+        high_sev = sum(1 for f in red_flags if f.severity in ("high", "critical"))
+        overall_risk = min(10.0, 2.0 + high_sev * 2.2 + len(red_flags) * 0.6 + (1.0 if has_deficit else 0))
 
         summary = (
-            f"{county} / {area} shows the typical rural squeeze: low asset values, structural budget pressure on infrastructure, "
-            f"and wages that make it hard for working families to stay. {len(red_flags)} red flags and {len(insights)} insights extracted. "
-            "Strong material for both cautionary and 'last cheap land' style faceless content."
+            f"{county} / {area}: {len(red_flags)} taxpayer red flags ({high_sev} high/critical), "
+            f"{len(insights)} insights. Multi-year budget + public salary data wired for watchdog/Shorts content."
         )
 
         pkg = AnalysisPackage(

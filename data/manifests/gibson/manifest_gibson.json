@@ -1,0 +1,134 @@
+{
+  "schema": "reclaw.video_manifest.v2",
+  "framework": "HHVCTA",
+  "metadata": {
+    "project": "Project Reclaw",
+    "generated_at": "2026-07-06T09:58:14.760430+00:00",
+    "target": "Gibson",
+    "anomaly": "salary_shock",
+    "anomaly_key": "salary_shock",
+    "render_resolution": [
+      1080,
+      1920
+    ],
+    "fps": 30,
+    "duration_s": 60,
+    "review_id": null
+  },
+  "audio_pipeline": {
+    "tts_provider": "elevenlabs",
+    "voice_id": "EXAVITQu4vr4xnSDxMaL",
+    "bgm": "suspense_drone_01.mp3",
+    "captions": "whisper.cpp \u2192 @remotion/captions"
+  },
+  "atomic_finding": {
+    "category": "salary_shock",
+    "severity": "high",
+    "data_point": "$111K",
+    "provenance": "Indiana Gateway",
+    "description": "Public compensation records show $111K. In a small county, that's a legitimate taxpayer question \u2014 not an accusation."
+  },
+  "scenes": [
+    {
+      "scene_id": 1,
+      "type": "HOOK",
+      "hhvcta": "hook",
+      "duration_seconds": 3.0,
+      "text_overlay": "PUBLIC RECORD",
+      "spoken_script": "Gibson County paid Sheriff $111K \u2014 public record.",
+      "visual_asset": "courthouse_stock_darkened",
+      "vfx": "subtle_camera_push"
+    },
+    {
+      "scene_id": 2,
+      "type": "HINT",
+      "hhvcta": "hint",
+      "duration_seconds": 2.5,
+      "text_overlay": "The Math Is Public",
+      "spoken_script": "Forensic accountants use these tests on public ledgers. So can taxpayers.",
+      "visual_asset": "benford_chart_skeleton",
+      "vfx": "glitch_transition"
+    },
+    {
+      "scene_id": 3,
+      "type": "VALUE",
+      "hhvcta": "value",
+      "duration_seconds": 12.0,
+      "text_overlay": "Flag: $111K",
+      "spoken_script": "Public compensation records show $111K. In a small county, that's a legitimate taxpayer question \u2014 not an accusation.",
+      "visual_asset": "dynamic_chart_render",
+      "chart": {
+        "type": "bar_highlight",
+        "highlight": "$111K"
+      },
+      "vfx": "zoom_in_on_chart"
+    },
+    {
+      "scene_id": 4,
+      "type": "CREDIBILITY",
+      "hhvcta": "credibility",
+      "duration_seconds": 4.0,
+      "text_overlay": "Source: Indiana Gateway",
+      "spoken_script": "This isn't rumor. It's from Indiana Gateway \u2014 pulled from official open records.",
+      "visual_asset": "screenshot_open_data_portal",
+      "vfx": "highlight_source_url"
+    },
+    {
+      "scene_id": 5,
+      "type": "TAKEAWAY",
+      "hhvcta": "takeaway",
+      "duration_seconds": 4.0,
+      "text_overlay": "Your Tax Dollars",
+      "spoken_script": "It's your tax money. Fair questions deserve answers on the record.",
+      "visual_asset": "data_table_scroll",
+      "vfx": null
+    },
+    {
+      "scene_id": 6,
+      "type": "ACTION",
+      "hhvcta": "action",
+      "duration_seconds": 4.0,
+      "text_overlay": "Tag Gibson",
+      "spoken_script": "If you live in Gibson, tag your local officials and ask them to explain this line at the next public meeting.",
+      "visual_asset": "cta_subscribe_card",
+      "vfx": "red_border_pulse"
+    }
+  ],
+  "beats": {
+    "hook": {
+      "start_s": 0,
+      "end_s": 3,
+      "text": "Gibson County paid Sheriff $111K \u2014 public record.",
+      "on_screen": "Gibson County paid Sheriff $111K \u2014 public record."
+    },
+    "hint": {
+      "start_s": 3,
+      "end_s": 5.5,
+      "text": "Forensic accountants use these tests on public ledgers. So can taxpayers."
+    },
+    "value": {
+      "start_s": 5.5,
+      "end_s": 17.5,
+      "text": "Public compensation records show $111K. In a small county, that's a legitimate taxpayer question \u2014 not an accusation."
+    },
+    "credibility": {
+      "start_s": 17.5,
+      "end_s": 21.5,
+      "text": "This isn't rumor. It's from Indiana Gateway \u2014 pulled from official open records.",
+      "on_screen": "This isn't rumor. It's from Indiana Gateway \u2014 pulled from official open records."
+    },
+    "takeaway": {
+      "start_s": 21.5,
+      "end_s": 25.5,
+      "text": "It's your tax money. Fair questions deserve answers on the record."
+    },
+    "action": {
+      "start_s": 25.5,
+      "end_s": 29.5,
+      "text": "If you live in Gibson, tag your local officials and ask them to explain this line at the next public meeting.",
+      "cta": "subscribe"
+    }
+  },
+  "word_count": 82,
+  "disclaimer": "Patterns in public financial records only. Not an allegation of crime or wrongdoing."
+}

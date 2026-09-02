@@ -39,14 +39,14 @@ class KnowledgeManager:
         self.knowledge_path = self.settings.effective_knowledge_path
         self.knowledge_path.mkdir(parents=True, exist_ok=True)
 
-        # === ORACLE ENFORCEMENT ===
+        # === OCULAI ENFORCEMENT ===
         # Every KnowledgeManager instance (i.e. every agent/session) MUST have the Ravenstack rule set in context.
         # This prevents any future AI or agent from ignoring the vault structure.
-        oracle_file = self.knowledge_path / "RAVENSTACK-ORACLE.md"
+        oculai_file = self.knowledge_path / "RAVENSTACK-OCULAI.md"
         arch_file = self.knowledge_path / "RAVENSTACK-ARCHITECTURE.md"
-        if not oracle_file.exists() or not arch_file.exists():
+        if not oculai_file.exists() or not arch_file.exists():
             raise RuntimeError(
-                "Ravenstack Oracle not found. All agents MUST operate through RAVENSTACK-ORACLE.md + RAVENSTACK-ARCHITECTURE.md. "
+                "Ravenstack Oculai not found. All agents MUST operate through RAVENSTACK-OCULAI.md + RAVENSTACK-ARCHITECTURE.md. "
                 "Load these first. Never bypass KnowledgeManager."
             )
 
@@ -243,8 +243,8 @@ tags: [ai-agents, monetization, backlog, clawsmith, visual-dashboard]
         else:
             text = str(content_or_path)
 
-        # Fix: extract and clean snippet outside f-string to avoid backslash-in-f-string SyntaxError (Python 3.11)
-        snippet = text[:500].replace('\n', ' ')[:300]
+        # Basic distillation (template + key extraction; replace with Ollama call in prod for smarter summary)
+        snippet = text[:500].replace("\n", " ")[:3]
         distilled = f"""# Distilled from {source}
 
 ## Extracted Principles & Tactics

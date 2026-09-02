@@ -1,0 +1,114 @@
+# Public data source registry — Indiana rural counties (Pike primary)
+# Used by Researcher + Silent Auditor. Truth + provenance only.
+
+indiana:
+  gateway_disbursements:
+    name: Indiana Gateway — Disbursements by Fund
+    url: https://gateway.ifionline.org/public/download.aspx
+    afr_url: https://gateway.ifionline.org/public/AFR.aspx
+    description: Statewide flat file of local government disbursements (corruption/procurement audits)
+    format: pipe-delimited txt
+    years_available: [2010, 2023, 2024, 2025]
+    corruption_signals:
+      - split purchases near bid thresholds
+      - vendor concentration spikes
+      - YoY department anomalies (see pipeline_budget_anomalies)
+
+  budget_certification_textmode:
+    name: Indiana DOR Budget Certification (text mode)
+    url: https://www.in.gov/dor/budget-and-claims/budget-orders/
+    description: Certified budget orders by county — levies, funds, departments
+    local_cache: ingestion/pike_budget_textmode.csv
+    notes: Exported from DOR text-mode reports (Pike 2025 on disk)
+
+  budget_totals_yoy:
+    name: Pike County budget totals 2022-2025
+    local_cache: ingestion/pike_county_totals_2022_2025.csv
+    description: YoY total certified budget for anomaly detection
+
+  salary_transparency:
+    name: Indiana Public Employee Compensation (Gateway salary search export)
+    url: https://gateway.ifionline.org/public/SESalarySearch.aspx
+    local_cache: ingestion/SalarySearch.csv
+    description: 273 Pike County public salaries/compensation (2025)
+
+  property_gis:
+    name: Beacon / Schneider GIS (parcel search)
+    url: https://beacon.schneidercorp.com/
+    pike_hint: Select Indiana → Pike County for parcel rolls
+    notes: Interactive GIS — manual or future Playwright automation
+
+  county_website:
+    name: Pike County official site
+    url: https://www.pikecounty.in.gov/
+    auditor: https://www.pikecounty.in.gov/departments/auditor/
+
+  winslow_town:
+    name: Winslow Civil Town budget lines
+    source: budget_certification_textmode (WINSLOW CIVIL TOWN rows)
+    area_match: Winslow
+
+  human_inbox:
+    name: Human upload drop zone
+    local_path: data/inbox/
+    loader: tools/inbox_loader.scan_inbox
+    description: SCP huge CSVs/PDFs here; scan copies supported files into ingestion/
+    supported_formats: [csv, txt, pdf, json, xlsx, xls]
+    notes: Manifest at data/inbox/manifest.json
+
+  usaspending:
+    name: USASpending.gov API
+    url: https://api.usaspending.gov/
+    loader: tools/local_auditor_live.fetch_fed_timeseries
+    description: Federal awards/grants/contracts by county place-of-performance (no key)
+    notes: County filter uses 3-digit FIPS within state (e.g. 125 for Pike)
+
+  census_acs:
+    name: U.S. Census ACS 5-year API
+    url: https://api.census.gov/data/2022/acs/acs5
+    env_key: CENSUS_API_KEY
+    loader: tools/local_auditor_live.fetch_census
+    description: Population, median income, poverty rate per county
+
+  propublica_nonprofits:
+    name: ProPublica Nonprofit Explorer API
+    url: https://projects.propublica.org/nonprofits/api/v2
+    loader: tools/local_auditor_live.fetch_nonprofits
+    description: Local nonprofit 990 index (no key)
+
+  local_auditor:
+    name: Multi-source live county auditor
+    module: tools/local_auditor_live
+    orchestrator: agents/orchestrator._run_local_auditor
+    output: handoffs/silent_auditor.json
+    detectors: [robust_zscore, IsolationForest, benford_chi_sq, vendor_concentration, vendor_fragmentation, cross_source_contrast]
+
+  dogegpt_upload:
+    name: DOGEGPT user kit (Jason upload 2026-06-15)
+    upload_path: /root/DOGEGPT-20260615T020114Z-3-001
+    symlink: ingestion/dogegpt_upload
+    manifest: data/dogegpt_ingest_manifest.json
+    ingest_script: scripts/ingest_dogegpt_upload.sh
+    notes: Selective ingest only — credentials and reference books excluded
+
+  pike_budget_pdfs:
+    name: Pike County DOR budget orders + audit PDF
+    local_path: data/sources/indiana/pike/
+    extractor: ingestion/extract_pike_budget.py
+
+corruption_detection:
+  pipeline: ingestion/pipeline_budget_anomalies.py
+  taxpayer_scan: tools/taxpayer_red_flags.py
+  red_flag_engine: tools/red_flag_engine.py
+  output: ingestion/anomalies.csv
+  methods: [robust_zscore, IsolationForest, ECOD, ADTK, YoY_spike, salary_shock, double_dip]
+  prefetch: scripts/prefetch_gateway_years.sh  # 2022-2025 disbursements → data/cache/
+  patterns:
+    - multi-year certified budget growth vs flat population
+    - single-year budget spikes (>8% YoY)
+    - salary shock (top public paychecks)
+    - double-dip (same name, multiple compensation lines)
+    - parks vs roads fund imbalance
+    - reassessment line items (tax bill shock)
+    - Gateway disbursement swings year-over-year
+    - split vendor payments (Silent Auditor RULEBOOK)

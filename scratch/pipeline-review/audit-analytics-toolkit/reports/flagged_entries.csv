@@ -1,0 +1,118 @@
+audit_test,entry_id,posting_ts,vendor_id,vendor_name,amount_rm,posted_by,approved_by
+Duplicate payments,JE035413,2025-04-14 08:44:52,V001,Maju Jaya Trading Sdn Bhd,10047.42,U002,U015
+Duplicate payments,JE035414,2025-04-18 08:44:52,V001,Maju Jaya Trading Sdn Bhd,10047.42,U001,U024
+Duplicate payments,JE035411,2025-10-22 13:58:15,V005,Delima Fresh Supplies,782.02,U024,U017
+Duplicate payments,JE035412,2025-10-27 13:58:15,V005,Delima Fresh Supplies,782.02,U024,U018
+Duplicate payments,JE035405,2025-10-22 10:14:45,V007,Borneo Timber Industries,5783.56,U006,U018
+Duplicate payments,JE035406,2025-10-27 10:14:45,V007,Borneo Timber Industries,5783.56,U009,U023
+Duplicate payments,JE035494,2025-01-20 13:01:23,V008,Selangor Steel Works Sdn Bhd,15000.0,U002,U023
+Duplicate payments,JE035487,2025-04-18 16:06:12,V008,Selangor Steel Works Sdn Bhd,15000.0,U019,U013
+Duplicate payments,JE035509,2025-06-06 15:59:04,V008,Selangor Steel Works Sdn Bhd,15000.0,U010,U017
+Duplicate payments,JE035493,2025-06-11 18:30:00,V008,Selangor Steel Works Sdn Bhd,15000.0,U005,U017
+Duplicate payments,JE035503,2025-10-24 11:58:51,V008,Selangor Steel Works Sdn Bhd,15000.0,U012,U014
+Duplicate payments,JE035407,2025-08-27 13:05:40,V010,Harmoni Facilities Management,3102.45,U022,U018
+Duplicate payments,JE035408,2025-08-29 13:05:40,V010,Harmoni Facilities Management,3102.45,U019,U024
+Duplicate payments,JE035415,2025-11-07 12:08:26,V032,Kota Kinabalu Freight,8572.68,U001,U024
+Duplicate payments,JE035416,2025-11-10 12:08:26,V032,Kota Kinabalu Freight,8572.68,U024,U018
+Duplicate payments,JE035403,2025-02-14 15:44:47,V035,Merdeka Uniform Supplies,2860.87,U009,U023
+Duplicate payments,JE035404,2025-02-17 15:44:47,V035,Merdeka Uniform Supplies,2860.87,U010,U018
+Duplicate payments,JE035423,2025-03-03 08:30:00,V042,Subang Aviation Parts,613.33,U022,U014
+Duplicate payments,JE035424,2025-03-04 08:30:00,V042,Subang Aviation Parts,613.33,U007,U014
+Duplicate payments,JE035401,2025-01-15 12:08:24,V045,Shah Alam Plastics Sdn Bhd,5730.89,U022,U015
+Duplicate payments,JE035402,2025-01-20 12:08:24,V045,Shah Alam Plastics Sdn Bhd,5730.89,U004,U014
+Duplicate payments,JE035417,2025-10-08 14:55:33,V049,Ampang Glass & Aluminium,2695.94,U010,U015
+Duplicate payments,JE035418,2025-10-10 14:55:33,V049,Ampang Glass & Aluminium,2695.94,U003,U013
+Duplicate payments,JE035419,2025-12-01 13:15:13,V052,Bandar Utama Events Sdn Bhd,3933.04,U002,U018
+Duplicate payments,JE035420,2025-12-05 13:15:13,V052,Bandar Utama Events Sdn Bhd,3933.04,U023,U014
+Duplicate payments,JE035409,2025-04-03 12:48:45,V053,Setapak Scaffolding,1215.95,U024,U018
+Duplicate payments,JE035410,2025-04-07 12:48:45,V053,Setapak Scaffolding,1215.95,U001,U023
+Duplicate payments,JE035421,2025-03-13 16:45:35,V058,Skudai Lab Equipment,1096.84,U023,U013
+Duplicate payments,JE035422,2025-03-17 16:45:35,V058,Skudai Lab Equipment,1096.84,U001,U015
+Threshold splitting,JE035429,2025-04-15 09:11:26,V003,TechNova Solutions Sdn Bhd,46713.75,U008,U013
+Threshold splitting,JE035430,2025-04-16 09:11:26,V003,TechNova Solutions Sdn Bhd,48136.38,U008,U013
+Threshold splitting,JE035431,2025-04-17 09:11:26,V003,TechNova Solutions Sdn Bhd,47113.94,U008,U018
+Threshold splitting,JE035436,2025-03-10 11:53:59,V006,KL Metro Services Sdn Bhd,47360.82,U005,U023
+Threshold splitting,JE035437,2025-03-11 11:53:59,V006,KL Metro Services Sdn Bhd,45993.11,U005,U024
+Threshold splitting,JE035438,2025-03-12 11:53:59,V006,KL Metro Services Sdn Bhd,47519.49,U005,U017
+Threshold splitting,JE001274,2025-06-04 17:15:53,V023,Sungai Besi Hardware,48916.07,U024,U015
+Threshold splitting,JE008535,2025-06-06 14:37:26,V023,Sungai Besi Hardware,48140.38,U024,U014
+Threshold splitting,JE035434,2025-10-08 12:14:07,V029,Temasek Instruments,45000.67,U001,U013
+Threshold splitting,JE035435,2025-10-09 12:14:07,V029,Temasek Instruments,47250.12,U001,U018
+Threshold splitting,JE035427,2025-10-13 11:18:45,V041,Genting View Hospitality,46098.6,U011,U013
+Threshold splitting,JE035428,2025-10-14 11:18:45,V041,Genting View Hospitality,46957.26,U011,U015
+Threshold splitting,JE026909,2025-01-10 14:13:55,V042,Subang Aviation Parts,45911.96,U005,U024
+Threshold splitting,JE035432,2025-01-16 13:38:03,V042,Subang Aviation Parts,48415.4,U005,U014
+Threshold splitting,JE035433,2025-01-17 13:38:03,V042,Subang Aviation Parts,45059.61,U005,U016
+Threshold splitting,JE035425,2025-01-24 10:22:58,V046,Titiwangsa Medical Supplies,45845.83,U023,U015
+Threshold splitting,JE035426,2025-01-27 10:22:58,V046,Titiwangsa Medical Supplies,46735.92,U023,U014
+Threshold splitting,JE035442,2025-09-19 14:13:22,V052,Bandar Utama Events Sdn Bhd,48525.25,U022,U017
+Threshold splitting,JE035444,2025-09-22 14:13:22,V052,Bandar Utama Events Sdn Bhd,45346.09,U022,U023
+Threshold splitting,JE035443,2025-09-22 14:13:22,V052,Bandar Utama Events Sdn Bhd,48346.02,U022,U024
+Threshold splitting,JE035439,2025-02-13 13:03:38,V055,Rawang Cement Distributors,47272.48,U005,U014
+Threshold splitting,JE035440,2025-02-14 13:03:38,V055,Rawang Cement Distributors,45684.4,U005,U016
+Threshold splitting,JE035441,2025-02-17 13:03:38,V055,Rawang Cement Distributors,47575.49,U005,U014
+Off-hours postings,JE035451,2025-09-16 03:11:00,V020,Damai Security Services,1834.87,U020,U024
+Off-hours postings,JE035465,2025-09-29 01:03:00,V053,Setapak Scaffolding,2511.32,U003,U017
+Off-hours postings,JE035470,2025-07-19 19:00:00,V049,Ampang Glass & Aluminium,2473.7,U008,U014
+Off-hours postings,JE035457,2025-07-15 01:55:00,V036,Cyberjaya Data Systems,2559.27,U004,U018
+Off-hours postings,JE035461,2025-06-29 01:47:00,V031,Rimba Landscaping Sdn Bhd,2387.83,U012,U015
+Off-hours postings,JE035471,2025-12-20 09:00:00,V048,Kelantan Textiles Sdn Bhd,2374.74,U012,U024
+Off-hours postings,JE035447,2025-12-20 19:00:00,V053,Setapak Scaffolding,12233.04,U022,U024
+Off-hours postings,JE035445,2025-02-22 15:00:00,V037,Putra Heights Construction,19591.0,U008,U023
+Off-hours postings,JE035460,2025-02-25 03:34:00,V043,Bangsar Interior Design,10401.0,U009,U016
+Off-hours postings,JE035454,2025-08-29 01:53:00,V017,Amanah Office Solutions,16107.1,U006,U024
+Off-hours postings,JE035453,2025-04-21 00:58:00,V047,Langkawi Duty Services,8324.52,U019,U024
+Off-hours postings,JE035462,2025-08-09 18:00:00,V050,Cheras Building Materials,2099.12,U021,U018
+Off-hours postings,JE035474,2025-10-11 17:00:00,V012,Penang Precision Parts,1645.97,U022,U015
+Off-hours postings,JE035446,2025-02-08 17:00:00,V032,Kota Kinabalu Freight,8227.48,U006,U015
+Off-hours postings,JE035450,2025-08-18 02:51:00,V038,Taman Desa Food Industries,1323.32,U011,U016
+Off-hours postings,JE035459,2025-09-18 01:22:00,V012,Penang Precision Parts,4284.07,U019,U015
+Off-hours postings,JE035463,2025-11-03 00:33:00,V032,Kota Kinabalu Freight,4377.15,U011,U014
+Off-hours postings,JE035449,2025-07-06 00:55:00,V045,Shah Alam Plastics Sdn Bhd,607.29,U019,U024
+Off-hours postings,JE035467,2025-03-18 03:30:00,V002,Sinar Harapan Enterprise,19302.19,U012,U015
+Off-hours postings,JE035473,2025-08-13 04:04:00,V031,Rimba Landscaping Sdn Bhd,12475.14,U005,U013
+Off-hours postings,JE035468,2025-03-29 17:00:00,V044,Petaling Jaya Motors,4083.24,U021,U017
+Off-hours postings,JE035469,2025-08-23 04:46:00,V054,Puchong Electronics Hub,14642.45,U003,U018
+Off-hours postings,JE035455,2025-04-08 03:49:00,V024,Wawasan Training Consultants,2635.67,U019,U015
+Off-hours postings,JE035466,2025-04-12 13:00:00,V055,Rawang Cement Distributors,1304.55,U005,U017
+Off-hours postings,JE035458,2025-07-05 10:00:00,V017,Amanah Office Solutions,5880.64,U020,U017
+Off-hours postings,JE035448,2025-10-04 17:00:00,V059,Tawau Palm Logistics,1275.62,U008,U016
+Off-hours postings,JE035472,2025-09-14 03:34:00,V042,Subang Aviation Parts,1654.81,U009,U024
+Off-hours postings,JE035456,2025-06-21 00:07:00,V054,Puchong Electronics Hub,2298.98,U007,U016
+Off-hours postings,JE035464,2025-03-27 03:52:00,V048,Kelantan Textiles Sdn Bhd,7839.54,U007,U013
+Off-hours postings,JE035452,2025-02-20 04:59:00,V025,Bukit Bintang Media Group,3576.11,U022,U023
+SoD violations,JE035482,2025-04-17 14:54:49,V008,Selangor Steel Works Sdn Bhd,4929.49,U008,U007
+SoD violations,JE035484,2025-01-24 10:23:06,V002,Sinar Harapan Enterprise,1285.49,U019,U021
+SoD violations,JE035478,2025-01-08 12:30:39,V009,Nusantara IT Distribution,3411.12,U005,U005
+SoD violations,JE035479,2025-04-23 16:14:31,V057,Kajang Satay House Catering,2433.71,U005,U005
+SoD violations,JE035483,2025-03-03 18:18:11,V045,Shah Alam Plastics Sdn Bhd,469.96,U002,U002
+SoD violations,JE035481,2025-06-10 14:45:21,V004,Puncak Emas Logistics Sdn Bhd,3234.33,U022,U022
+SoD violations,JE035475,2025-09-16 11:43:52,V032,Kota Kinabalu Freight,3043.28,U007,U007
+SoD violations,JE035477,2025-07-04 10:06:28,V008,Selangor Steel Works Sdn Bhd,1841.76,U010,U010
+SoD violations,JE035476,2025-04-04 09:15:06,V018,Gemilang Printing Press,29798.68,U002,U002
+SoD violations,JE035480,2025-04-03 15:30:28,V030,Angkasa Telecommunication,57061.31,U005,U008
+Round amounts,JE035497,2025-06-16 13:41:02,V008,Selangor Steel Works Sdn Bhd,5000.0,U010,U015
+Round amounts,JE035499,2025-08-01 09:18:54,V008,Selangor Steel Works Sdn Bhd,20000.0,U006,U015
+Round amounts,JE035503,2025-10-24 11:58:51,V008,Selangor Steel Works Sdn Bhd,15000.0,U012,U014
+Round amounts,JE035498,2025-12-05 14:39:58,V008,Selangor Steel Works Sdn Bhd,10000.0,U002,U017
+Round amounts,JE035490,2025-03-11 12:58:38,V008,Selangor Steel Works Sdn Bhd,20000.0,U023,U013
+Round amounts,JE035504,2025-08-19 12:34:43,V008,Selangor Steel Works Sdn Bhd,20000.0,U007,U013
+Round amounts,JE035508,2025-07-25 08:30:00,V008,Selangor Steel Works Sdn Bhd,20000.0,U012,U016
+Round amounts,JE035491,2025-11-21 15:28:29,V008,Selangor Steel Works Sdn Bhd,25000.0,U005,U013
+Round amounts,JE035494,2025-01-20 13:01:23,V008,Selangor Steel Works Sdn Bhd,15000.0,U002,U023
+Round amounts,JE035486,2025-08-01 09:59:30,V008,Selangor Steel Works Sdn Bhd,5000.0,U005,U016
+Round amounts,JE035488,2025-07-09 10:01:29,V008,Selangor Steel Works Sdn Bhd,10000.0,U007,U014
+Round amounts,JE035505,2025-01-30 15:31:15,V008,Selangor Steel Works Sdn Bhd,10000.0,U002,U017
+Round amounts,JE035496,2025-04-28 15:05:32,V008,Selangor Steel Works Sdn Bhd,25000.0,U005,U023
+Round amounts,JE035500,2025-02-18 11:16:34,V008,Selangor Steel Works Sdn Bhd,25000.0,U012,U013
+Round amounts,JE035493,2025-06-11 18:30:00,V008,Selangor Steel Works Sdn Bhd,15000.0,U005,U017
+Round amounts,JE035489,2025-07-10 08:30:00,V008,Selangor Steel Works Sdn Bhd,25000.0,U022,U017
+Round amounts,JE035492,2025-02-11 12:31:56,V008,Selangor Steel Works Sdn Bhd,10000.0,U008,U015
+Round amounts,JE035509,2025-06-06 15:59:04,V008,Selangor Steel Works Sdn Bhd,15000.0,U010,U017
+Round amounts,JE035487,2025-04-18 16:06:12,V008,Selangor Steel Works Sdn Bhd,15000.0,U019,U013
+Round amounts,JE035506,2025-05-22 15:11:42,V008,Selangor Steel Works Sdn Bhd,25000.0,U011,U018
+Round amounts,JE035502,2025-06-09 10:30:15,V008,Selangor Steel Works Sdn Bhd,25000.0,U022,U018
+Round amounts,JE035495,2025-02-28 14:28:30,V008,Selangor Steel Works Sdn Bhd,5000.0,U009,U023
+Round amounts,JE035501,2025-09-25 09:35:30,V008,Selangor Steel Works Sdn Bhd,5000.0,U020,U024
+Round amounts,JE035485,2025-06-23 15:04:27,V008,Selangor Steel Works Sdn Bhd,25000.0,U002,U015
+Round amounts,JE035507,2025-12-29 10:30:04,V008,Selangor Steel Works Sdn Bhd,10000.0,U024,U016

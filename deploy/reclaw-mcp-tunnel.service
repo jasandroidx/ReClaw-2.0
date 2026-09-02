@@ -1,0 +1,15 @@
+[Unit]
+Description=ReClaw MCP public tunnel (cloudflared → :8100 for grok.com)
+After=network-online.target reclaw-mcp-bridge.service
+Wants=reclaw-mcp-bridge.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/ReClaw-2.0
+ExecStart=/usr/local/bin/cloudflared tunnel --url http://127.0.0.1:8100 --loglevel info
+ExecStartPost=/root/ReClaw-2.0/scripts/sync-mcp-tunnel-url.sh
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

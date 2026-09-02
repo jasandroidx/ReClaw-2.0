@@ -1,0 +1,17 @@
+# Data files (too large for GitHub)
+data/raw/
+*.csv
+!data/output/.gitkeep
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

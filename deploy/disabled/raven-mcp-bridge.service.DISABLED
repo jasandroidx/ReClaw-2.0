@@ -1,0 +1,15 @@
+[Unit]
+Description=RavenKeep FastMCP Bridge Server
+After=network.target docker.service tailscaled.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/ReClaw-2.0
+ExecStart=/usr/bin/python3 /root/ReClaw-2.0/tools/raven_bridge_server.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

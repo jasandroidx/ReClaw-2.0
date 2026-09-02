@@ -1,0 +1,8 @@
+# regenerated on first run (seeded, fully reproducible)
+data/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.DS_Store

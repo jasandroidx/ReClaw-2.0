@@ -1,0 +1,498 @@
+{
+  "schema": "reclaw.video_manifest.v2",
+  "framework": "HHVCTA",
+  "metadata": {
+    "project": "Project Reclaw",
+    "generated_at": "2026-07-07T05:22:25.058671+00:00",
+    "target": "Gibson",
+    "anomaly": "Statistical Anomaly",
+    "anomaly_key": "generic",
+    "render_resolution": [
+      1080,
+      1920
+    ],
+    "fps": 30,
+    "duration_s": 60,
+    "review_id": "review-8594a77f9de5"
+  },
+  "audio_pipeline": {
+    "tts_provider": "elevenlabs",
+    "voice_id": "EXAVITQu4vr4xnSDxMaL",
+    "bgm": "suspense_drone_01.mp3",
+    "captions": "whisper.cpp \u2192 @remotion/captions"
+  },
+  "atomic_finding": {
+    "category": "statistical_anomaly",
+    "severity": "high",
+    "data_point": "Gibson County, Indiana \u2014 here's what's weird in the budget.",
+    "provenance": "Gibson County, Indiana \u2014 here's what's weird in the budget.  Source: public county records. Not an accusation \u2014 a questi",
+    "description": "Gibson County, Indiana \u2014 here's what's weird in the budget."
+  },
+  "scenes": [
+    {
+      "scene_id": 1,
+      "type": "HOOK",
+      "hhvcta": "hook",
+      "duration_seconds": 3,
+      "text_overlay": "PUBLIC RECORD",
+      "spoken_script": "Why does Gibson's public checkbook show a pattern nobody's explaining in plain language?",
+      "visual_asset": "courthouse_stock_darkened",
+      "vfx": "subtle_camera_push",
+      "on_screen_text": [
+        "71.5 MILLION",
+        "PAID TWICE"
+      ],
+      "visual_directives": [
+        "duplicate_check_side_by_side",
+        "search_animation"
+      ]
+    },
+    {
+      "scene_id": 2,
+      "type": "HINT",
+      "hhvcta": "hint",
+      "duration_seconds": 3,
+      "text_overlay": "The Math Is Public",
+      "spoken_script": "The county's own public servers show something that doesn't match how normal budgets look.",
+      "visual_asset": "benford_chart_skeleton",
+      "vfx": "glitch_transition",
+      "on_screen_text": [
+        "PATTERN FOUND",
+        "CHECK THIS",
+        "PUBLIC DATA"
+      ],
+      "visual_directives": [
+        "duplicate_check_side_by_side",
+        "search_animation"
+      ]
+    },
+    {
+      "scene_id": 3,
+      "type": "VALUE",
+      "hhvcta": "value",
+      "duration_seconds": 39,
+      "text_overlay": "Flag: Gibson County, Indiana \u2014 here's what's w",
+      "spoken_script": "Same vendor, same dollar amount, same day \u2014 twice. Either accounting duplicated a row, or someone got paid double. The fix is matching invoice numbers on the record. The flagged line: Gibson FY2025: disbursement line 'Distributions to Other Governmental Entities' = $71,529,856 exceeds IQR upper fence $165,189 (3\u00d7IQR method) Could be innocent \u2014 but it's public money and the explanation should be on the record.",
+      "visual_asset": "dynamic_chart_render",
+      "chart": {
+        "type": "bar_highlight",
+        "highlight": "Gibson County, Indiana \u2014 here's what's weird in the budget."
+      },
+      "vfx": "zoom_in_on_chart",
+      "on_screen_text": [
+        "PAID TWICE",
+        "SAME DAY",
+        "MATCH INVOICES"
+      ],
+      "visual_directives": [
+        "Highlight vendor 'Distributions to Other Governmental Entities'",
+        "Bar chart spike",
+        "Scroll raw data table"
+      ]
+    },
+    {
+      "scene_id": 4,
+      "type": "CREDIBILITY",
+      "hhvcta": "credibility",
+      "duration_seconds": 5,
+      "text_overlay": "Source: Gibson County, Indiana \u2014 here's what",
+      "spoken_script": "This is pulled directly from Gibson County, Indiana \u2014 here's what's weird in the budget. Source: public county records. Not an accusation \u2014 a questi \u2014 Gibson public record, not rumor.",
+      "visual_asset": "screenshot_open_data_portal",
+      "vfx": "highlight_source_url",
+      "on_screen_text": [
+        "SOURCE",
+        "VERIFY IT",
+        "GIBSON"
+      ],
+      "visual_directives": [
+        "Screenshot open data portal",
+        "Highlight source URL",
+        "Show export timestamp"
+      ]
+    },
+    {
+      "scene_id": 5,
+      "type": "TAKEAWAY",
+      "hhvcta": "takeaway",
+      "duration_seconds": 5,
+      "text_overlay": "Your Tax Dollars",
+      "spoken_script": "Two identical $71.5 MILLION lines to 'Distributions to Other Governmental Entities' \u2014 that's your money counted twice until proven otherwise.",
+      "visual_asset": "data_table_scroll",
+      "vfx": null,
+      "on_screen_text": [
+        "PAID TWICE",
+        "SAME DAY",
+        "MATCH INVOICES"
+      ],
+      "visual_directives": [
+        "duplicate_check_side_by_side",
+        "search_animation"
+      ]
+    },
+    {
+      "scene_id": 6,
+      "type": "ACTION",
+      "hhvcta": "action",
+      "duration_seconds": 5,
+      "text_overlay": "Tag Gibson",
+      "spoken_script": "Share this in your local group \u2014 public money deserves public answers.",
+      "visual_asset": "cta_subscribe_card",
+      "vfx": "red_border_pulse",
+      "on_screen_text": [
+        "TAG THEM",
+        "SHARE",
+        "YOUR COUNTY"
+      ],
+      "visual_directives": [
+        "CTA subscribe card",
+        "Comment prompt overlay",
+        "Red border pulse"
+      ]
+    }
+  ],
+  "beats": {
+    "hook": {
+      "start_s": 0,
+      "end_s": 3,
+      "text": "Why does Gibson's public checkbook show a pattern nobody's explaining in plain language?",
+      "on_screen": "71.5 MILLION \u00b7 PAID TWICE"
+    },
+    "hint": {
+      "start_s": 3,
+      "end_s": 6,
+      "text": "The county's own public servers show something that doesn't match how normal budgets look.",
+      "on_screen": "PATTERN FOUND \u00b7 CHECK THIS \u00b7 PUBLIC DATA"
+    },
+    "value": {
+      "start_s": 6,
+      "end_s": 45,
+      "text": "Same vendor, same dollar amount, same day \u2014 twice. Either accounting duplicated a row, or someone got paid double. The fix is matching invoice numbers on the record. The flagged line: Gibson FY2025: disbursement line 'Distributions to Other Governmental Entities' = $71,529,856 exceeds IQR upper fence $165,189 (3\u00d7IQR method) Could be innocent \u2014 but it's public money and the explanation should be on the record.",
+      "on_screen": "PAID TWICE \u00b7 SAME DAY \u00b7 MATCH INVOICES"
+    },
+    "credibility": {
+      "start_s": 45,
+      "end_s": 50,
+      "text": "This is pulled directly from Gibson County, Indiana \u2014 here's what's weird in the budget. Source: public county records. Not an accusation \u2014 a questi \u2014 Gibson public record, not rumor.",
+      "on_screen": "SOURCE \u00b7 VERIFY IT \u00b7 GIBSON"
+    },
+    "takeaway": {
+      "start_s": 50,
+      "end_s": 55,
+      "text": "Two identical $71.5 MILLION lines to 'Distributions to Other Governmental Entities' \u2014 that's your money counted twice until proven otherwise.",
+      "on_screen": "PAID TWICE \u00b7 SAME DAY \u00b7 MATCH INVOICES"
+    },
+    "action": {
+      "start_s": 55,
+      "end_s": 60,
+      "text": "Share this in your local group \u2014 public money deserves public answers.",
+      "on_screen": "TAG THEM \u00b7 SHARE \u00b7 YOUR COUNTY"
+    }
+  },
+  "word_count": 97,
+  "disclaimer": "Patterns in public financial records only. Not an allegation of crime or wrongdoing.",
+  "playbook": {
+    "id": null,
+    "trigger_phrases": [
+      "They thought you wouldn't check \u2014",
+      "I ran the math on",
+      "The county's own public records show",
+      "Forensic accountants call this"
+    ],
+    "psychology_rule": "Never start with the data. Start with the intent behind the data."
+  },
+  "scribe": {
+    "schema": "reclaw.viral_scribe.v1",
+    "framework": "HHVCTA",
+    "role": "Viral Scribe",
+    "hook_text": "Why does Gibson's public checkbook show a pattern nobody's explaining in plain language?",
+    "script_body": [
+      {
+        "scene": "HOOK",
+        "hhvcta": "hook",
+        "start_s": 0,
+        "end_s": 3,
+        "duration_s": 3,
+        "spoken_script": "Why does Gibson's public checkbook show a pattern nobody's explaining in plain language?",
+        "on_screen_text": [
+          "71.5 MILLION",
+          "PAID TWICE"
+        ],
+        "visual_directives": [
+          "duplicate_check_side_by_side",
+          "search_animation"
+        ]
+      },
+      {
+        "scene": "HINT",
+        "hhvcta": "hint",
+        "start_s": 3,
+        "end_s": 6,
+        "duration_s": 3,
+        "spoken_script": "The county's own public servers show something that doesn't match how normal budgets look.",
+        "on_screen_text": [
+          "PATTERN FOUND",
+          "CHECK THIS",
+          "PUBLIC DATA"
+        ],
+        "visual_directives": [
+          "duplicate_check_side_by_side",
+          "search_animation"
+        ]
+      },
+      {
+        "scene": "VALUE",
+        "hhvcta": "value",
+        "start_s": 6,
+        "end_s": 45,
+        "duration_s": 39,
+        "spoken_script": "Same vendor, same dollar amount, same day \u2014 twice. Either accounting duplicated a row, or someone got paid double. The fix is matching invoice numbers on the record. The flagged line: Gibson FY2025: disbursement line 'Distributions to Other Governmental Entities' = $71,529,856 exceeds IQR upper fence $165,189 (3\u00d7IQR method) Could be innocent \u2014 but it's public money and the explanation should be on the record.",
+        "on_screen_text": [
+          "PAID TWICE",
+          "SAME DAY",
+          "MATCH INVOICES"
+        ],
+        "visual_directives": [
+          "Highlight vendor 'Distributions to Other Governmental Entities'",
+          "Bar chart spike",
+          "Scroll raw data table"
+        ]
+      },
+      {
+        "scene": "CREDIBILITY",
+        "hhvcta": "credibility",
+        "start_s": 45,
+        "end_s": 50,
+        "duration_s": 5,
+        "spoken_script": "This is pulled directly from Gibson County, Indiana \u2014 here's what's weird in the budget. Source: public county records. Not an accusation \u2014 a questi \u2014 Gibson public record, not rumor.",
+        "on_screen_text": [
+          "SOURCE",
+          "VERIFY IT",
+          "GIBSON"
+        ],
+        "visual_directives": [
+          "Screenshot open data portal",
+          "Highlight source URL",
+          "Show export timestamp"
+        ]
+      },
+      {
+        "scene": "TAKEAWAY",
+        "hhvcta": "takeaway",
+        "start_s": 50,
+        "end_s": 55,
+        "duration_s": 5,
+        "spoken_script": "Two identical $71.5 MILLION lines to 'Distributions to Other Governmental Entities' \u2014 that's your money counted twice until proven otherwise.",
+        "on_screen_text": [
+          "PAID TWICE",
+          "SAME DAY",
+          "MATCH INVOICES"
+        ],
+        "visual_directives": [
+          "duplicate_check_side_by_side",
+          "search_animation"
+        ]
+      },
+      {
+        "scene": "ACTION",
+        "hhvcta": "action",
+        "start_s": 55,
+        "end_s": 60,
+        "duration_s": 5,
+        "spoken_script": "Share this in your local group \u2014 public money deserves public answers.",
+        "on_screen_text": [
+          "TAG THEM",
+          "SHARE",
+          "YOUR COUNTY"
+        ],
+        "visual_directives": [
+          "CTA subscribe card",
+          "Comment prompt overlay",
+          "Red border pulse"
+        ]
+      }
+    ],
+    "on_screen_text": [
+      "71.5 MILLION",
+      "PAID TWICE",
+      "PATTERN FOUND",
+      "CHECK THIS",
+      "PUBLIC DATA",
+      "SAME DAY",
+      "MATCH INVOICES",
+      "SOURCE",
+      "VERIFY IT",
+      "GIBSON",
+      "TAG THEM",
+      "SHARE"
+    ],
+    "visual_directives": [
+      "duplicate_check_side_by_side",
+      "search_animation",
+      "Highlight vendor 'Distributions to Other Governmental Entities'",
+      "Bar chart spike",
+      "Scroll raw data table"
+    ],
+    "metadata": {
+      "generated_at": "2026-07-07T05:22:25.058612+00:00",
+      "jurisdiction": "Gibson",
+      "place": "Gibson",
+      "emotional_filter": "duplicate_payment",
+      "playbook_key": null,
+      "duration_s": 60,
+      "review_id": "review-8594a77f9de5"
+    },
+    "anomaly": {
+      "category": "statistical_anomaly",
+      "severity": "high",
+      "description": "Gibson FY2025: disbursement line 'Distributions to Other Governmental Entities' = $71,529,856 exceeds IQR upper fence $165,189 (3\u00d7IQR method)",
+      "data_point": "$71.5 MILLION",
+      "vendor": "Distributions to Other Governmental Entities",
+      "provenance": "Gibson County, Indiana \u2014 here's what's weird in the budget.  Source: public county records. Not an accusation \u2014 a questi",
+      "evidence": "{\"amount\": 71529855.59, \"line\": \"Distributions to Other Governmental Entities\", \"fund\": \"Settlement\", \"vendor_field\": \"Governmental Activities\", \"year\": 2025, \"fence\": 165189.01499999998, \"method\": \"IQR_3x\", \"source\": \"gateway\"}"
+    },
+    "copy": {
+      "hook": "Why does Gibson's public checkbook show a pattern nobody's explaining in plain language?",
+      "hint": "The county's own public servers show something that doesn't match how normal budgets look.",
+      "value": "Same vendor, same dollar amount, same day \u2014 twice. Either accounting duplicated a row, or someone got paid double. The fix is matching invoice numbers on the record. The flagged line: Gibson FY2025: disbursement line 'Distributions to Other Governmental Entities' = $71,529,856 exceeds IQR upper fence $165,189 (3\u00d7IQR method) Could be innocent \u2014 but it's public money and the explanation should be on the record.",
+      "credibility": "This is pulled directly from Gibson County, Indiana \u2014 here's what's weird in the budget. Source: public county records. Not an accusation \u2014 a questi \u2014 Gibson public record, not rumor.",
+      "takeaway": "Two identical $71.5 MILLION lines to 'Distributions to Other Governmental Entities' \u2014 that's your money counted twice until proven otherwise.",
+      "action": "Share this in your local group \u2014 public money deserves public answers."
+    },
+    "disclaimer": "Patterns in public financial records only. Not an allegation of crime or wrongdoing.",
+    "playbook": {},
+    "trigger_phrases": [
+      "They thought you wouldn't check \u2014",
+      "I ran the math on",
+      "The county's own public records show",
+      "Forensic accountants call this"
+    ]
+  },
+  "hook_text": "Why does Gibson's public checkbook show a pattern nobody's explaining in plain language?",
+  "script_body": [
+    {
+      "scene": "HOOK",
+      "hhvcta": "hook",
+      "start_s": 0,
+      "end_s": 3,
+      "duration_s": 3,
+      "spoken_script": "Why does Gibson's public checkbook show a pattern nobody's explaining in plain language?",
+      "on_screen_text": [
+        "71.5 MILLION",
+        "PAID TWICE"
+      ],
+      "visual_directives": [
+        "duplicate_check_side_by_side",
+        "search_animation"
+      ]
+    },
+    {
+      "scene": "HINT",
+      "hhvcta": "hint",
+      "start_s": 3,
+      "end_s": 6,
+      "duration_s": 3,
+      "spoken_script": "The county's own public servers show something that doesn't match how normal budgets look.",
+      "on_screen_text": [
+        "PATTERN FOUND",
+        "CHECK THIS",
+        "PUBLIC DATA"
+      ],
+      "visual_directives": [
+        "duplicate_check_side_by_side",
+        "search_animation"
+      ]
+    },
+    {
+      "scene": "VALUE",
+      "hhvcta": "value",
+      "start_s": 6,
+      "end_s": 45,
+      "duration_s": 39,
+      "spoken_script": "Same vendor, same dollar amount, same day \u2014 twice. Either accounting duplicated a row, or someone got paid double. The fix is matching invoice numbers on the record. The flagged line: Gibson FY2025: disbursement line 'Distributions to Other Governmental Entities' = $71,529,856 exceeds IQR upper fence $165,189 (3\u00d7IQR method) Could be innocent \u2014 but it's public money and the explanation should be on the record.",
+      "on_screen_text": [
+        "PAID TWICE",
+        "SAME DAY",
+        "MATCH INVOICES"
+      ],
+      "visual_directives": [
+        "Highlight vendor 'Distributions to Other Governmental Entities'",
+        "Bar chart spike",
+        "Scroll raw data table"
+      ]
+    },
+    {
+      "scene": "CREDIBILITY",
+      "hhvcta": "credibility",
+      "start_s": 45,
+      "end_s": 50,
+      "duration_s": 5,
+      "spoken_script": "This is pulled directly from Gibson County, Indiana \u2014 here's what's weird in the budget. Source: public county records. Not an accusation \u2014 a questi \u2014 Gibson public record, not rumor.",
+      "on_screen_text": [
+        "SOURCE",
+        "VERIFY IT",
+        "GIBSON"
+      ],
+      "visual_directives": [
+        "Screenshot open data portal",
+        "Highlight source URL",
+        "Show export timestamp"
+      ]
+    },
+    {
+      "scene": "TAKEAWAY",
+      "hhvcta": "takeaway",
+      "start_s": 50,
+      "end_s": 55,
+      "duration_s": 5,
+      "spoken_script": "Two identical $71.5 MILLION lines to 'Distributions to Other Governmental Entities' \u2014 that's your money counted twice until proven otherwise.",
+      "on_screen_text": [
+        "PAID TWICE",
+        "SAME DAY",
+        "MATCH INVOICES"
+      ],
+      "visual_directives": [
+        "duplicate_check_side_by_side",
+        "search_animation"
+      ]
+    },
+    {
+      "scene": "ACTION",
+      "hhvcta": "action",
+      "start_s": 55,
+      "end_s": 60,
+      "duration_s": 5,
+      "spoken_script": "Share this in your local group \u2014 public money deserves public answers.",
+      "on_screen_text": [
+        "TAG THEM",
+        "SHARE",
+        "YOUR COUNTY"
+      ],
+      "visual_directives": [
+        "CTA subscribe card",
+        "Comment prompt overlay",
+        "Red border pulse"
+      ]
+    }
+  ],
+  "on_screen_text": [
+    "71.5 MILLION",
+    "PAID TWICE",
+    "PATTERN FOUND",
+    "CHECK THIS",
+    "PUBLIC DATA",
+    "SAME DAY",
+    "MATCH INVOICES",
+    "SOURCE",
+    "VERIFY IT",
+    "GIBSON",
+    "TAG THEM",
+    "SHARE"
+  ],
+  "visual_directives": [
+    "duplicate_check_side_by_side",
+    "search_animation",
+    "Highlight vendor 'Distributions to Other Governmental Entities'",
+    "Bar chart spike",
+    "Scroll raw data table"
+  ]
+}

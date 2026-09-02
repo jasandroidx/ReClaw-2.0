@@ -1,0 +1,194 @@
+# Project ReClaw — Multi-Agent Architectural Registry (machine-readable)
+# UI: scratch/reclaw-registry/index.html
+# Source of truth for deployed vs backlog; keep in sync with reclaw_orchestration.yaml
+
+version: "2.0.4"
+orchestrator: grok
+deployment: hetzner_dedicated
+default_mode: indiana_county_queue
+
+agents:
+  - id: gateway_sentinel
+    name: Gateway Sentinel
+    role: Data Acquisition
+    status: deployed
+    tools: [tools/indiana_gateway.py, tools/gateway_salary_export.py, tools/county_data_fetch.py]
+    desc: Indiana Gateway flat files — budgets, disbursements, 92-county salary prefetch.
+    color: indigo
+    stats: [92, 30, 85, 15, 20]
+
+  - id: tier3_ghost
+    name: Tier-3 Ghost
+    role: Document Discovery
+    status: deployed
+    tools: [tools/firecrawl_discovery.py, tools/sboa_ingest.py]
+    desc: Firecrawl + SBOA PDF discovery for county .in.gov minutes and audit reports.
+    color: amber
+    stats: [50, 75, 25, 10, 15]
+
+  - id: the_auditor
+    name: The Auditor
+    role: Forensic Analysis
+    status: deployed
+    tools:
+      - tools/red_flag_engine.py
+      - tools/transaction_anomaly.py
+      - tools/benford_analysis.py
+      - tools/split_purchase_detector.py
+      - tools/fiscal_health.py
+    desc: Unified red-flag scan — Benford MAD, split-purchase, salary shock, inbox AP rules.
+    color: red
+    stats: [25, 40, 98, 20, 10]
+
+  - id: viral_scribe
+    name: Viral Scribe
+    role: Narrative Gen
+    status: deployed
+    tools: [tools/viral_scribe.py, tools/scriptwriter.py, tools/viral_hooks.py, data/viral_scribe_directive.yaml]
+    desc: HHVCTA 60s manifests — hook_text, script_body, on_screen_text, visual_directives; fair-report guardrails.
+    color: purple
+    stats: [20, 15, 35, 95, 25]
+
+  - id: manifest_engine
+    name: Manifest Engine
+    role: Media Prep
+    status: deployed
+    tools: [tools/video_manifest.py, scripts/run_video_manifest.py]
+    desc: reclaw.video_manifest.v2 JSON for Remotion — scenes, TTS pipeline metadata, playbook overlays.
+    color: emerald
+    stats: [15, 10, 20, 70, 55]
+
+  - id: queue_warden
+    name: Queue Warden
+    role: Human Gate
+    status: deployed
+    tools: [core/county_queue.py, obsidian review cards]
+    desc: 92-county queue — run-next, refresh, approve/reject before any publish.
+    color: sky
+    stats: [80, 20, 30, 40, 15]
+
+tech_stack:
+  - name: red_flag_engine
+    type: data
+    status: deployed
+    path: tools/red_flag_engine.py
+    desc: Layers 1–3h unified county scan with county isolation.
+
+  - name: viral_hooks
+    type: media
+    status: deployed
+    path: tools/viral_hooks.py
+    desc: HHVCTA story-first hooks — smurfing, round-number, weekend, duplicate templates.
+
+  - name: benford_analysis
+    type: data
+    status: deployed
+    path: tools/benford_analysis.py
+    desc: First-digit table + MAD against Benford expected distribution.
+
+  - name: transaction_anomaly
+    type: data
+    status: deployed
+    path: tools/transaction_anomaly.py
+    desc: Inbox AP rules — round dollars, under-threshold, weekend, duplicate vendor.
+
+  - name: total_reclaw_memory
+    type: data
+    status: deployed
+    path: tools/total_reclaw_memory.py
+    desc: SQLite memory for cross-county pattern recall (data/memory/reclaw_memory.db).
+
+  - name: socrata_scraper
+    type: data
+    status: scaffolded
+    path: tools/socrata_scraper.py
+    desc: SODA checkbook ingest for cities with open data portals (Chicago, etc.).
+
+  - name: video_manifest
+    type: media
+    status: deployed
+    path: tools/video_manifest.py
+    desc: Remotion-ready HHVCTA scene manifests with playbook visual overlays.
+
+  - name: remotion_render
+    type: media
+    status: deployed
+    path: render/remotion/
+    desc: ReclawComposition.tsx — manifest JSON → 60s vertical MP4 (HHVCTA sequences).
+
+connectors:
+  - name: Indiana Gateway
+    status: active
+    note: Canonical FY budgets, disbursements, salaries (92 counties).
+
+  - name: Firecrawl MCP
+    status: active
+    note: Tier-3 county site + SBOA PDF URL discovery.
+
+  - name: County Queue API
+    status: active
+    endpoint: http://127.0.0.1:8000/county-queue/
+
+  - name: Obsidian Vault
+    status: active
+    path: /root/obsidian_vault/Rural Data/
+
+  - name: Ollama AuditCopilot
+    status: active
+    endpoint: http://127.0.0.1:8080
+
+  - name: Socrata SODA
+    status: scaffolded
+    note: tools/socrata_scraper.py + data/socrata_sources.yaml
+
+  - name: ElevenLabs TTS
+    status: configured
+    note: Voice ID in manifest; render pipeline backlog.
+
+  - name: MuckRock FOIA
+    status: pending
+    note: Automated public record request agent — not wired.
+
+workflows:
+  - id: ingestion
+    title: Ingestion & County Isolation
+    steps: [indiana_gateway, census_acs, salary_prefetch, firecrawl_tier3]
+    code: |
+      from tools.red_flag_engine import scan_county
+      from tools.county_isolation import assert_county_scope
+      assert_county_scope(county, cache_dir)
+      result = scan_county(county, year=2025)
+
+  - id: forensics
+    title: Forensic Anomaly Hunt
+    steps: [benford_mad, split_purchase, transaction_anomaly, salary_shock]
+    code: |
+      from tools.red_flag_engine import scan_county
+      flags = scan_county("Gibson County").red_flags
+      lead = min(flags, key=lambda f: f.severity)
+
+  - id: narrative
+    title: Hook Optimization (HHVCTA)
+    steps: [scriptwriter, viral_hooks, audit_copilot]
+    code: |
+      from tools.scriptwriter import build_package
+      from tools.viral_hooks import build_viral_hook
+      pkg = build_package(result, county=county)
+      hook = build_viral_hook(lead_flag, county, short=True)
+
+  - id: manifest
+    title: Manifest & Human Gate
+    steps: [video_manifest, obsidian_card, county_queue_approve]
+    code: |
+      from tools.video_manifest import write_manifests_for_package
+      paths = write_manifests_for_package(county, pkg["shorts"])
+      # POST /county-queue/approve after human review
+
+  - id: render
+    title: Remotion MP4 Export
+    steps: [remotion_orchestrator, ReclawComposition]
+    code: |
+      # After approve (auto) or manual:
+      PYTHONPATH=. .venv/bin/python scripts/run_remotion_orchestrator.py \\
+        --manifest data/manifests/gibson/manifest_gibson.json
+      # Output: data/renders/gibson/*.mp4 (1080x1920)

@@ -1,0 +1,29 @@
+# Silent Auditor rule configuration — detector domains
+domains:
+  benford:
+    enabled: true
+    params: {}
+  # HARD OFF 2026-07-17: Gateway ent_name is NOT a payee (WATER/GAS/Governmental Activities).
+  # Re-enable only when check-register / real vendor_payee data is present.
+  split_purchase:
+    enabled: false
+    params:
+      min_combined: 50000
+      single_tx_max: 49999
+      reason_disabled: "gateway_ent_name_not_vendor — content_truth_rules.yaml"
+  procurement:
+    enabled: false
+    params:
+      reason_disabled: "gateway_ent_name_not_vendor — content_truth_rules.yaml"
+  federal_audit:
+    enabled: true
+    params: {}
+  cross_source:
+    enabled: true
+    params: {}
+  taxpayer_flags:
+    enabled: false
+    params: {}
+  transaction_anomaly:
+    enabled: false
+    params: {}

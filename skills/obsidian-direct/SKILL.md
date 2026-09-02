@@ -1,9 +1,6 @@
 ---
 name: obsidian
-description: >
-  Work with Obsidian vaults as a knowledge base. Features: fuzzy/phonetic search across all notes,
-  auto-folder detection for new notes, create/read/edit notes with frontmatter, manage tags and wikilinks.
-  Use when: querying knowledge base, saving notes/documents, editing existing notes by user instructions.
+description: "Query/create/edit Obsidian vault notes with search, tags, wikilinks."
 ---
 
 # Obsidian Knowledge Base

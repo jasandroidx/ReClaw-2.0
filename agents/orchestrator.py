@@ -2,7 +2,7 @@
 Light Orchestrator — ReClaw 2.0
 
 Coordinates the minimal swarm:
-    Researcher → Analyst/RedFlag → assemble ContentPackage → (optional) Obsidian write
+    Researcher → Analyst/RedFlag → Content Studio → assemble ContentPackage → (optional) Obsidian write
 
 Responsibilities:
 - Own the end-to-end flow for one county/area run.
@@ -24,6 +24,7 @@ from core.config import get_settings
 from core.handoff import ContentPackage
 from .researcher import ResearcherAgent
 from .analyst import AnalystAgent
+from .content_studio import ContentStudioAgent
 from core.obsidian_writer import ObsidianWriter
 from core.session import Session, create_session
 from core.security import SecurityManager
@@ -58,6 +59,7 @@ class Orchestrator:
         # Agents are created with the same session so they participate in isolation + security
         self.researcher = ResearcherAgent(self.settings, session=self.session)
         self.analyst = AnalystAgent(self.settings, session=self.session)
+        self.content_studio = ContentStudioAgent(self.settings, session=self.session)
         self.writer = ObsidianWriter(self.settings)
 
     def run_county(
@@ -79,14 +81,24 @@ class Orchestrator:
         research = self.researcher.run(county=county, area=area)
         print(f"[Orchestrator] Research complete: {research.id} ({research.total_properties} props, {len(research.budgets)} budgets)")
 
-        # 2. Analyst
+        # 2. Local auditor (Gateway forensic flags → compliance handoff)
+        compliance = self._run_local_auditor(county)
+
+        # 3. Analyst
         analysis = self.analyst.run(research)
         print(f"[Orchestrator] Analysis complete: {analysis.id} | risk={analysis.overall_risk_score} | flags={len(analysis.red_flags)}")
 
-        # 3. Quality gates (from SOUL.md)
+        # 4. Content Studio (Shorts scripts from red flags)
+        studio = self.content_studio.run(research, analysis, compliance=compliance)
+        print(
+            f"[Orchestrator] Content Studio: {len(studio.short_scripts)} scripts "
+            f"({studio.scripts_pruned} pruned)"
+        )
+
+        # 5. Quality gates (from SOUL.md)
         self._enforce_quality_gates(research, analysis)
 
-        pkg = self._assemble_package(research, analysis)
+        pkg = self._assemble_package(research, analysis, studio)
 
         # Persist full package (audit)
         artifact_path = self._save_run_artifact(pkg)
@@ -95,7 +107,14 @@ class Orchestrator:
 
         # 4. Channel write (Obsidian is the primary durable channel)
         if write_to_obsidian:
-            md_path = self.writer.write_package(pkg, dry_run=dry_run)
+            if dry_run:
+                md_path = self.writer.write_package(pkg, dry_run=True)
+            else:
+                from tools.obsidian_bridge import publish_package_to_vault
+
+                pub = publish_package_to_vault(pkg)
+                md_path = Path(pub["package_md"])
+                print(f"[Orchestrator] Vault publish: {pub}")
             print(f"[Orchestrator] Obsidian package written: {md_path}")
             if self.session:
                 self.session.log(f"Published to Obsidian: {md_path}")
@@ -105,6 +124,26 @@ class Orchestrator:
         if self.session:
             self.session.log("Orchestrator pipeline complete.")
         return pkg
+
+    def _run_local_auditor(self, county: str):
+        """Run SilentAuditorAgent (real agent with gates + detectors)."""
+        try:
+            from agents.silent_auditor import SilentAuditorAgent
+
+            auditor = SilentAuditorAgent(self.settings, session=self.session)
+            pkg = auditor.run(county)
+            if pkg:
+                print(
+                    f"[Orchestrator] SilentAuditorAgent: {len(pkg.red_flags)} flags "
+                    f"(risk={pkg.overall_risk_score})"
+                )
+            return pkg
+        except Exception as e:
+            msg = f"SilentAuditorAgent skipped for {county}: {e}"
+            print(f"[Orchestrator] {msg}")
+            if self.session:
+                self.session.log(msg, level="WARN")
+            return None
 
     def _enforce_quality_gates(self, research, analysis) -> None:
         """Hard gates. Abort or mark if violated."""
@@ -127,13 +166,19 @@ class Orchestrator:
             # For now we attach the note to the package via a side effect on analysis (simple).
             analysis.summary = analysis.summary + " | GATE WARNING: " + msg
 
-    def _assemble_package(self, research, analysis) -> ContentPackage:
+    def _assemble_package(self, research, analysis, studio=None) -> ContentPackage:
         pkg = ContentPackage(
             county=research.county,
             primary_area=research.primary_area,
             research=research,
             analysis=analysis,
+            approval_status="pending_approval",
         )
+
+        if studio:
+            pkg.short_scripts = studio.short_scripts
+            pkg.long_form = studio.long_form
+            pkg.video_title_ideas = list(dict.fromkeys(studio.video_title_ideas))[:12]
 
         # Derive some easy key_stats + title ideas here (orchestrator owns final polish)
         pkg.key_stats = {
@@ -141,15 +186,22 @@ class Orchestrator:
             "median_assessed_value": f"${research.median_assessed:,}" if research.median_assessed else "N/A",
             "red_flags": len(analysis.red_flags),
             "insights": len(analysis.insights),
+            "short_scripts": len(pkg.short_scripts),
+            "long_form_runtime_min": (
+                pkg.long_form.runtime_min if pkg.long_form else None
+            ),
+            "long_form_worthy": pkg.long_form.worthy if pkg.long_form else False,
             "budget_deficit": any((b.surplus_deficit or 0) < 0 for b in research.budgets),
         }
 
-        # Strong video titles for faceless channel (rural data / personal finance / prepping adjacent)
-        pkg.video_title_ideas = analysis.content_angles + [
-            f"Pike County Indiana 2026: The $25k House Is Real (But Here's What It Costs You)",
-            f"Why Rural Counties Are Quietly Raising Taxes While Property Values Stay Flat",
-            f"47 Acres for $124k in Southern Indiana — Would You Buy It?",
-        ]
+        if not pkg.video_title_ideas:
+            pkg.video_title_ideas = list(dict.fromkeys(analysis.content_angles))[:12]
+        if len(pkg.video_title_ideas) < 4:
+            pkg.video_title_ideas.extend([
+                f"{research.county} County: where your tax dollars went (2022–2025)",
+                f"Top salaries in {research.county} County that taxpayers should see",
+            ])
+        pkg.video_title_ideas = list(dict.fromkeys(pkg.video_title_ideas))[:12]
 
         return pkg
 

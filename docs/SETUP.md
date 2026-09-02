@@ -54,15 +54,21 @@ Check `data/sessions/` and your Obsidian folder.
 
 ## 4. Hetzner Production Deploy (Hardened)
 
-Current state on this Openclaw box (/opt/reclaw):
+Current state on this Openclaw box (`/root/ReClaw-2.0`):
 
-1. Ensure host prep (one-time):
-   - `sudo chown -R 1000:1000 /root/obsidian_vault /opt/reclaw/data /opt/reclaw/outputs` (matches container user)
-   - Tailscale running + `tailscale serve --bg http://127.0.0.1:8000` (or as systemd unit `reclaw-tailscale-serve`)
+1. Ensure host prep (one-time or after host volume changes):
+   - `sudo chown -R 1000:1000 /root/obsidian_vault /root/.openclaw /root/ReClaw-2.0/data /root/ReClaw-2.0/outputs` (matches container user `reclaw` + OpenClaw `node`)
+   - Tailscale running + path-based serve (see docs/tailscale.md)
 
-2. Deploy (safe, no data loss):
+2. Post-deploy healthcheck (run after every `docker compose up`):
    ```bash
-   cd /opt/reclaw
+   cd /root/ReClaw-2.0
+   ./scripts/post-deploy-healthcheck.sh
+   ```
+
+3. Deploy (safe, no data loss):
+   ```bash
+   cd /root/ReClaw-2.0
    docker compose config                  # validate changes
    docker compose down --remove-orphans   # stops cleanly
    docker compose up -d --build

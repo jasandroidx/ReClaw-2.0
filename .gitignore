@@ -9,7 +9,15 @@ node_modules/
 dist/
 .env
 *.pid
-dashboard/
+# Dashboard: runtime assets ignored; ship static shell + status generator
+dashboard/**
+!dashboard/index.html
+!dashboard/data/
+!dashboard/data/castle_map.json
+!dashboard/assets/
+!dashboard/assets/**
+# never commit live status snapshot
+dashboard/status.json
 .DS_Store
 .idea/
 .vscode/
@@ -18,6 +26,45 @@ dashboard/
 *.eradicating*
 secrets/
 credentials/
+.credentials.json
+**/google_token.json
+**/token.json
 # Ignore generated memory and session logs that may contain tokens
 memory/dreaming/
 memory/*.md  # keep only curated; runtime in rooms/
+.venv/
+# Runtime data (rebuilt on server; do not commit)
+data/cache/
+data/inbox/*
+!data/inbox/.gitkeep
+data/county_queue/state.json
+data/county_queue/pending/
+data/rag_chroma/
+data/rag_embeddings/
+data/rag_state/
+data/mcp_bridge_watchdog_fail_count
+data/runs/
+data/sessions/
+data/mcp_logs/
+data/mcp_queue.jsonl
+data/mcp_public_url.txt
+data/mcp_tunnel_host.txt
+outputs/
+.aider*
+
+# Runtime / local ops noise (do not commit)
+data/backups/
+data/memory/*.db
+data/fortress_state.json
+data/mcp_public_url.txt
+data/mcp_tunnel_host.txt
+*.bak
+*.bak-*
+docker-compose.yml.bak*
+.grok/skills/**/*.bak*
+
+# Local digests / bak noise (not product SOT)
+data/upwork_digests/
+data/*.bak*
+scripts/*.bak*
+.grok/workflows/

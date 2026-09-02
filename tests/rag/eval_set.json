@@ -1,0 +1,52 @@
+[
+  {
+    "id": "oracle-map",
+    "q": "Where does any AI on the Ravenstack connector read the system map?",
+    "expect_path_contains": "RAVENSTACK-ORACLE.md"
+  },
+  {
+    "id": "distill-sot",
+    "q": "What is the single library-distill skill file every platform must load?",
+    "expect_path_contains": "library-distill.md"
+  },
+  {
+    "id": "no-pdf-dump",
+    "q": "Should we dump whole PDF trees into rag_sync?",
+    "expect_path_contains": "library-distill.md"
+  },
+  {
+    "id": "named-pdf-ok",
+    "q": "If Jason names a specific PDF and says put it in RAG how do we ingest it?",
+    "expect_path_contains": "library-distill.md"
+  },
+  {
+    "id": "write-gates",
+    "q": "What write-gate class is a new vault knowledge note?",
+    "expect_path_contains": "WRITE-GATES.md"
+  },
+  {
+    "id": "knowledge-pollution",
+    "q": "Agent failure mode for raw dumps in RAG",
+    "expect_path_contains": "agent-failure-modes.md"
+  },
+  {
+    "id": "how-to-distill",
+    "q": "How to see or use the library-distill skill paths for Grok versus vault SOT",
+    "expect_path_contains": "HOW-TO-SEE-LIBRARY-DISTILL"
+  },
+  {
+    "id": "mcp-search",
+    "q": "Which MCP tool does semantic search over the vault RAG?",
+    "expect_path_contains": "mcp-connector.md"
+  },
+  {
+    "id": "three-layers",
+    "q": "Distilled Markdown in the vault is truth Chroma is a cache",
+    "expect_path_contains": "RAVENSTACK-ORACLE.md"
+  },
+  {
+    "id": "scribe-oracle",
+    "q": "Scribe distills and who answers questions from the vault?",
+    "expect_path_contains": "scribe"
+  }
+]

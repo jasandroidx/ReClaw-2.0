@@ -1,0 +1,10 @@
+column,required,example,notes
+county,yes,Pike County, IN,Free text; used in report labels
+fiscal_year,yes,2023,Integer
+month,no,7,Integer 1-12 if monthly data exists
+department,yes,Highway / Roads,Normalize names if possible
+category,yes,Supplies,Optional but helpful for finer granularity
+account_code,no,200-450-1234,General ledger / account number
+vendor,no,Acme Asphalt LLC,Optional
+description,no,Chip-and-seal on CR 200E,Optional free text
+amount,yes,145000.25,Positive number (USD) for spend

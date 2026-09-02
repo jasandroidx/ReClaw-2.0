@@ -1,0 +1,104 @@
+# Upwork job scan preferences — edit this, not the code.
+# Scanner: tools/upwork_scan.py · digests: data/upwork_digests/
+# Interval: every 2 days (systemd timer reclaw-upwork-scan)
+
+version: 1
+enabled: true
+
+# How results are delivered
+notify:
+  write_digest: true          # data/upwork_digests/YYYY-MM-DD.md
+  write_vault_copy: true      # /root/obsidian_vault/Ravenstack/ops/upwork-digest-latest.md
+  webhook: true               # uses ALERT_WEBHOOK from .env if set
+  max_jobs_in_digest: 15
+  only_new: true              # skip jobs already seen
+
+# Search queries (OR across queries; scored against your prefs)
+queries:
+  - "python agent automation"
+  - "openclaw OR multi-agent OR langchain"
+  - "MCP server AI agent"
+  - "n8n automation workflow"
+  - "local government data scraping"
+  - "faceless youtube content automation"
+
+# Scoring (higher = more "I would want this")
+must_include_any:             # at least one of these in title+description (case-insensitive)
+  - python
+  - agent
+  - automation
+  - api
+  - openai
+  - llm
+  - ai
+  - scrap
+  - n8n
+  - openclaw
+  - mcp
+  - rag
+  - docker
+
+nice_to_have:                 # bonus points
+  - openclaw
+  - multi-agent
+  - langchain
+  - crewai
+  - mcp
+  - fastapi
+  - discord bot
+  - youtube
+  - content pipeline
+  - indiana
+  - government
+  - grant
+  - self-hosted
+
+exclude_if_any:               # hard drop
+  - onlyfans
+  - crypto trading bot
+  - nft
+  - adult content
+  - wordpress theme only
+  - shopify dropshipping
+  - "unpaid test"
+  - "for equity only"
+
+# Budget filters (USD). Null = ignore.
+budget:
+  min_hourly: 25              # drop hourly below this
+  min_fixed: 200              # drop fixed below this
+  prefer_hourly_min: 40       # score bump
+  prefer_fixed_min: 500
+
+client:
+  min_spend_band: null        # e.g. "1k+" if API provides it
+  prefer_payment_verified: true
+  prefer_hire_rate_min: null  # 0-1 if available
+
+job:
+  prefer_experience:
+    - intermediate
+    - expert
+  drop_experience:
+    - entry
+  max_age_days: 5             # ignore stale posts if timestamp known
+
+# Backend selection (auto-picks first that works)
+# - graphql: official Upwork GraphQL (needs UPWORK_ACCESS_TOKEN)
+# - import: read jobs from --import-json path
+# - demo: synthetic jobs to test scoring only
+backends:
+  preferred:
+    - graphql
+    - import
+    - demo
+
+graphql:
+  endpoint: "https://api.upwork.com/graphql"
+  # freelancers: marketplace job search
+  search_type: USER_JOBS_SEARCH
+  page_size: 20
+
+# Dedupe store
+seen_path: data/cache/upwork/seen_jobs.json
+max_seen: 2000

@@ -8,6 +8,41 @@
 
 **MANDATORY FIRST STEP FOR ANY AGENT/LLM/TOOL**: Load and obey `[[RAVENSTACK-ORACLE.md]]` + `[[RAVENSTACK-ARCHITECTURE.md]]` from the private vault at /root/obsidian_vault/Ravenstack/ (https://github.com/jasandroidx/obsidian-vault). All knowledge in/out MUST go through KnowledgeManager. Never bypass.
 
+**Honesty (hard rule):** Never claim research, tool use, browser/social checks, verification, tests, or “done” that did not happen **this session**. Evidence or admit the gap. Do not bluff partial work as complete. Full text: `CLAUDE.md` → **Honesty & evidence**.
+
+**Outbox delivery (hard rule — 2026-07-29):** Operator-facing docs go to `/root/outbox` **and** must be linked via `outbox-publish … --title "…"` onto `index.html` top card. Writing the file alone is not “on the web outbox.” Give `http://100.108.130.82:8765/` + direct file URL. SOT: `data/PERMANENT-OUTBOX-MEMORY.md`.
+
+**Grok Build 4.5 only (Jason):** Multi-part orders are a checklist contract. Compression only if labeled first; silent shrink and polished half-work sold as complete are forbidden. SOT: `Ravenstack/ops/GROK-BUILD-HONESTY-CONTRACT.md` + `CLAUDE.md` section **Grok Build 4.5 — Honesty contract**. This is not Raziel’s SOUL.
+
+## Silent Auditor media protocol (mandatory for county / content work)
+
+**SOT (read before audit/script work):** `docs/SILENT-AUDITOR-WORKFLOW.md`  
+**Machine rules:** `data/silent_auditor_workflow.yaml` (loaded by `tools/auditor_playbook.py` every scan)  
+**Vault:** `Ravenstack/ops/SILENT-AUDITOR-WORKFLOW.md`
+
+Legal firewalls (fair report, no draft SBOA, no criminal imputation without charges), source priority (SBOA I-series → 100R → township vendor → claims), stages A–H, hard never list. Supersedes Gemini prompt fragments for day-to-day ops.
+
+## Continuous improvement (all agents — mandatory)
+
+Self-improving agents in the wild use a **lesson loop**: run → score/reject → write durable rules → inject on next run (AGENTS.md / learnings.md patterns). Chat and RAG alone do **not** change detector behavior.
+
+**ReClaw implementation:**
+
+1. **Living rule files** (versioned under `data/`):
+   - `content_truth_rules.yaml` — hard kills, publish gate, heat rank
+   - `audit_pipeline_mistakes.yaml` — open + fixed mistakes
+   - `auditor_lessons_log.yaml` — timestamped rejects / research notes
+   - `public_source_map.yaml`, `indiana_public_finance_blueprint.yaml`, `audit_strategy.yaml`
+2. **Code path that enforces them every run:**
+   - `tools/auditor_playbook.py` — load + `filter_flags_by_truth` + `log_lesson`
+   - Wired into `tools/red_flag_engine.scan_all_red_flags` and `agents/silent_auditor`
+   - `core.county_queue.CountyQueue.reject` auto-calls `log_lesson` with the human reason
+3. **Agent duty when the operator rejects or finds new research:**
+   - Persist with `log_lesson(...)` or `python tools/auditor_playbook.py --log-id ...`
+   - Update truth/mistakes if a new forbidden pattern appears
+   - Fix code if the filter alone is not enough; then `county-queue/refresh`
+4. **Never** claim the system “learned” unless the lesson is on disk in the files above.
+
 This is the operational routing document for the general ReClaw 2.0 platform (with initial rural-data workflow package). It follows the same patterns as the parent winslow-core AGENTS.md in ~/clawd. Core is domain-agnostic; rural_data, grants, local_leads, content and future modules are isolated under agents/.
 
 ## Primary Entry Point: Gateway (Control Plane)
@@ -44,6 +79,15 @@ This is the operational routing document for the general ReClaw 2.0 platform (wi
 - **Outputs:** AnalysisPackage (session/handoffs/analysis.json)
 - **Handoff target:** orchestrator
 
+### content_studio (rural_data)
+- **SOUL:** agents/content_studio/SOUL.md
+- **Mission:** Turn top red flags into short-form video scripts for TikTok/YouTube Shorts.
+- **Capabilities:**
+  - script_generate (low risk)
+- **Inputs:** ResearchPackage + AnalysisPackage (+ optional CompliancePackage from silent_auditor handoff)
+- **Outputs:** ContentStudioOutput (session/handoffs/content_studio.json)
+- **Routing:** Runs after `analyst` (and `silent_auditor` when present)
+
 ### orchestrator (light)
 - **Mission:** Sequence the pipeline, enforce quality gates, assemble ContentPackage, decide on publication, invoke channel writers.
 - **Capabilities:**
@@ -63,7 +107,8 @@ This is the operational routing document for the general ReClaw 2.0 platform (wi
 - **Visual:** Updates static pixel sprites on dashboard (Grant Hall FUNDING TRACKER etc.).
 
 ## Routing Rules (Gateway decides)
-- "Run Pike Winslow research package" (or any domain trigger) → full pipeline via Orchestrator (default happy path for rural_data module)
+- "Run Pike Winslow research package" (or any domain trigger) → full pipeline via Orchestrator: researcher → analyst → content_studio → Obsidian (default happy path for rural_data module)
+- "County video queue — next county" → `POST /county-queue/run-next` → review card in Obsidian → human `POST /county-queue/approve` or `reject` with reason → cursor advances (one county at a time, not batch)
 - "Just harvest data for Pike" → researcher only (rural_data), return ResearchPackage JSON, no Obsidian write
 - "Re-analyze existing research <id>" → load from runs/ or session, run analyst only
 - "Re-export package <id> to Obsidian" → load package, call writer (bypass gates if already approved)
@@ -146,3 +191,39 @@ This document + SOUL.md + the per-agent SOULs are the contract. Code must implem
 - **Location in repo:** /opt/reclaw/tools/clawsmith.py + skill in workspace. Part of visual_office future domain.
 
 Add routing in gateway/permission_registry.py if needed for auto-approval levels (low-risk forging).
+
+## Grok Build operator (Hetzner)
+
+Grok Build on this server is the primary infra operator. MCP connectors:
+
+| MCP | Tools |
+|-----|-------|
+| `reclaw-platform` | **Primary** — 17 tools: vault R/W, RAG, ORACLE, pipeline, stack health |
+| `ravenstack` | ORACLE read, RAG query, ingest, stack_health, run_rural_data |
+| `reclaw-api` | health, run_rural_data, rag_search, rag_vault_sync |
+| `reclaw-fs` | read/write repo + vault paths |
+| `obsidian` | vault notes |
+
+Chat: *"use ravenstack connector to [tool]"*. Live map: vault `Ravenstack/mcp-connector.md`.
+
+Remote HTTP (live):
+- **Public (grok.com):** `data/mcp_public_url.txt` (cloudflared; may rotate)
+- **Tailscale:** `https://openclaw.tail20a090.ts.net:8100/mcp` · health `…/health`
+
+Remote stdio: `ssh root@178.156.235.36 '/root/ReClaw-2.0/.venv/bin/python /root/ReClaw-2.0/scripts/reclaw_platform_mcp_server.py'`
+
+## Agent skills
+
+Matt Pocock engineering skills (`mattpocock/skills`) are installed under `~/.agents/skills/`. Grok discovers them via `[skills].paths` in `~/.grok/config.toml`.
+
+### Issue tracker
+
+GitHub Issues on `jasandroidx/ReClaw-2.0` via `gh` CLI. External PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout; platform truth in Obsidian vault + `data/reclaw_orchestration.yaml`. See `docs/agents/domain.md`.

@@ -1,0 +1,159 @@
+# Silent Auditor Workflow V2 — machine SOT (loaded by auditor_playbook)
+# Twin: docs/SILENT-AUDITOR-WORKFLOW.md · Ravenstack/ops/SILENT-AUDITOR-WORKFLOW.md
+# Updated: 2026-07-17
+
+version: "2.0"
+status: active
+updated: "2026-07-17"
+not_legal_advice: true
+
+core_objective: >
+  Convert Indiana municipal finance records into verified short-form scripts
+  without defamation risk, draft-audit disclosure, or Gateway fake-vendor drama.
+
+philosophy:
+  - fair_report_only
+  - final_filed_documents_only
+  - heuristic_over_unsupervised_ml_for_publish
+  - named_actor_exact_dollar_contrast_receipt
+  - one_story_not_flag_mill
+  - sboa_special_investigation_first
+
+legal:
+  fair_report:
+    - attribute_to_official_source
+    - gist_and_sting_of_final_record
+    - only_final_filed_documents
+  sboa_confidentiality:
+    never_ingest: [draft_audit, preliminary_findings, exit_conference_disclosures, unfiled_reports]
+    statute_research_ref: IC 5-11-5-1
+  language:
+    forbidden_unless_quoting_formal_charge:
+      - stole
+      - embezzled
+      - fraud
+      - theft
+      - corrupt
+      - criminal
+    preferred_phrases:
+      - "According to the Indiana State Board of Accounts"
+      - "The SBOA requested reimbursement of"
+      - unaccounted for
+      - personal obligation
+      - misappropriated  # only if final report uses it
+      - diverted         # only if final report uses it
+  apra:
+    - human_gated_low_frequency
+    - reasonable_particularity_in_requests
+    - social_media_is_lead_only
+
+source_priority:
+  - id: sboa_special_investigation
+    rank: 1
+    filters: ["Special Investigation Report", "I.pdf", report_number_ends_with_I]
+    tool: tools/sboa_ingest.py
+    cache: data/cache/sboa/{county}/
+  - id: form_100r
+    rank: 2
+    tool: scripts/export_county_salaries.py
+    cache: data/cache/salaries/
+  - id: township_disbursements_by_vendor
+    rank: 3
+    note: annual aggregates; not same-day AP
+  - id: iurc_dockets
+    rank: 4
+  - id: county_ap_claims
+    rank: 5
+    tool: tools/transaction_anomaly.py
+  - id: gateway_afr_funds_only
+    rank: 6
+    never_as_vendor: true
+
+gateway_afr:
+  townships_may_have_vendor_section: true
+  counties_cities_no_individual_vendors: true
+  never_vendor_names:
+    - Governmental Activities
+    - Business-Type Activities
+    - WATER
+    - WASTEWATER
+    - GAS
+    - ELECTRIC
+    - Salaries and Wages
+    - Employee Benefits
+    - Transfers Out
+    - Other Capital Outlays
+    - Other Disbursements
+
+deadlines_heuristic:
+  form_100r: "January 31"
+  afr: "March 1"
+
+anomaly_heuristics_publishable:
+  - unsupported_disbursements_sboa
+  - internal_control_deficiencies_sboa
+  - personal_luxury_expenditures_in_final_sboa
+  - late_filings
+  - dual_compensation_100r
+  - named_salary_contrast_supporting
+  - utility_rate_shock
+  - true_vendor_from_claims_or_township_or_sboa
+
+anomaly_not_for_publish_hooks:
+  - IsolationForest
+  - ECOD
+  - unsupervised_ml_method_names
+  - gateway_ent_name_as_vendor
+
+filter_cleaning:
+  drop_afr_fund_rollups: true
+  form_100r_lead_min_compensation_usd: 15000
+  require_named_actor: true
+  require_specific_dollar_variance: true
+  ml_theater_deflater: true
+
+public_heat_index:
+  formula: "0.40*Severity + 0.30*Clarity + 0.20*Contrast + 0.10*Relevance"
+  auto_prioritize: sboa_special_charges
+  select_single_story_phi_min: 7.5
+
+claim_gate_checklist:
+  - exact_actor_spelling_100r_or_sboa
+  - financial_variance_matches_report
+  - contrast_metric_identified
+  - report_id_and_page_logged
+
+script_structure_seconds:
+  max_words: 140
+  0_03: hook_exact_dollar_and_place
+  3_15: contrast
+  15_45: fair_report_narrative
+  45_55: proof_path_report_id_page
+  55_60: cta_official_portals
+  watermark: sboa_report_id_and_page
+
+stages:
+  A_intake: [sboa_ingest, salary_export, inbox_drop]
+  B_filter: [auditor_playbook.filter_flags_by_truth, scriptwriter_publishable]
+  C_story: [phi_heat_rank, sboa_first]
+  D_claim: [claim_gate_checklist]
+  E_script: [script_structure_seconds]
+  F_G_human: [review_card, county_queue_approve_reject]
+  H_feedback: [log_lesson, continuous_improvement]
+
+hard_never:
+  - fund_rollup_as_private_vendor
+  - criminal_language_without_charge_quote
+  - draft_or_unfiled_audits
+  - social_media_as_fact
+  - low_earner_seasonal_as_lead_scandal
+  - isolation_forest_in_hooks
+  - publish_without_human_review
+  - claim_learned_without_disk_lesson
+
+tools:
+  playbook: tools/auditor_playbook.py
+  red_flag_engine: tools/red_flag_engine.py
+  silent_auditor: agents/silent_auditor/
+  sboa: tools/sboa_ingest.py
+  continuous_improve: docs/CONTINUOUS-IMPROVEMENT.md

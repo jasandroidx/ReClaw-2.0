@@ -1,0 +1,79 @@
+# ReClaw-2.0 — authoritative config for skills, plugins and MCPs
+# Seamless chat: "use ravenstack-sitrep" | "use ravenstack connector to project_sitrep"
+
+[skills]
+paths = [
+    "/root/ReClaw-2.0/.grok/skills",
+    "/root/ReClaw-2.0/skills",
+]
+
+[plugins]
+paths = [
+    "/root/ReClaw-2.0/.grok/plugins",
+]
+
+# === MCP Servers (stdio on this host — best for Grok Build chat) ===
+
+# Full fortress connector: project_sitrep, pipeline, vault, stack health (primary)
+[mcp_servers.reclaw-platform]
+command = "/root/ReClaw-2.0/.venv/bin/python"
+args = ["/root/ReClaw-2.0/scripts/reclaw_platform_mcp_server.py"]
+startup_timeout_sec = 60
+
+[mcp_servers.reclaw-platform.env]
+RECLAW_KNOWLEDGE_PATH = "/root/obsidian_vault/Ravenstack"
+RECLAW_OBSIDIAN_VAULT_PATH = "/root/obsidian_vault"
+RECLAW_GATEWAY_URL = "http://127.0.0.1:8000"
+# Prefer env; fallback empty — set RECLAW_GATEWAY_TOKEN in /root/.env
+RECLAW_GATEWAY_TOKEN = "${RECLAW_GATEWAY_TOKEN}"
+OPENCLAW_GATEWAY_URL = "http://127.0.0.1:18789"
+
+[mcp_servers.ravenstack]
+command = "/root/ReClaw-2.0/.venv/bin/python"
+args = ["/root/ReClaw-2.0/scripts/ravenstack_mcp_server.py"]
+startup_timeout_sec = 30
+
+[mcp_servers.ravenstack.env]
+RECLAW_KNOWLEDGE_PATH = "/root/obsidian_vault/Ravenstack"
+RECLAW_OBSIDIAN_VAULT_PATH = "/root/obsidian_vault"
+RECLAW_GATEWAY_URL = "http://127.0.0.1:8000"
+RECLAW_GATEWAY_TOKEN = "${RECLAW_GATEWAY_TOKEN}"
+
+[mcp_servers.reclaw-api]
+command = "/root/ReClaw-2.0/.venv/bin/python"
+args = ["/root/ReClaw-2.0/scripts/reclaw_api_mcp_server.py"]
+startup_timeout_sec = 30
+
+[mcp_servers.reclaw-api.env]
+RECLAW_GATEWAY_URL = "http://127.0.0.1:8000"
+RECLAW_GATEWAY_TOKEN = "${RECLAW_GATEWAY_TOKEN}"
+
+[mcp_servers.reclaw-fs]
+command = "/root/ReClaw-2.0/.venv/bin/python"
+args = ["/root/ReClaw-2.0/scripts/reclaw_fs_mcp_server.py"]
+startup_timeout_sec = 30
+
+[mcp_servers.reclaw-mcp]
+command = "/root/ReClaw-2.0/.venv/bin/python"
+args = ["/root/ReClaw-2.0/scripts/reclaw_mcp_server.py"]
+startup_timeout_sec = 60
+
+[mcp_servers.obsidian]
+command = "/root/ReClaw-2.0/.venv/bin/python"
+args = ["/root/ReClaw-2.0/scripts/obsidian_mcp_server.py"]
+startup_timeout_sec = 30
+
+[mcp_servers.firecrawl]
+command = "npx"
+args = ["-y", "firecrawl-mcp"]
+startup_timeout_sec = 60
+
+[mcp_servers.firecrawl.env]
+FIRECRAWL_API_KEY = "${FIRECRAWL_API_KEY}"
+
+# Remote HTTP (grok.com / off-box). URL from data/mcp_public_url.txt — refresh tunnel if dead.
+# Enable when connecting from outside this host.
+[mcp_servers.reclaw-platform-remote]
+enabled = false
+url = "https://locate-retailer-dana-les.trycloudflare.com/mcp"
+startup_timeout_sec = 45

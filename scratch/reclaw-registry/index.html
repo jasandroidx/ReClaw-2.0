@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Reclaw | Multi-Agent Architectural Registry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+
+        :root {
+            --primary: #6366f1;
+            --secondary: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #020617;
+            color: #e2e8f0;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+        }
+
+        .workflow-line {
+            width: 2px;
+            background: linear-gradient(to bottom, var(--primary), transparent);
+        }
+
+        .pulse {
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { box-shadow: 0 0 0 0px rgba(99, 102, 241, 0.4); }
+            100% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        .status-active { color: #34d399; }
+        .status-scaffold { color: #fbbf24; }
+        .status-pending { color: #94a3b8; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="min-h-screen flex flex-col">
+        <nav class="sticky top-0 z-50 glass-card border-b border-slate-800 px-6 py-4">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center font-black text-white text-xl">R</div>
+                    <div>
+                        <h1 class="text-lg font-extrabold tracking-tight text-white uppercase">Reclaw <span class="text-indigo-400">Registry</span></h1>
+                        <p class="text-[10px] mono text-slate-500">v2.0.4 // Indiana 92-County Queue</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex gap-6 text-sm font-bold text-slate-400 uppercase tracking-widest">
+                    <a href="#agents" class="hover:text-indigo-400 transition">Agents</a>
+                    <a href="#tech" class="hover:text-indigo-400 transition">Tech Stack</a>
+                    <a href="#workflow" class="hover:text-indigo-400 transition">Workflows</a>
+                    <a href="#connectors" class="hover:text-indigo-400 transition">Connectors</a>
+                </div>
+            </div>
+        </nav>
+
+        <main class="flex-grow p-4 md:p-8 max-w-7xl mx-auto w-full">
+
+            <section class="mb-16">
+                <div class="max-w-3xl">
+                    <h2 class="text-3xl font-black text-white mb-4">The Forensic Intelligence Framework</h2>
+                    <p class="text-slate-400 leading-relaxed text-lg">
+                        Sub-agent architecture for <strong class="text-white">Project ReClaw</strong> on Hetzner:
+                        specialized Python detectors + Grok orchestration transform Indiana Gateway public records
+                        into fair-report narratives. Default loop: <span class="mono text-indigo-300">county_queue → red_flag_engine → viral_hooks → manifest → human approve</span>.
+                    </p>
+                    <p class="text-xs mono text-slate-600 mt-4">YAML: data/architectural_registry.yaml · Orchestration: data/reclaw_orchestration.yaml</p>
+                </div>
+            </section>
+
+            <section id="agents" class="mb-20">
+                <div class="mb-8">
+                    <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <span class="text-indigo-500">◈</span> Sub-Agent Core
+                    </h3>
+                    <p class="text-slate-500 mt-2">Deployed roles mapped to <span class="mono">tools/</span> modules — not fictional agents.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="agent-grid"></div>
+
+                <div class="mt-12 glass-card rounded-2xl p-8 border border-indigo-500/20">
+                    <h4 class="text-xl font-bold mb-6 text-center">Agent Capability Distribution</h4>
+                    <div class="chart-container">
+                        <canvas id="capabilityChart"></canvas>
+                    </div>
+                    <p class="text-center text-xs text-slate-500 mt-6 italic">Forensic math (Auditor) vs narrative delivery (Viral Scribe + Manifest Engine).</p>
+                </div>
+            </section>
+
+            <section id="tech" class="mb-20">
+                <div class="flex flex-col md:flex-row justify-between items-end gap-4 mb-8">
+                    <div>
+                        <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                            <span class="text-amber-500">⚒</span> Forensic Toolchain
+                        </h3>
+                        <p class="text-slate-500 mt-2">Deployed vs scaffolded — from <span class="mono">data/architectural_registry.yaml</span>.</p>
+                    </div>
+                    <div class="flex gap-2 bg-slate-900 p-1 rounded-xl" id="tech-filters">
+                        <button data-filter="all" class="tech-filter px-4 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white shadow-lg">All</button>
+                        <button data-filter="data" class="tech-filter px-4 py-2 text-xs font-bold rounded-lg hover:bg-slate-800 transition">Data</button>
+                        <button data-filter="media" class="tech-filter px-4 py-2 text-xs font-bold rounded-lg hover:bg-slate-800 transition">Media</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="tech-grid"></div>
+            </section>
+
+            <section id="workflow" class="mb-20">
+                <div class="mb-12 text-center">
+                    <h3 class="text-3xl font-black text-white">Execution Workflows</h3>
+                    <p class="text-slate-500 mt-2">Gateway flat file → red flags → viral hook → Remotion manifest → human gate.</p>
+                </div>
+
+                <div class="max-w-4xl mx-auto space-y-4" id="workflow-steps"></div>
+            </section>
+
+            <section id="connectors" class="mb-20">
+                <div class="glass-card rounded-3xl p-8 border border-slate-800 overflow-hidden relative">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[100px] rounded-full"></div>
+                    <div class="relative z-10">
+                        <h3 class="text-2xl font-bold text-white mb-6">Connector & API Registry</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="connector-grid"></div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="bg-slate-950 border-t border-slate-900 py-12 px-6">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="text-center md:text-left">
+                    <h2 class="text-xl font-bold text-white">RECLAW MASTER PLAN</h2>
+                    <p class="text-slate-500 text-sm">Investigative Framework · Fair-report only · &copy; 2026</p>
+                    <p class="text-[10px] mono text-slate-600 mt-2">Serve: python -m http.server 8090 --directory scratch/reclaw-registry</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <div id="workflow-modal" class="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 hidden" onclick="closeModal()">
+        <div class="glass-card w-full max-w-2xl rounded-3xl p-8 border border-indigo-500/30" onclick="event.stopPropagation()">
+            <h2 id="modal-title" class="text-3xl font-black text-white mb-2"></h2>
+            <p id="modal-desc" class="text-slate-400 mb-6"></p>
+            <div class="bg-slate-950 rounded-xl p-4 border border-slate-800 mb-6">
+                <h6 class="text-[10px] mono text-indigo-400 uppercase mb-2">Production Code Path</h6>
+                <pre id="modal-code" class="text-xs text-emerald-400 overflow-x-auto mono whitespace-pre-wrap"></pre>
+            </div>
+            <button onclick="closeModal()" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-500 transition">CLOSE</button>
+        </div>
+    </div>
+
+    <script>
+        const COLOR_MAP = {
+            indigo: '#6366f1', amber: '#f59e0b', red: '#ef4444',
+            purple: '#a855f7', emerald: '#10b981', sky: '#0ea5e9'
+        };
+
+        const agents = [
+            { name: "Gateway Sentinel", role: "Data Acquisition", desc: "Indiana Gateway flat files — budgets, disbursements, 92-county salary prefetch. County isolation enforced.", color: "indigo", stats: [92, 30, 85, 15, 20], status: "deployed" },
+            { name: "Tier-3 Ghost", role: "Document Discovery", desc: "Firecrawl + SBOA PDF discovery for county .in.gov minutes and state audit reports.", color: "amber", stats: [50, 75, 25, 10, 15], status: "deployed" },
+            { name: "The Auditor", role: "Forensic Analysis", desc: "red_flag_engine layers 1–3h: Benford MAD, split-purchase, salary shock, inbox AP transaction rules.", color: "red", stats: [25, 40, 98, 20, 10], status: "deployed" },
+            { name: "Viral Scribe", role: "Narrative Gen", desc: "scriptwriter + viral_hooks playbook — story-first HHVCTA hooks with fair-report guardrails.", color: "purple", stats: [20, 15, 35, 95, 25], status: "deployed" },
+            { name: "Manifest Engine", role: "Media Prep", desc: "video_manifest v2 JSON — Remotion scenes, ElevenLabs metadata, playbook visual overlays.", color: "emerald", stats: [15, 10, 20, 70, 55], status: "deployed" },
+            { name: "Queue Warden", role: "Human Gate", desc: "core/county_queue.py — run-next, refresh, approve/reject. Obsidian review cards before publish.", color: "sky", stats: [80, 20, 30, 40, 15], status: "deployed" }
+        ];
+
+        const techStack = [
+            { name: "red_flag_engine", type: "data", status: "deployed", desc: "Unified county scan with county isolation (tools/red_flag_engine.py)." },
+            { name: "viral_hooks", type: "media", status: "deployed", desc: "Story-first hooks — smurfing, round-number, weekend, duplicate (tools/viral_hooks.py)." },
+            { name: "benford_analysis", type: "data", status: "deployed", desc: "First-digit table + MAD vs Benford expected." },
+            { name: "transaction_anomaly", type: "data", status: "deployed", desc: "Inbox AP rules when payment_date present." },
+            { name: "total_reclaw_memory", type: "data", status: "deployed", desc: "SQLite cross-county pattern memory." },
+            { name: "socrata_scraper", type: "data", status: "scaffolded", desc: "SODA checkbooks for city portals — scaffolded." },
+            { name: "video_manifest", type: "media", status: "deployed", desc: "reclaw.video_manifest.v2 HHVCTA scene JSON." },
+            { name: "remotion_render", type: "media", status: "backlog", desc: "Node Remotion scaffold → MP4 export." }
+        ];
+
+        const connectors = [
+            { name: "Indiana Gateway", status: "active", note: "Canonical FY budgets, disbursements, salaries." },
+            { name: "Firecrawl MCP", status: "active", note: "Tier-3 county site + SBOA discovery." },
+            { name: "County Queue API", status: "active", note: ":8000/county-queue/ human gate." },
+            { name: "Obsidian Vault", status: "active", note: "Rural Data/ review cards SOT." },
+            { name: "Ollama AuditCopilot", status: "active", note: ":8080 local LLM narratives." },
+            { name: "Socrata SODA", status: "scaffolded", note: "City checkbooks — not primary for IN counties." },
+            { name: "ElevenLabs TTS", status: "configured", note: "Voice ID in manifest; render backlog." },
+            { name: "MuckRock FOIA", status: "pending", note: "Not wired." }
+        ];
+
+        const workflowDetails = [
+            {
+                title: "Ingestion & County Isolation",
+                desc: "Gateway flat files + salary prefetch. Pike bleed blocked via county_isolation.",
+                color: "indigo",
+                tags: ["indiana_gateway.py", "county_isolation.py"],
+                code: `from tools.red_flag_engine import scan_county\nfrom tools.county_isolation import assert_county_scope\n\nassert_county_scope("Gibson County", cache_dir)\nresult = scan_county("Gibson County", year=2025)`
+            },
+            {
+                title: "Forensic Anomaly Hunt",
+                desc: "Benford MAD, split-purchase, salary shock, inbox AP rules when dates exist.",
+                color: "amber",
+                tags: ["benford_analysis.py", "split_purchase_detector.py"],
+                code: `from tools.red_flag_engine import scan_county\n\nflags = scan_county("Gibson County").red_flags\n# Layers: budget spikes, salary shock, split_purchase,\n# transaction_anomaly (round/weekend/duplicate), SBOA cache`
+            },
+            {
+                title: "Hook Optimization (HHVCTA)",
+                desc: "Story-first hooks from viral_hook_playbook.yaml — questions, not convictions.",
+                color: "red",
+                tags: ["viral_hooks.py", "scriptwriter.py"],
+                code: `from tools.scriptwriter import build_package\nfrom tools.viral_hooks import build_viral_hook\n\npkg = build_package(result, county=county)\nhook = build_viral_hook(lead_flag, county, short=True)\n# "Why did Gibson send 8 checks each just under $50,000?"`
+            },
+            {
+                title: "Manifest & Human Gate",
+                desc: "Remotion JSON written to data/manifests/{county}/. Human approves via API.",
+                color: "emerald",
+                tags: ["video_manifest.py", "POST /county-queue/approve"],
+                code: `from tools.video_manifest import write_manifests_for_package\n\npaths = write_manifests_for_package(\n    county, pkg["shorts"], review_id=review_id\n)\n# Human reads Obsidian card → approve or reject`
+            }
+        ];
+
+        function statusBadge(status) {
+            const map = {
+                deployed: '<span class="text-emerald-400 text-[10px] font-bold">● DEPLOYED</span>',
+                active: '<span class="text-emerald-400 text-[10px] font-bold">● ACTIVE</span>',
+                scaffolded: '<span class="text-amber-400 text-[10px] font-bold">○ SCAFFOLD</span>',
+                configured: '<span class="text-indigo-400 text-[10px] font-bold">● CONFIG</span>',
+                pending: '<span class="text-slate-500 text-[10px] font-bold">○ PENDING</span>',
+                backlog: '<span class="text-slate-500 text-[10px] font-bold">○ BACKLOG</span>'
+            };
+            return map[status] || map.pending;
+        }
+
+        function initAgents() {
+            const container = document.getElementById('agent-grid');
+            agents.forEach(agent => {
+                const div = document.createElement('div');
+                div.className = `glass-card p-6 rounded-2xl border-t-4 hover:scale-[1.02] transition duration-300`;
+                div.style.borderTopColor = COLOR_MAP[agent.color];
+                div.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="px-3 py-1 bg-slate-900 rounded-full text-[10px] font-black uppercase tracking-tighter text-slate-400 border border-slate-800">${agent.role}</span>
+                        ${statusBadge(agent.status)}
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-2">${agent.name}</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-4">${agent.desc}</p>
+                    <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full" style="width: ${agent.stats[2]}%; background: ${COLOR_MAP[agent.color]}"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function initTech(filter = 'all') {
+            const container = document.getElementById('tech-grid');
+            container.innerHTML = '';
+            const filtered = filter === 'all' ? techStack : techStack.filter(t => t.type === filter);
+            filtered.forEach(tech => {
+                const div = document.createElement('div');
+                div.className = 'p-4 rounded-xl border border-slate-800 bg-slate-950/50 hover:bg-slate-900 transition';
+                div.innerHTML = `
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full ${tech.type === 'data' ? 'bg-indigo-400' : 'bg-emerald-400'}"></div>
+                            <h5 class="text-sm font-bold text-white mono">${tech.name}</h5>
+                        </div>
+                    </div>
+                    <div class="mb-2">${statusBadge(tech.status)}</div>
+                    <p class="text-[10px] text-slate-500 leading-snug">${tech.desc}</p>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function initWorkflows() {
+            const container = document.getElementById('workflow-steps');
+            workflowDetails.forEach((wf, i) => {
+                const isLast = i === workflowDetails.length - 1;
+                const div = document.createElement('div');
+                div.className = `relative pl-12 ${isLast ? '' : 'pb-12'} group`;
+                div.onclick = () => showWorkflowDetail(i);
+                div.innerHTML = `
+                    ${isLast ? '' : `<div class="absolute left-4 top-0 bottom-0 workflow-line group-hover:opacity-80 transition" style="background: linear-gradient(to bottom, ${COLOR_MAP[wf.color]}, transparent)"></div>`}
+                    <div class="absolute left-0 top-0 w-10 h-10 rounded-full glass-card flex items-center justify-center font-bold border group-hover:scale-110 transition pulse" style="color: ${COLOR_MAP[wf.color]}; border-color: ${COLOR_MAP[wf.color]}55">0${i + 1}</div>
+                    <div class="glass-card p-6 rounded-2xl group-hover:border-indigo-500/50 transition cursor-pointer">
+                        <h4 class="text-xl font-bold text-white mb-2">${wf.title}</h4>
+                        <p class="text-slate-400 text-sm">${wf.desc}</p>
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            ${wf.tags.map(t => `<span class="px-2 py-1 bg-slate-800 rounded text-[10px] mono text-slate-300">${t}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function initConnectors() {
+            const container = document.getElementById('connector-grid');
+            connectors.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'p-4 bg-slate-900/50 rounded-xl border border-slate-700';
+                div.innerHTML = `
+                    <div class="mb-1">${statusBadge(c.status)}</div>
+                    <h5 class="font-bold text-white">${c.name}</h5>
+                    <p class="text-xs text-slate-500">${c.note}</p>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('capabilityChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Connectivity', 'OCR/Vision', 'Forensic Math', 'Retention Scripting', 'Media Rendering'],
+                    datasets: agents.map(a => ({
+                        label: a.name,
+                        data: a.stats,
+                        fill: true,
+                        backgroundColor: 'rgba(99, 102, 241, 0.06)',
+                        borderColor: COLOR_MAP[a.color] || '#334155',
+                        borderWidth: 1.5,
+                        pointRadius: 2,
+                        pointBackgroundColor: COLOR_MAP[a.color]
+                    }))
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255,255,255,0.1)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            pointLabels: { color: '#94a3b8', font: { size: 10, weight: 'bold' } },
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: { legend: { display: true, labels: { color: '#94a3b8', boxWidth: 12, font: { size: 9 } } } }
+                }
+            });
+        }
+
+        document.querySelectorAll('.tech-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.tech-filter').forEach(b => {
+                    b.classList.remove('bg-indigo-600', 'text-white');
+                });
+                e.target.classList.add('bg-indigo-600', 'text-white');
+                initTech(e.target.dataset.filter);
+            });
+        });
+
+        function showWorkflowDetail(index) {
+            const data = workflowDetails[index];
+            document.getElementById('modal-title').innerText = data.title;
+            document.getElementById('modal-desc').innerText = data.desc;
+            document.getElementById('modal-code').innerText = data.code;
+            document.getElementById('workflow-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('workflow-modal').classList.add('hidden');
+        }
+
+        window.onload = () => {
+            initAgents();
+            initTech();
+            initWorkflows();
+            initConnectors();
+            initChart();
+        };
+    </script>
+</body>
+</html>

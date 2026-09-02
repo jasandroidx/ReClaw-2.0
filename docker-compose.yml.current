@@ -1,0 +1,8 @@
+services:
+  openclaw-gateway:
+    image: ghcr.io/openclaw/openclaw:latest
+    restart: unless-stopped
+    volumes:
+      - /root/.openclaw:/home/node/.openclaw
+    network_mode: host
+    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789", "--allow-unconfigured"]

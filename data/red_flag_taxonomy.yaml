@@ -1,0 +1,145 @@
+# ReClaw red-flag & anomaly taxonomy — every pattern we hunt, any Indiana county.
+# Categories map to tools/scriptwriter.py hooks and Content Studio priority.
+
+goal: >
+  Faceless local-auditor channel: find genuinely different weird patterns per county
+  (not mail-merge). Every flag traces to a public record URL.
+
+layers:
+  gateway_disbursements:
+    source: gateway.ifionline.org/public/download.aspx
+    scope: all_92_counties
+    patterns:
+      - id: dominant_disbursement
+        severity: critical|high
+        description: Single line item dominates total disbursements
+      - id: vendor_concentration
+        severity: high|medium
+        description: One vendor/recipient receives disproportionate share
+      - id: vendor_fragmentation
+        severity: medium
+        description: Many sub-threshold payments that sum to material share (split-purchase signal)
+      - id: split_purchase_pattern
+        severity: medium
+        rule: IC 36-1-12-19 bid threshold avoidance
+      - id: disbursement_swing
+        severity: high|medium
+        description: YoY total disbursement change >= 15%
+      - id: composition_outlier
+        severity: medium
+        description: One fund/vendor type dominates mix
+      - id: benford_violation
+        severity: high
+        description: First-digit distribution deviates from Benford (smoke test)
+      - id: round_number_cluster
+        severity: medium
+        description: Suspiciously round payment amounts (whole thousands)
+
+  gateway_budgets:
+    source: gateway Budget Data flat file
+    scope: all_92_counties
+    patterns:
+      - id: budget_spike
+        severity: high|medium
+        description: Certified budget YoY jump >= 8-15%
+      - id: multi_year_growth
+        severity: medium
+        description: Cumulative certified growth vs flat population
+      - id: budget_deficit
+        severity: medium
+        description: Expenditures exceed revenue in certified budget
+      - id: fund_imbalance
+        severity: medium
+        description: Parks vs roads, reassessment lines, non-core fund dominance
+      - id: per_capita_outlier
+        severity: medium
+        description: Budget or disbursements vs Census population
+
+  federal:
+    source: api.usaspending.gov
+    scope: all_us_counties
+    patterns:
+      - id: federal_spending_spike
+        severity: high|medium
+        description: Federal awards YoY swing in county
+      - id: federal_vendor_concentration
+        severity: medium
+        description: One federal recipient dominates county awards
+      - id: dominant_federal_award
+        severity: high
+        description: Single federal award >= $5M in small county
+
+  payroll:
+    source: gateway Employee Compensation report
+    scope: per_county_export
+    patterns:
+      - id: salary_shock
+        severity: high|medium
+        description: Top public paycheck vs county median earnings
+      - id: double_dip
+        severity: medium
+        description: Same name on multiple compensation lines
+      - id: part_time_anomaly
+        severity: low|medium
+        description: High comp for part-time/seasonal role
+      - id: law_enforcement_pay
+        severity: medium
+        description: Sheriff/EMS pay vs peer departments
+
+  statistical:
+    detectors: [robust_zscore, IsolationForest, ECOD, YoY_spike]
+    patterns:
+      - id: statistical_anomaly
+        severity: high|medium
+        description: Multivariate or time-series outlier vs peers/prior years
+      - id: cross_source_contrast
+        severity: medium
+        description: Federal vs local vs income demographics mismatch
+      - id: peer_outlier
+        severity: high|medium
+        description: County budget or disbursements per capita outlier vs all 92 IN peers
+      - id: composition_break
+        severity: high|medium
+        description: Fund share of certified budget shifts sharply YoY (mix change)
+      - id: collective_anomaly
+        severity: medium
+        description: Multiple moderate fund spikes summing to material change (reclassification wave)
+
+  procurement:
+    source: agents/silent_auditor/RULEBOOK.yml
+    patterns:
+      - id: split_purchase
+        severity: high
+        description: Transactions split to avoid bid thresholds
+
+  transparency:
+    patterns:
+      - id: data_gap
+        severity: medium|low
+        description: Expected public record missing (salary export, budget year, etc.)
+      - id: nonprofit_presence
+        severity: low
+        description: Local 990 index — cross-check grants vs officer pay
+
+  property_tax:
+    future: beacon.schneidercorp.com
+    patterns:
+      - id: depressed_values
+        severity: medium
+      - id: reassessment_shock
+        severity: medium
+
+video_priority:
+  # scriptwriter cold-open preference
+  - dominant_disbursement
+  - salary_shock
+  - split_purchase
+  - peer_outlier
+  - benford_violation
+  - vendor_concentration
+  - composition_break
+  - collective_anomaly
+  - federal_spending_spike
+  - budget_spike
+  - double_dip
+  - disbursement_swing

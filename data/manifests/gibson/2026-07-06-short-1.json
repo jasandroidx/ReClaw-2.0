@@ -1,0 +1,67 @@
+{
+  "schema": "reclaw.video_manifest.v1",
+  "framework": "HHVCTA",
+  "generated_at": "2026-07-06T09:53:22.439850+00:00",
+  "county": "Gibson",
+  "review_id": "review-8594a77f9de5",
+  "duration_s": 60,
+  "format": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30
+  },
+  "atomic_finding": {
+    "category": "salary_shock",
+    "severity": "high",
+    "description": "Vanoven, Bruce L \u2014 Sheriff (Sheriff): $111,307 in 2025 public compensation. In a county of ~33,006, that's a taxpayer talking-point.",
+    "provenance": "Gibson County paid Vanoven, Bruce L (Sheriff) $111K \u2014 public record.  Source: public county records. Not an accusation \u2014 a question. #GibsonIndiana #GibsonCounty #IndianaTaxpayers #GibsonIN"
+  },
+  "beats": {
+    "hook": {
+      "start_s": 0,
+      "end_s": 3,
+      "text": "Gibson County paid Vanoven, Bruce L (Sheriff) $111K \u2014 public record.",
+      "on_screen": "Gibson County paid Vanoven, Bruce L (Sheriff) $111K \u2014 public record."
+    },
+    "hint": {
+      "start_s": 3,
+      "end_s": 5,
+      "text": "It's in the public record \u2014 Gibson County, Indiana."
+    },
+    "value": {
+      "start_s": 5,
+      "end_s": 45,
+      "text": "Vanoven, Bruce L \u2014 Sheriff (Sheriff): $111,307 in 2025 public compensation. In a county of ~33,006, that's a taxpayer talking-point.",
+      "chart": {
+        "type": "bar_highlight",
+        "metric": "anomaly_amount",
+        "label": "flagged"
+      }
+    },
+    "credibility": {
+      "start_s": 45,
+      "end_s": 50,
+      "text": "Source: Gibson County paid Vanoven, Bruce L (Sheriff) $111K \u2014 public record.  Source: public county records. Not an accusation \u2014",
+      "on_screen": "Gibson County paid Vanoven, Bruce L (Sheriff) $111K \u2014 public record.  Source: pu"
+    },
+    "takeaway": {
+      "start_s": 50,
+      "end_s": 55,
+      "text": "Your tax dollars. Public record. Fair questions deserve public answers."
+    },
+    "action": {
+      "start_s": 55,
+      "end_s": 60,
+      "text": "Comment your Indiana county \u2014 should we audit Gibson next?",
+      "cta": "subscribe"
+    }
+  },
+  "word_count": 80,
+  "assets_pending": {
+    "tts": "elevenlabs",
+    "captions": "whisper.cpp \u2192 @remotion/captions",
+    "broll": "remotion_svg_charts",
+    "avatar": "optional_wav2lip"
+  },
+  "disclaimer": "Patterns in public records only. Not an allegation of crime or wrongdoing."
+}

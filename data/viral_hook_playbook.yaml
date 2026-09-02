@@ -1,0 +1,147 @@
+# Project ReClaw — Viral Hook & Headline Playbook (HHVCTA)
+# Story-first hooks in first 3 seconds. Fair-report — questions not convictions.
+
+psychology:
+  rule: Never start with the data. Start with the intent behind the data.
+  stop_scroll: >
+    First 1–2 seconds must create a curiosity gap or pattern shock.
+    Named person + exact $ + "why/they thought" beats "County paid X $Y — public record."
+  bad_example: "Chicago spent $14,000 on consulting."
+  worse_example: "Gibson County paid Vanoven, Bruce L (Sheriff) $111K — public record."
+  good_example: "Why did Chicago pay the same consultant three times in 24 hours?"
+  good_salary_example: "They thought you wouldn't check public salaries. Posey County's sheriff? $111K on the books."
+
+trigger_phrases:
+  - "They thought you wouldn't check —"
+  - "I ran the math on"
+  - "The county's own public records show"
+  - "Forensic accountants call this"
+  - "Pause. Read this twice —"
+  - "Nobody is talking about this —"
+
+red_flag_hooks:
+  smurfing:
+    categories: [split_purchase]
+    playbook_id: threshold_evasion
+    visual: receipt_flash_under_threshold
+    vfx: rapid_receipt_flash
+    text_overlay: "JUST UNDER THE LIMIT?"
+    requires: [vendor]
+    hook_templates:
+      - "Why did {place} send {tx_count} payments to '{vendor}' — each just under {threshold_fmt}? The public checkbook shows the pattern."
+      - "I ran the math on '{vendor}' in {place} County — {tx_count} checks clustered right below Indiana's bidding threshold."
+    hook_templates_short:
+      - "{place} wrote {tx_count} checks to '{vendor}' — each just under {threshold_fmt}. Public record."
+    headline_templates:
+      - "{place} County: {tx_count} Payments to '{vendor}' Just Under Bidding Limit"
+      - "Why Did {place} Split Payments to '{vendor}'? (Public Records)"
+
+  round_number:
+    categories: [round_number_cluster]
+    playbook_id: round_number_phantom
+    visual: compare_real_vs_round_invoice
+    vfx: highlight_zero_cents
+    text_overlay: "ZERO CENTS?"
+    requires: [vendor, amount_fmt]
+    hook_templates:
+      - "They thought you wouldn't check the cents. Why did '{vendor}' get exactly {amount_fmt} with no change on {place}'s public ledger?"
+      - "This is what auditors flag — round dollars with zero cents. '{vendor}' in {place} County: {amount_fmt} on the official record."
+    hook_templates_short:
+      - "{place} paid '{vendor}' exactly {amount_fmt}.00 — no pennies. Public checkbook."
+    headline_templates:
+      - "{place}: Round-Dollar Payment to '{vendor}' ({amount_fmt}) — Public Records"
+
+  weekend_drop:
+    categories: [statistical_anomaly]
+    evidence_rules: [weekend_payment]
+    playbook_id: weekend_holiday_drop
+    visual: timestamp_sunday_2am
+    vfx: clock_overlay
+    text_overlay: "WEEKEND PAYOUT?"
+    requires: [vendor, amount_fmt]
+    hook_templates:
+      - "What was {place} buying on a {day}? The county's own public records show {amount_fmt} to '{vendor}' on {date}."
+      - "The city's own public servers show a {amount_fmt} payout to '{vendor}' on {date} — a {day} on the calendar."
+    hook_templates_short:
+      - "{place}: {amount_fmt} to '{vendor}' on {date} ({day}). Public AP record."
+    headline_templates:
+      - "{place} County Weekend Payment: {amount_fmt} to '{vendor}'"
+
+  duplicate_payment:
+    categories: [statistical_anomaly]
+    evidence_rules: [duplicate_vendor_amount_date]
+    playbook_id: rapid_fire_duplicates
+    visual: duplicate_check_side_by_side
+    vfx: search_animation
+    text_overlay: "PAID TWICE?"
+    requires: [vendor, amount_fmt]
+    hook_templates:
+      - "Either the accounting system glitched — or the same vendor got paid twice. I ran the math on '{vendor}' in {place}'s public checkbook."
+      - "Why does '{vendor}' show up twice for {amount_fmt} on the same day in {place} County's records?"
+    hook_templates_short:
+      - "Same vendor, same amount, same day — '{vendor}' in {place}. Public record."
+    headline_templates:
+      - "{place}: Duplicate {amount_fmt} Payment to '{vendor}'? (Public Records)"
+
+  # dual public compensation lines for same person (salary CSV) — NOT vendor duplicates
+  double_dip:
+    categories: [double_dip]
+    playbook_id: dual_paycheck
+    visual: salary_table_highlight
+    vfx: subtle_camera_push
+    text_overlay: "TWO PAYCHECKS"
+    requires: [name]
+    hook_templates:
+      - "They thought you wouldn't notice. {name} shows up on two public paychecks in {place} County{amount_clause} — on the official record."
+      - "One name, two compensation lines: {name} in {place} County{amount_clause}. Public salary search."
+    hook_templates_short:
+      # Stop-scroll first: pattern shock → name → $
+      - "Same name. TWO paychecks. {name} in {place} County{amount_clause}."
+      - "They thought you wouldn't notice — {name} is on two public paychecks in {place}{amount_clause}."
+      - "Why does one person show up twice on {place}'s payroll? {name}{amount_clause}."
+    headline_templates:
+      - "{place}: {name} on Two Public Paychecks — Salary Records"
+      - "Same Name, Two Paychecks — {place} County Public Records"
+
+  salary_shock:
+    categories: [salary_shock]
+    playbook_id: taxpayer_paycheck
+    visual: salary_table_highlight
+    vfx: subtle_camera_push
+    text_overlay: "YOUR TAX DOLLARS"
+    requires: [name, title]
+    hook_templates:
+      - "They thought you wouldn't check public salaries. {place} County paid {name} ({title}) {amount_fmt} — on the official record."
+      - "The county's own public records show {name} — {title} — at {amount_fmt}. In a county your size, that's a fair question."
+    hook_templates_short:
+      # Stop-scroll first: intent/curiosity → role + $ → name (not dry "County paid X")
+      - "They thought you wouldn't check. {place} County {title}? {amount_fmt}. Name: {name}."
+      - "Why is a {title} in {place} County pulling {amount_fmt}? Public books say {name}."
+      - "I opened the salary search. {place}'s {title} — {name} — {amount_fmt}."
+    headline_templates:
+      - "Why Is {place}'s {title} Paid {amount_fmt}? (Public Records)"
+      - "{place} County: {title} Paid {amount_fmt} — Public Salary Records"
+
+  benford:
+    categories: [benford_violation, benford_deviation]
+    playbook_id: math_behind_audit
+    visual: benford_digit_chart
+    vfx: glitch_transition
+    text_overlay: "THE MATH"
+    hook_templates:
+      - "{place}'s public checkbook just failed a forensic math test. Forensic accountants call this Benford's Law."
+      - "I ran the math on {place} County's disbursement digits — and the distribution doesn't look natural."
+    hook_templates_short:
+      - "{place}'s budget digits failed Benford's Law — public data."
+    headline_templates:
+      - "{place} County Budget Failed a Forensic Math Test (Benford's Law)"
+
+video_concepts:
+  - id: math_behind_audit
+    title: "The Math Behind the Audit"
+  - id: zero_dollar_default
+    title: "The Zero-Dollar Default"
+    status: backlog
+  - id: no_show_job
+    title: "No-Show Job Audit"
+    categories: [salary_shock, double_dip]

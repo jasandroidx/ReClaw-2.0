@@ -67,8 +67,8 @@ class Settings(BaseSettings):
         description="Path to Ravenstack knowledge base. Defaults to project/knowledge/ for git tracking."
     )
 
-    # API security (for cron, future Discord bot)
-    reclaw_gateway_token: str = Field(
+    # API security (for cron, future Discord bot) — env: RECLAW_GATEWAY_TOKEN
+    gateway_token: str = Field(
         default="supersecretchangemeinproduction1234567890abcdef",
         description="Bearer token for /trigger endpoints (change in .env)"
     )

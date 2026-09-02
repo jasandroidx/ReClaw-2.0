@@ -1,0 +1,122 @@
+# Audit strategy — synthesized from DOGEGPT kit + fraud-examination patterns + ReClaw stack.
+# Governs red_flag_engine, analyst, scriptwriter, county queue.
+#
+# 2026-07-17: Operator blueprint ingested —
+#   data/indiana_public_finance_blueprint.yaml
+#   Ravenstack/ops/algorithmic-auditing-public-finance-blueprint-2026-07-17.md
+# Prefer deterministic SBOA + 100R + fund YoY over IsolationForest cold opens.
+# Split-purchase / vendor drama ONLY on claims dockets (not Gateway AFR ent_name).
+
+philosophy:
+  - explainable_over_exotic
+  - audience_must_see_the_weird
+  - different_hook_per_county
+  - show_ask_cite_never_convict
+  - every_flag_traces_to_public_record
+  - sboa_and_100r_before_statistical_mill  # blueprint Level-1
+  - gateway_afr_is_not_vendor_ledger
+  - one_story_not_sixty_flags
+  - heuristic_over_unsupervised_ml_for_publish  # workflow V2
+  - final_filed_sboa_only
+  - fair_report_language_only
+
+# Full operational protocol: docs/SILENT-AUDITOR-WORKFLOW.md + data/silent_auditor_workflow.yaml
+workflow_sot: docs/SILENT-AUDITOR-WORKFLOW.md
+
+three_pass_model:
+  pass_1_timeseries:
+    question: Did this line change over time?
+    detectors: [YoY_spike, robust_zscore, multi_year_growth, disbursement_swing]
+    thresholds:
+      budget_yoy_warn_pct: 8
+      budget_yoy_fury_pct: 12
+      disbursement_swing_pct: 15
+      robust_z_sigma: 3
+    patterns: [budget_spike, multi_year_growth, contextual_spike]
+    publish_role: supporting_fund_story_only_with_named_fund
+
+  pass_2_cross_section:
+    question: Does this line look weird vs peers in the same year?
+    detectors: [composition_matrix, fund_imbalance]
+    lab_only_never_publish_hooks: [IsolationForest, ECOD]
+    note: >
+      Lab/research may still explore IF/ECOD. NEVER put method names in spoken hooks.
+      Prefer composition breaks with named funds + human script lines.
+    patterns: [composition_break, fund_imbalance]
+    publish_role: supporting_not_cold_open
+
+  pass_3_cross_source:
+    question: Does the story hold across different public records?
+    sources: [sboa_final, gateway_budgets, form_100r, usaspending, census_acs, claims_dockets]
+    detectors: [sboa_findings, per_capita_outlier, federal_local_contrast, salary_vs_median, dual_dip]
+    patterns: [sboa_special_investigation, cross_source_contrast, peer_outlier, salary_shock]
+    publish_role: primary
+
+procurement:
+  split_purchase:
+    statute: IC 36-1-12-19
+    rule: Multiple sub-threshold payments to same vendor summing above bid threshold
+    params:
+      single_tx_max: 49999
+      min_combined_amount: 50000
+      min_tx_count: 2
+    module: tools/split_purchase_detector.py
+
+benford:
+  apply_to: individual_disbursement_amounts
+  not_for: budget_totals
+  smoke_test_only: true
+
+video_format:
+  shorts:
+    length_sec: 30-45
+    structure: [hook_3s, countdown_top5, receipt_overlay, cta]
+    template: ingestion/video_script_template.md
+  long_form:
+    length_min: 8-12
+    structure: [hook_15s, receipts, explain, so_what, cta]
+    min_flags_for_long: 3
+  automation_chain:
+    - anomalies.csv
+    - scriptwriter.build_package
+    - audit_copilot.explain_top_flags
+    - video_manifest.v2
+    - content_studio
+    - human_approval_gate
+
+audit_copilot:
+  module: tools/audit_copilot.py
+  method: statistical_anchors + flag JSON — never full ledger to LLM
+  llm: ollama @ 127.0.0.1:8080 when enable_llm_analysis=true
+  fallback: deterministic fair-report template
+  governance: human_in_the_loop before publish
+
+data_layers_per_county:
+  automated_all_92: [gateway_budgets, gateway_disbursements, usaspending, census]
+  per_county_manual: [salary_export, budget_order_pdf]
+  extractors:
+    pdf_to_csv: ingestion/extract_pike_budget.py
+    inbox: tools/inbox_loader.scan_inbox
+
+mcp_integrations:
+  primary: reclaw-platform
+  use_for:
+    - run_pike_winslow: daily content package
+    - query_knowledge: RAG citations for script context
+    - stack_health: deploy verification
+    - read_vault_file / write_vault_file: vault on Hetzner (replaces broken obsidian MCP)
+  tier2_playwright:
+    enabled: true
+    use_for: [gateway_salary_export, beacon_gis_parcel_search]
+  tier3_firecrawl:
+    module: tools/firecrawl_discovery.py
+    mcp: firecrawl-mcp
+    use_for: [county_site_pdfs, sboa_audit_index, dor_budget_order_links]
+    not_for: [gateway_disbursements, gateway_budgets]
+  secondary: [reclaw-api, reclaw-fs, github, grok_com_canva]
+  disabled_on_server:
+    - obsidian-mcp-server: needs Obsidian desktop Local REST API on same machine
+  setup_doc: docs/FIRECRAWL-AND-MCP-SETUP.md
+  tool_backlog: data/audit_tool_candidates.yaml
+  discovery_script: scripts/run_audit_discovery.sh
+  skill: .grok/skills/county-audit/SKILL.md

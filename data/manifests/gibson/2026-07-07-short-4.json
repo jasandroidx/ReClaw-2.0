@@ -1,0 +1,514 @@
+{
+  "schema": "reclaw.video_manifest.v2",
+  "framework": "HHVCTA",
+  "metadata": {
+    "project": "Project Reclaw",
+    "generated_at": "2026-07-07T05:22:25.058078+00:00",
+    "target": "Gibson",
+    "anomaly": "Split Purchase",
+    "anomaly_key": "split_purchases",
+    "render_resolution": [
+      1080,
+      1920
+    ],
+    "fps": 30,
+    "duration_s": 60,
+    "review_id": "review-8594a77f9de5"
+  },
+  "audio_pipeline": {
+    "tts_provider": "elevenlabs",
+    "voice_id": "EXAVITQu4vr4xnSDxMaL",
+    "bgm": "suspense_drone_01.mp3",
+    "captions": "whisper.cpp \u2192 @remotion/captions"
+  },
+  "atomic_finding": {
+    "category": "split_purchase",
+    "severity": "high",
+    "data_point": "$50,000",
+    "provenance": "Forensic accountants call this gibson wrote 69 checks to 'WATER' \u2014 each just under $50,000. Public record.  Source: publ",
+    "description": "Forensic accountants call this gibson wrote 69 checks to 'WATER' \u2014 each just under $50,000. Public record."
+  },
+  "scenes": [
+    {
+      "scene_id": 1,
+      "type": "HOOK",
+      "hhvcta": "hook",
+      "duration_seconds": 3,
+      "text_overlay": "JUST UNDER THE LIMIT?",
+      "spoken_script": "Forensic accountants call this why did Gibson send 69 payments to 'WATER' \u2014 each just under $50,000? The public checkbook shows the pattern.",
+      "visual_asset": "receipt_flash_under_threshold",
+      "vfx": "rapid_receipt_flash",
+      "playbook_id": "threshold_evasion",
+      "on_screen_text": [
+        "1 MILLION",
+        "JUST UNDER"
+      ],
+      "visual_directives": [
+        "Show receipt_flash_under_threshold",
+        "Flash on-screen: JUST UNDER THE LIMIT?",
+        "receipt_flash_under_threshold",
+        "rapid_receipt_flash"
+      ]
+    },
+    {
+      "scene_id": 2,
+      "type": "HINT",
+      "hhvcta": "hint",
+      "duration_seconds": 3,
+      "text_overlay": "The Math Is Public",
+      "spoken_script": "Forensic accountants flag exactly this \u2014 and the data is sitting in plain sight.",
+      "visual_asset": "benford_chart_skeleton",
+      "vfx": "glitch_transition",
+      "on_screen_text": [
+        "PATTERN FOUND",
+        "CHECK THIS",
+        "PUBLIC DATA"
+      ],
+      "visual_directives": [
+        "receipt_flash_under_threshold",
+        "rapid_receipt_flash"
+      ]
+    },
+    {
+      "scene_id": 3,
+      "type": "VALUE",
+      "hhvcta": "value",
+      "duration_seconds": 39,
+      "text_overlay": "Flag: $50,000",
+      "spoken_script": "Indiana law says big purchases need a public vote. Watch what happens when someone writes many checks just under the limit \u2014 same vendor, same year, no single line big enough to trigger oversight. The flagged line: Gibson FY2024: 'WATER' received 69 disbursements each under $49,999, totaling $1,037,673 \u2014 possible bid-threshold splitting (IC 36-1-12-19 pattern). Could be innocent \u2014 but it's public money and the explanation should be on the record.",
+      "visual_asset": "dynamic_chart_render",
+      "chart": {
+        "type": "bar_highlight",
+        "highlight": "$50,000"
+      },
+      "vfx": "zoom_in_on_chart",
+      "on_screen_text": [
+        "JUST UNDER",
+        "NO VOTE?",
+        "YOUR MONEY"
+      ],
+      "visual_directives": [
+        "Highlight vendor 'WATER'",
+        "Bar chart spike",
+        "Scroll raw data table"
+      ]
+    },
+    {
+      "scene_id": 4,
+      "type": "CREDIBILITY",
+      "hhvcta": "credibility",
+      "duration_seconds": 5,
+      "text_overlay": "Source: Forensic accountants call this gibso",
+      "spoken_script": "This is pulled directly from Forensic accountants call this gibson wrote 69 checks to 'WATER' \u2014 each just under $50,000. Public record. Source: publ \u2014 Gibson public record, not rumor.",
+      "visual_asset": "screenshot_open_data_portal",
+      "vfx": "highlight_source_url",
+      "on_screen_text": [
+        "SOURCE",
+        "VERIFY IT",
+        "GIBSON"
+      ],
+      "visual_directives": [
+        "Screenshot open data portal",
+        "Highlight source URL",
+        "Show export timestamp"
+      ]
+    },
+    {
+      "scene_id": 5,
+      "type": "TAKEAWAY",
+      "hhvcta": "takeaway",
+      "duration_seconds": 5,
+      "text_overlay": "Your Tax Dollars",
+      "spoken_script": "That's $1 MILLION flowing to 'WATER' without one public vote on the total.",
+      "visual_asset": "data_table_scroll",
+      "vfx": null,
+      "on_screen_text": [
+        "JUST UNDER",
+        "NO VOTE?",
+        "YOUR MONEY"
+      ],
+      "visual_directives": [
+        "receipt_flash_under_threshold",
+        "rapid_receipt_flash"
+      ]
+    },
+    {
+      "scene_id": 6,
+      "type": "ACTION",
+      "hhvcta": "action",
+      "duration_seconds": 5,
+      "text_overlay": "Tag Gibson",
+      "spoken_script": "Subscribe if you want your county audited next. Drop the name below.",
+      "visual_asset": "cta_subscribe_card",
+      "vfx": "red_border_pulse",
+      "on_screen_text": [
+        "TAG THEM",
+        "SHARE",
+        "YOUR COUNTY"
+      ],
+      "visual_directives": [
+        "CTA subscribe card",
+        "Comment prompt overlay",
+        "Red border pulse"
+      ]
+    }
+  ],
+  "beats": {
+    "hook": {
+      "start_s": 0,
+      "end_s": 3,
+      "text": "Forensic accountants call this why did Gibson send 69 payments to 'WATER' \u2014 each just under $50,000? The public checkbook shows the pattern.",
+      "on_screen": "1 MILLION \u00b7 JUST UNDER"
+    },
+    "hint": {
+      "start_s": 3,
+      "end_s": 6,
+      "text": "Forensic accountants flag exactly this \u2014 and the data is sitting in plain sight.",
+      "on_screen": "PATTERN FOUND \u00b7 CHECK THIS \u00b7 PUBLIC DATA"
+    },
+    "value": {
+      "start_s": 6,
+      "end_s": 45,
+      "text": "Indiana law says big purchases need a public vote. Watch what happens when someone writes many checks just under the limit \u2014 same vendor, same year, no single line big enough to trigger oversight. The flagged line: Gibson FY2024: 'WATER' received 69 disbursements each under $49,999, totaling $1,037,673 \u2014 possible bid-threshold splitting (IC 36-1-12-19 pattern). Could be innocent \u2014 but it's public money and the explanation should be on the record.",
+      "on_screen": "JUST UNDER \u00b7 NO VOTE? \u00b7 YOUR MONEY"
+    },
+    "credibility": {
+      "start_s": 45,
+      "end_s": 50,
+      "text": "This is pulled directly from Forensic accountants call this gibson wrote 69 checks to 'WATER' \u2014 each just under $50,000. Public record. Source: publ \u2014 Gibson public record, not rumor.",
+      "on_screen": "SOURCE \u00b7 VERIFY IT \u00b7 GIBSON"
+    },
+    "takeaway": {
+      "start_s": 50,
+      "end_s": 55,
+      "text": "That's $1 MILLION flowing to 'WATER' without one public vote on the total.",
+      "on_screen": "JUST UNDER \u00b7 NO VOTE? \u00b7 YOUR MONEY"
+    },
+    "action": {
+      "start_s": 55,
+      "end_s": 60,
+      "text": "Subscribe if you want your county audited next. Drop the name below.",
+      "on_screen": "TAG THEM \u00b7 SHARE \u00b7 YOUR COUNTY"
+    }
+  },
+  "word_count": 113,
+  "disclaimer": "Patterns in public financial records only. Not an allegation of crime or wrongdoing.",
+  "playbook": {
+    "id": "threshold_evasion",
+    "trigger_phrases": [
+      "They thought you wouldn't check \u2014",
+      "I ran the math on",
+      "The county's own public records show",
+      "Forensic accountants call this"
+    ],
+    "psychology_rule": "Never start with the data. Start with the intent behind the data."
+  },
+  "scribe": {
+    "schema": "reclaw.viral_scribe.v1",
+    "framework": "HHVCTA",
+    "role": "Viral Scribe",
+    "hook_text": "Forensic accountants call this why did Gibson send 69 payments to 'WATER' \u2014 each just under $50,000? The public checkbook shows the pattern.",
+    "script_body": [
+      {
+        "scene": "HOOK",
+        "hhvcta": "hook",
+        "start_s": 0,
+        "end_s": 3,
+        "duration_s": 3,
+        "spoken_script": "Forensic accountants call this why did Gibson send 69 payments to 'WATER' \u2014 each just under $50,000? The public checkbook shows the pattern.",
+        "on_screen_text": [
+          "1 MILLION",
+          "JUST UNDER"
+        ],
+        "visual_directives": [
+          "Show receipt_flash_under_threshold",
+          "Flash on-screen: JUST UNDER THE LIMIT?",
+          "receipt_flash_under_threshold",
+          "rapid_receipt_flash"
+        ]
+      },
+      {
+        "scene": "HINT",
+        "hhvcta": "hint",
+        "start_s": 3,
+        "end_s": 6,
+        "duration_s": 3,
+        "spoken_script": "Forensic accountants flag exactly this \u2014 and the data is sitting in plain sight.",
+        "on_screen_text": [
+          "PATTERN FOUND",
+          "CHECK THIS",
+          "PUBLIC DATA"
+        ],
+        "visual_directives": [
+          "receipt_flash_under_threshold",
+          "rapid_receipt_flash"
+        ]
+      },
+      {
+        "scene": "VALUE",
+        "hhvcta": "value",
+        "start_s": 6,
+        "end_s": 45,
+        "duration_s": 39,
+        "spoken_script": "Indiana law says big purchases need a public vote. Watch what happens when someone writes many checks just under the limit \u2014 same vendor, same year, no single line big enough to trigger oversight. The flagged line: Gibson FY2024: 'WATER' received 69 disbursements each under $49,999, totaling $1,037,673 \u2014 possible bid-threshold splitting (IC 36-1-12-19 pattern). Could be innocent \u2014 but it's public money and the explanation should be on the record.",
+        "on_screen_text": [
+          "JUST UNDER",
+          "NO VOTE?",
+          "YOUR MONEY"
+        ],
+        "visual_directives": [
+          "Highlight vendor 'WATER'",
+          "Bar chart spike",
+          "Scroll raw data table"
+        ]
+      },
+      {
+        "scene": "CREDIBILITY",
+        "hhvcta": "credibility",
+        "start_s": 45,
+        "end_s": 50,
+        "duration_s": 5,
+        "spoken_script": "This is pulled directly from Forensic accountants call this gibson wrote 69 checks to 'WATER' \u2014 each just under $50,000. Public record. Source: publ \u2014 Gibson public record, not rumor.",
+        "on_screen_text": [
+          "SOURCE",
+          "VERIFY IT",
+          "GIBSON"
+        ],
+        "visual_directives": [
+          "Screenshot open data portal",
+          "Highlight source URL",
+          "Show export timestamp"
+        ]
+      },
+      {
+        "scene": "TAKEAWAY",
+        "hhvcta": "takeaway",
+        "start_s": 50,
+        "end_s": 55,
+        "duration_s": 5,
+        "spoken_script": "That's $1 MILLION flowing to 'WATER' without one public vote on the total.",
+        "on_screen_text": [
+          "JUST UNDER",
+          "NO VOTE?",
+          "YOUR MONEY"
+        ],
+        "visual_directives": [
+          "receipt_flash_under_threshold",
+          "rapid_receipt_flash"
+        ]
+      },
+      {
+        "scene": "ACTION",
+        "hhvcta": "action",
+        "start_s": 55,
+        "end_s": 60,
+        "duration_s": 5,
+        "spoken_script": "Subscribe if you want your county audited next. Drop the name below.",
+        "on_screen_text": [
+          "TAG THEM",
+          "SHARE",
+          "YOUR COUNTY"
+        ],
+        "visual_directives": [
+          "CTA subscribe card",
+          "Comment prompt overlay",
+          "Red border pulse"
+        ]
+      }
+    ],
+    "on_screen_text": [
+      "1 MILLION",
+      "JUST UNDER",
+      "PATTERN FOUND",
+      "CHECK THIS",
+      "PUBLIC DATA",
+      "NO VOTE?",
+      "YOUR MONEY",
+      "SOURCE",
+      "VERIFY IT",
+      "GIBSON",
+      "TAG THEM",
+      "SHARE"
+    ],
+    "visual_directives": [
+      "Show receipt_flash_under_threshold",
+      "Flash on-screen: JUST UNDER THE LIMIT?",
+      "receipt_flash_under_threshold",
+      "rapid_receipt_flash",
+      "Highlight vendor 'WATER'",
+      "Bar chart spike",
+      "Scroll raw data table"
+    ],
+    "metadata": {
+      "generated_at": "2026-07-07T05:22:25.058015+00:00",
+      "jurisdiction": "Gibson",
+      "place": "Gibson",
+      "emotional_filter": "smurfing",
+      "playbook_key": "smurfing",
+      "duration_s": 60,
+      "review_id": "review-8594a77f9de5"
+    },
+    "anomaly": {
+      "category": "split_purchase",
+      "severity": "high",
+      "description": "Gibson FY2024: 'WATER' received 69 disbursements each under $49,999, totaling $1,037,673 \u2014 possible bid-threshold splitting (IC 36-1-12-19 pattern).",
+      "data_point": "$1 MILLION",
+      "vendor": "WATER",
+      "provenance": "Forensic accountants call this gibson wrote 69 checks to 'WATER' \u2014 each just under $50,000. Public record.  Source: publ",
+      "evidence": "{\"vendor\": \"WATER\", \"tx_count\": 69, \"total\": 1037672.64, \"year\": 2024, \"source\": \"gateway\", \"statute\": \"IC 36-1-12-19\"}"
+    },
+    "copy": {
+      "hook": "Forensic accountants call this why did Gibson send 69 payments to 'WATER' \u2014 each just under $50,000? The public checkbook shows the pattern.",
+      "hint": "Forensic accountants flag exactly this \u2014 and the data is sitting in plain sight.",
+      "value": "Indiana law says big purchases need a public vote. Watch what happens when someone writes many checks just under the limit \u2014 same vendor, same year, no single line big enough to trigger oversight. The flagged line: Gibson FY2024: 'WATER' received 69 disbursements each under $49,999, totaling $1,037,673 \u2014 possible bid-threshold splitting (IC 36-1-12-19 pattern). Could be innocent \u2014 but it's public money and the explanation should be on the record.",
+      "credibility": "This is pulled directly from Forensic accountants call this gibson wrote 69 checks to 'WATER' \u2014 each just under $50,000. Public record. Source: publ \u2014 Gibson public record, not rumor.",
+      "takeaway": "That's $1 MILLION flowing to 'WATER' without one public vote on the total.",
+      "action": "Subscribe if you want your county audited next. Drop the name below."
+    },
+    "disclaimer": "Patterns in public financial records only. Not an allegation of crime or wrongdoing.",
+    "playbook": {
+      "playbook_id": "threshold_evasion",
+      "visual_asset": "receipt_flash_under_threshold",
+      "vfx": "rapid_receipt_flash",
+      "text_overlay": "JUST UNDER THE LIMIT?"
+    },
+    "trigger_phrases": [
+      "They thought you wouldn't check \u2014",
+      "I ran the math on",
+      "The county's own public records show",
+      "Forensic accountants call this"
+    ]
+  },
+  "hook_text": "Forensic accountants call this why did Gibson send 69 payments to 'WATER' \u2014 each just under $50,000? The public checkbook shows the pattern.",
+  "script_body": [
+    {
+      "scene": "HOOK",
+      "hhvcta": "hook",
+      "start_s": 0,
+      "end_s": 3,
+      "duration_s": 3,
+      "spoken_script": "Forensic accountants call this why did Gibson send 69 payments to 'WATER' \u2014 each just under $50,000? The public checkbook shows the pattern.",
+      "on_screen_text": [
+        "1 MILLION",
+        "JUST UNDER"
+      ],
+      "visual_directives": [
+        "Show receipt_flash_under_threshold",
+        "Flash on-screen: JUST UNDER THE LIMIT?",
+        "receipt_flash_under_threshold",
+        "rapid_receipt_flash"
+      ]
+    },
+    {
+      "scene": "HINT",
+      "hhvcta": "hint",
+      "start_s": 3,
+      "end_s": 6,
+      "duration_s": 3,
+      "spoken_script": "Forensic accountants flag exactly this \u2014 and the data is sitting in plain sight.",
+      "on_screen_text": [
+        "PATTERN FOUND",
+        "CHECK THIS",
+        "PUBLIC DATA"
+      ],
+      "visual_directives": [
+        "receipt_flash_under_threshold",
+        "rapid_receipt_flash"
+      ]
+    },
+    {
+      "scene": "VALUE",
+      "hhvcta": "value",
+      "start_s": 6,
+      "end_s": 45,
+      "duration_s": 39,
+      "spoken_script": "Indiana law says big purchases need a public vote. Watch what happens when someone writes many checks just under the limit \u2014 same vendor, same year, no single line big enough to trigger oversight. The flagged line: Gibson FY2024: 'WATER' received 69 disbursements each under $49,999, totaling $1,037,673 \u2014 possible bid-threshold splitting (IC 36-1-12-19 pattern). Could be innocent \u2014 but it's public money and the explanation should be on the record.",
+      "on_screen_text": [
+        "JUST UNDER",
+        "NO VOTE?",
+        "YOUR MONEY"
+      ],
+      "visual_directives": [
+        "Highlight vendor 'WATER'",
+        "Bar chart spike",
+        "Scroll raw data table"
+      ]
+    },
+    {
+      "scene": "CREDIBILITY",
+      "hhvcta": "credibility",
+      "start_s": 45,
+      "end_s": 50,
+      "duration_s": 5,
+      "spoken_script": "This is pulled directly from Forensic accountants call this gibson wrote 69 checks to 'WATER' \u2014 each just under $50,000. Public record. Source: publ \u2014 Gibson public record, not rumor.",
+      "on_screen_text": [
+        "SOURCE",
+        "VERIFY IT",
+        "GIBSON"
+      ],
+      "visual_directives": [
+        "Screenshot open data portal",
+        "Highlight source URL",
+        "Show export timestamp"
+      ]
+    },
+    {
+      "scene": "TAKEAWAY",
+      "hhvcta": "takeaway",
+      "start_s": 50,
+      "end_s": 55,
+      "duration_s": 5,
+      "spoken_script": "That's $1 MILLION flowing to 'WATER' without one public vote on the total.",
+      "on_screen_text": [
+        "JUST UNDER",
+        "NO VOTE?",
+        "YOUR MONEY"
+      ],
+      "visual_directives": [
+        "receipt_flash_under_threshold",
+        "rapid_receipt_flash"
+      ]
+    },
+    {
+      "scene": "ACTION",
+      "hhvcta": "action",
+      "start_s": 55,
+      "end_s": 60,
+      "duration_s": 5,
+      "spoken_script": "Subscribe if you want your county audited next. Drop the name below.",
+      "on_screen_text": [
+        "TAG THEM",
+        "SHARE",
+        "YOUR COUNTY"
+      ],
+      "visual_directives": [
+        "CTA subscribe card",
+        "Comment prompt overlay",
+        "Red border pulse"
+      ]
+    }
+  ],
+  "on_screen_text": [
+    "1 MILLION",
+    "JUST UNDER",
+    "PATTERN FOUND",
+    "CHECK THIS",
+    "PUBLIC DATA",
+    "NO VOTE?",
+    "YOUR MONEY",
+    "SOURCE",
+    "VERIFY IT",
+    "GIBSON",
+    "TAG THEM",
+    "SHARE"
+  ],
+  "visual_directives": [
+    "Show receipt_flash_under_threshold",
+    "Flash on-screen: JUST UNDER THE LIMIT?",
+    "receipt_flash_under_threshold",
+    "rapid_receipt_flash",
+    "Highlight vendor 'WATER'",
+    "Bar chart spike",
+    "Scroll raw data table"
+  ]
+}
