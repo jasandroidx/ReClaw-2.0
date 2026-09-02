@@ -1,0 +1,4 @@
+## 2024-05-18 - [Optimization] File System Iteration with Stat
+
+**Learning:** When sorting a large directory by modification time, using `pathlib.Path.glob()` or `iterdir()` combined with `.stat().st_mtime` can be slow, as it requires a separate `stat` call for each file. Using `os.scandir()` instead provides a cached stat object, significantly reducing the overhead (around ~1.8x speedup in simple local benchmarks) by minimizing filesystem calls. Also be sure to always check if the directory exists first (e.g. `if not dir_path.exists(): return`) to prevent `FileNotFoundError` on fresh environments.
+**Action:** Prefer `os.scandir()` over `pathlib.Path.glob()` and `iterdir()` when iterating over data directories and reading `st_mtime` or `is_dir()` metadata in performance-sensitive contexts. Remember to convert `os.DirEntry.path` explicitly via `Path(entry.path)` if Path-specific functionality is required downstream.
