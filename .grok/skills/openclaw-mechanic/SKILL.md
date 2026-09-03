@@ -18,7 +18,7 @@ description: "Fix, deploy, wire, upgrade Fortress (OpenClaw/ReClaw/Docker/MCP)."
 | “Best way to run/add X on this stack” | Pure product Story Factory design without ops |
 | User says mechanic / reclaw-build / fix the stack | |
 
-If status is unclear before a fix: **REQUIRED SUB-SKILL:** `ravenstack-sitrep` (or `project_sitrep`) first.
+If status is unclear before a fix: **REQUIRED SUB-SKILL:** `ravenstack-sitrep` first (never `project_sitrep` — it returns nothing).
 
 ## Non-negotiables
 
@@ -28,12 +28,12 @@ If status is unclear before a fix: **REQUIRED SUB-SKILL:** `ravenstack-sitrep` (
 4. **Ownership** — after root writes under `~/.openclaw`, `chown 1000:1000` (linuxbrew) so container can read.
 5. **Secrets** — never print full API keys/tokens. Prefer auth profiles over pasting keys.
 6. **County freeze** — do not run-next/unfreeze queue unless Jason explicitly unfreezes Story Factory.
-7. **Delivery** — “send it to me” / outbox → `/root/outbox` + `http://100.108.130.82:8765/`. Email only if asked.
+7. **Delivery** — “send it to me” / outbox → `/root/outbox` + `https://openclaw.tail20a090.ts.net:8765/`. Email only if asked.
 
 ## Procedure (every ops task)
 
 1. **Classify** — fix / wire / upgrade / advise / deploy.
-2. **Sitrep if unclear** — `reclaw-platform__project_sitrep` or skill `ravenstack-sitrep`.
+2. **Sitrep if unclear** — skill `ravenstack-sitrep` (never `project_sitrep` — hangs 60s, returns nothing).
 2b. **Known breakage** — grep `Ravenstack/ops/incidents/INDEX.md` (or `query_knowledge`) for the symptom **before** mutating. After a real fix, add/update a card.
 3. **Backup** — timestamped copy of `openclaw.json` (or other target) before change.
 4. **Mutate least** — prefer `docker exec openclaw-gateway openclaw …` (matches 2026.7.x) over host CLI.
@@ -49,15 +49,15 @@ Full commands: `references/runbooks.md`.
 | Gateway | `cd /root/ReClaw-2.0 && docker compose ps` · `bash scripts/ensure-single-openclaw.sh` · restart only compose service |
 | Devices/nodes | `docker exec openclaw-gateway openclaw devices list` · `approve <id>` · same for `nodes approve` |
 | Models/auth | `models status` (live) · `models auth paste-api-key` via stdin/env · never echo keys · do not trust skill-text model ladders |
-| MCP tunnel | `systemctl status reclaw-mcp-bridge reclaw-mcp-tunnel` · public URL SOT `data/mcp_public_url.txt` |
+| MCP tunnel | `systemctl status reclaw-platform-mcp` · public URL SOT `data/mcp_public_url.txt` |
 | Config edit | backup → edit → `chown 1000:1000` → `config validate` → restart if needed |
 
 ## Paths (anchors)
 
-- Repo: `/root/ReClaw-2.0` (branch often `backup-2026-07-07` — check git)
+- Repo: `/root/ReClaw-2.0` (branch `main` — always check git, do not trust this line)
 - Vault: `/root/obsidian_vault/Ravenstack/` · first-read `wiki/hot.md`
 - OpenClaw state: `/root/.openclaw/` · workspace Raziel SOUL
-- Outbox: `/root/outbox` → `http://100.108.130.82:8765/`
+- Outbox: `/root/outbox` → `https://openclaw.tail20a090.ts.net:8765/`
 
 Stack map / MCP planes: vault `mcp-connector.md` + `references/runbooks.md` (not frozen model lists).
 

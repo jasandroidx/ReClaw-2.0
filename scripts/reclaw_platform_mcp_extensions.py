@@ -6,6 +6,7 @@ Keeps reclaw_platform_mcp_server.py readable while expanding operator tools.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -13,6 +14,8 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
+
+from mcp.server.fastmcp import Context
 
 
 def register_extensions(
@@ -132,30 +135,27 @@ def register_extensions(
             "bridge_unit": bridge,
             "listen_line": listen[:200] if listen else None,
         }
-        public_health = ""
-        public_code = ""
-        if public:
-            base = public[:-4] if public.endswith("/mcp") else public.rstrip("/")
-            # Public cloudflared path is external — OK to probe (not this process socket).
-            proc = subprocess.run(
-                ["curl", "-sS", "-o", "/tmp/mcp_pub_health.json", "-w", "%{http_code}", "-m", "8", f"{base}/health"],
-                capture_output=True,
-                text=True,
-                timeout=15,
-            )
-            public_code = (proc.stdout or "").strip()
-            try:
-                public_health = Path("/tmp/mcp_pub_health.json").read_text(encoding="utf-8")[:300]
-            except OSError:
-                public_health = ""
+        # Do NOT curl the public URL here either: Funnel proxies /rk7m2q9x back to
+        # 127.0.0.1:8100 -- this same process. A sync tool handler blocking on that
+        # curl is a genuine circular wait (it can't accept the inbound connection
+        # its own curl is trying to open), not just "slow". Verify reachability
+        # from a separate process/shell instead of self-probing in a tool call.
+        public_health = None
+        public_code = None
+        public_probe_note = (
+            "not probed from within this tool call -- self-probe would deadlock "
+            "the single-worker event loop (see comment above); verify externally: "
+            f"curl -m 8 {public.rstrip('/')}/health" if public else None
+        )
 
         out = {
             "as_of": _now(),
             "local_health": local,
             "public_url": public or None,
             "public_url_ends_with_mcp": public.endswith("/mcp") if public else False,
-            "public_health_http": public_code or None,
-            "public_health_body": public_health or None,
+            "public_health_http": public_code,
+            "public_health_body": public_health,
+            "public_health_note": public_probe_note,
             "tunnel_host_file": tunnel_host or None,
             "systemd": {
                 "reclaw-mcp-bridge": bridge,
@@ -269,8 +269,7 @@ def register_extensions(
 
         return "\n".join(lines)
 
-    @mcp.tool()
-    def morning_digest(write_to_vault: bool = False) -> str:
+    def _morning_digest_sync(write_to_vault: bool = False) -> str:
         """Phase B morning operator digest: sitrep + queue + top actions + suggested (not executed) auto-actions.
 
         write_to_vault=True writes Ravenstack/ops/morning-digest-YYYY-MM-DD.md (explicit intent only).
@@ -427,6 +426,28 @@ def register_extensions(
             pass
 
         return digest + written
+
+    @mcp.tool()
+    async def morning_digest(
+        write_to_vault: bool = False,
+        background: bool = False,
+        ctx: Context | None = None,
+    ) -> str:
+        """Phase B morning operator digest: sitrep + queue + top actions + suggested (not executed) auto-actions.
+
+        write_to_vault=True writes Ravenstack/ops/morning-digest-YYYY-MM-DD.md (explicit intent only).
+        background=true returns a task id immediately: started task <id>, poll with
+        mcp_task_status. Fetch with mcp_task_result.
+        """
+        from mcp_background_tasks import submit_or_run
+
+        async def work(report):
+            await report(0, 1, "building morning digest")
+            text = await asyncio.to_thread(_morning_digest_sync, write_to_vault)
+            await report(1, 1, "digest ready")
+            return text
+
+        return await submit_or_run("morning_digest", background, work, ctx)
 
     # --- Tier B -------------------------------------------------------------
 
@@ -780,9 +801,12 @@ def register_extensions(
         return issues
 
     @mcp.tool()
-    def github_gap_suggestions() -> str:
+    async def github_gap_suggestions() -> str:
         """Map live sitrep gaps to suggested GitHub issue titles (does NOT create issues)."""
-        issues = _collect_gap_issues()
+        # _collect_gap_issues() runs project_sitrep's raw ~15-step sync gatherer
+        # (30-90s). Offload to a thread so it doesn't block the single-worker
+        # event loop (and therefore /health and every other in-flight request).
+        issues = await asyncio.to_thread(_collect_gap_issues)
         if not issues:
             issues = [
                 {
@@ -803,7 +827,7 @@ def register_extensions(
         return json.dumps(out, indent=2)
 
     @mcp.tool()
-    def file_github_gaps(
+    async def file_github_gaps(
         confirm: bool = False,
         repo: str = "jasandroidx/ReClaw-2.0",
         dry_run: bool = False,
@@ -821,51 +845,35 @@ def register_extensions(
         if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
             return "invalid repo (use owner/name)"
 
-        issues = _collect_gap_issues()
-        if not issues:
-            return json.dumps({"created": [], "skipped": [], "note": "no gaps"}, indent=2)
+        # Everything below is blocking (sitrep gather + up to max_issues sequential
+        # `gh` subprocess calls, 60s timeout each). Run it in a thread so it can't
+        # block the single-worker event loop / /health while it runs.
+        def _do_file_gaps() -> str:
+            issues = _collect_gap_issues()
+            if not issues:
+                return json.dumps({"created": [], "skipped": [], "note": "no gaps"}, indent=2)
 
-        # open issue titles for dedupe
-        list_raw = run(
-            ["gh", "issue", "list", "-R", repo, "--state", "open", "--limit", "50", "--json", "number,title"]
-        )
-        open_titles: list[str] = []
-        if list_raw and not list_raw.startswith("error:"):
-            try:
-                open_titles = [x.get("title") or "" for x in json.loads(list_raw)]
-            except json.JSONDecodeError:
-                pass
-
-        created = []
-        skipped = []
-        for issue in issues[:max_issues]:
-            title = issue["title"]
-            if any(title.lower() == (t or "").lower() or title.lower() in (t or "").lower() for t in open_titles):
-                skipped.append({"title": title, "reason": "similar open issue exists"})
-                continue
-            if dry_run:
-                created.append({"title": title, "dry_run": True})
-                continue
-            proc = subprocess.run(
-                [
-                    "gh",
-                    "issue",
-                    "create",
-                    "-R",
-                    repo,
-                    "--title",
-                    title,
-                    "--body",
-                    issue.get("body") or title,
-                    "--label",
-                    "needs-triage",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=60,
+            # open issue titles for dedupe
+            list_raw = run(
+                ["gh", "issue", "list", "-R", repo, "--state", "open", "--limit", "50", "--json", "number,title"]
             )
-            if proc.returncode != 0:
-                # labels may not exist — retry without label
+            open_titles: list[str] = []
+            if list_raw and not list_raw.startswith("error:"):
+                try:
+                    open_titles = [x.get("title") or "" for x in json.loads(list_raw)]
+                except json.JSONDecodeError:
+                    pass
+
+            created = []
+            skipped = []
+            for issue in issues[:max_issues]:
+                title = issue["title"]
+                if any(title.lower() == (t or "").lower() or title.lower() in (t or "").lower() for t in open_titles):
+                    skipped.append({"title": title, "reason": "similar open issue exists"})
+                    continue
+                if dry_run:
+                    created.append({"title": title, "dry_run": True})
+                    continue
                 proc = subprocess.run(
                     [
                         "gh",
@@ -877,31 +885,53 @@ def register_extensions(
                         title,
                         "--body",
                         issue.get("body") or title,
+                        "--label",
+                        "needs-triage",
                     ],
                     capture_output=True,
                     text=True,
                     timeout=60,
                 )
-            if proc.returncode == 0:
-                created.append({"title": title, "url": (proc.stdout or "").strip()})
-            else:
-                skipped.append(
-                    {
-                        "title": title,
-                        "reason": (proc.stderr or proc.stdout or "gh failed")[:300],
-                    }
-                )
+                if proc.returncode != 0:
+                    # labels may not exist — retry without label
+                    proc = subprocess.run(
+                        [
+                            "gh",
+                            "issue",
+                            "create",
+                            "-R",
+                            repo,
+                            "--title",
+                            title,
+                            "--body",
+                            issue.get("body") or title,
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=60,
+                    )
+                if proc.returncode == 0:
+                    created.append({"title": title, "url": (proc.stdout or "").strip()})
+                else:
+                    skipped.append(
+                        {
+                            "title": title,
+                            "reason": (proc.stderr or proc.stdout or "gh failed")[:300],
+                        }
+                    )
 
-        return json.dumps(
-            {
-                "as_of": _now(),
-                "repo": repo,
-                "dry_run": dry_run,
-                "created": created,
-                "skipped": skipped,
-            },
-            indent=2,
-        )
+            return json.dumps(
+                {
+                    "as_of": _now(),
+                    "repo": repo,
+                    "dry_run": dry_run,
+                    "created": created,
+                    "skipped": skipped,
+                },
+                indent=2,
+            )
+
+        return await asyncio.to_thread(_do_file_gaps)
 
     @mcp.tool()
     def skill_stack_map() -> str:

@@ -35,8 +35,8 @@ Client (Grok Build / grok.com / Tailnet device)
 
 | Layer | Detail |
 |-------|--------|
-| Bridge | systemd `reclaw-mcp-bridge` → `scripts/run-reclaw-mcp-bridge.sh` |
-| Public tunnel | systemd `reclaw-mcp-tunnel` → cloudflared → `http://127.0.0.1:8100` |
+| Bridge | systemd `reclaw-platform-mcp` → `scripts/reclaw_platform_mcp_server.py` |
+| Public tunnel | Tailscale Funnel :443 `/rk7m2q9x` → `http://127.0.0.1:8100` (`reclaw-mcp-tunnel`/cloudflared retired) |
 | Public URL SOT | `data/mcp_public_url.txt` (**gitignored**; hostnames rotate) |
 | Tunnel host allowlist | `data/mcp_tunnel_host.txt` (gitignored) |
 

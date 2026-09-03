@@ -1,7 +1,7 @@
 [Unit]
 Description=ReClaw MCP public tunnel (cloudflared → :8100 for grok.com)
-After=network-online.target reclaw-mcp-bridge.service
-Wants=reclaw-mcp-bridge.service
+After=network-online.target reclaw-platform-mcp.service
+Wants=reclaw-platform-mcp.service
 
 [Service]
 Type=simple

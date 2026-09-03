@@ -14,6 +14,7 @@ Run HTTP bridge (tailnet only):
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -33,7 +34,7 @@ os.environ.setdefault("RECLAW_OBSIDIAN_VAULT_PATH", str(VAULT))
 
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 
@@ -141,6 +142,10 @@ mcp = FastMCP(
         "OPERATOR GUIDE: connector_guide or skill_stack_map. "
         "Also: pipeline_status, inspect_session, query_knowledge, connector_status, "
         "docker_status, openclaw_models, ollama_models, git_vault_status. "
+        "LONG TOOLS: project_sitrep, sitrep, morning_digest, rag_sync_vault, sleep_and_count "
+        "accept background=true — they return a task id immediately. Tell the user "
+        "'started task <id>, poll with mcp_task_status'. Fetch with mcp_task_result. "
+        "Default background=false still waits and returns the result in this call. "
         "Truth + provenance only. Prefer reads; gated writes need explicit human intent."
     ),
     # Bind loopback. Tailscale Serve owns :8100 on the tailnet IP; this
@@ -411,11 +416,25 @@ def run_pike_winslow(county: str = "Pike", area: str = "Winslow", write_obsidian
 
 
 @mcp.tool()
-def rag_sync_vault() -> str:
+async def rag_sync_vault(background: bool = False, ctx: Context | None = None) -> str:
     """Sync vault Markdown into RAG. Unchanged files are checksum-skipped.
     Not for dumping PDFs. Prefer POST /rag/ingest for one named file.
-    Full rebuild is for embedding-model change."""
-    return _curl(f"{GATEWAY}/rag/vault/sync", method="POST", timeout=600)
+    Full rebuild is for embedding-model change.
+
+    background=true returns a task id immediately (does not wait for the sync).
+    Then: started task <id>, poll with mcp_task_status. Fetch with mcp_task_result.
+    """
+    from mcp_background_tasks import submit_or_run
+
+    async def work(report):
+        await report(0, 1, "syncing vault into RAG")
+        raw = await asyncio.to_thread(
+            _curl, f"{GATEWAY}/rag/vault/sync", "POST", None, 600
+        )
+        await report(1, 1, "RAG vault sync finished")
+        return raw
+
+    return await submit_or_run("rag_sync_vault", background, work, ctx)
 
 
 @mcp.tool()
@@ -920,8 +939,7 @@ def _format_sitrep_plain(report: dict) -> str:
     return "\n".join(lines)
 
 
-@mcp.tool()
-def project_sitrep() -> str:
+def _project_sitrep_sync() -> str:
     """FULL live fortress status report in PLAIN ENGLISH — ready to show the user.
 
     Returns a complete markdown sitrep (every section summarized). Call with no arguments.
@@ -1501,11 +1519,36 @@ def project_sitrep() -> str:
     return body
 
 
+async def _sitrep_work(report):
+    await report(0, 1, "collecting fortress sitrep")
+    text = await asyncio.to_thread(_project_sitrep_sync)
+    await report(1, 1, "sitrep ready")
+    return text
+
 
 @mcp.tool()
-def sitrep() -> str:
-    """Same as project_sitrep: full plain-English fortress status. Call now; show user the result."""
-    return project_sitrep()
+async def project_sitrep(background: bool = False, ctx: Context | None = None) -> str:
+    """FULL live fortress status report in PLAIN ENGLISH — ready to show the user.
+
+    Returns a complete markdown sitrep (every section summarized). Call with no arguments
+    (waits). background=true returns a task id immediately: started task <id>, poll
+    with mcp_task_status. Fetch with mcp_task_result.
+    Do NOT ask the user to paste into Grok Build. Do NOT return only JSON.
+    """
+    from mcp_background_tasks import submit_or_run
+
+    return await submit_or_run("project_sitrep", background, _sitrep_work, ctx)
+
+
+@mcp.tool()
+async def sitrep(background: bool = False, ctx: Context | None = None) -> str:
+    """Same as project_sitrep: full plain-English fortress status. Call now; show user the result.
+
+    background=true returns a task id immediately: started task <id>, poll with mcp_task_status.
+    """
+    from mcp_background_tasks import submit_or_run
+
+    return await submit_or_run("sitrep", background, _sitrep_work, ctx)
 
 
 @mcp.tool()
@@ -1546,6 +1589,10 @@ TOOL GROUPS:
   GATED (confirm=true): county_queue_approve, county_queue_reject, county_queue_run_next,
                         re_export_package, session_approve_capability, file_github_gaps
   Meta: connector_help, connector_guide, skill_stack_map, github_gap_suggestions
+  Background: sleep_and_count, mcp_task_status, mcp_task_result.
+              Long tools (project_sitrep, sitrep, morning_digest, rag_sync_vault,
+              sleep_and_count) accept background=true → started task <id>,
+              poll with mcp_task_status, fetch with mcp_task_result.
 
 Also available separately: ravenstack, reclaw-api, reclaw-fs, obsidian,
   Firecrawl, chrome-devtools, github, cloudflare-docs (stacked — not merged).
@@ -1554,7 +1601,41 @@ Also available separately: ravenstack, reclaw-api, reclaw-fs, obsidian,
 
 # Register Tier A–D operator tools (same package dir as this file)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mcp_background_tasks import result_snapshot, status_snapshot, submit_or_run  # noqa: E402
 from reclaw_platform_mcp_extensions import register_extensions  # noqa: E402
+
+
+@mcp.tool()
+async def sleep_and_count(seconds: int = 3, background: bool = False, ctx: Context | None = None) -> str:
+    """Dummy long tool for background-task checks. Caps at 30 seconds.
+
+    Default (background=false) waits and returns 'counted to N' from this tools/call.
+    background=true returns a task id immediately: started task <id>, poll with
+    mcp_task_status. Fetch with mcp_task_result.
+    """
+    n = max(1, min(int(seconds or 3), 30))
+
+    async def work(report):
+        await report(0, n, "starting")
+        for i in range(n):
+            await asyncio.sleep(1)
+            await report(i + 1, n, f"tick {i + 1}/{n}")
+        return f"counted to {n}"
+
+    return await submit_or_run("sleep_and_count", background, work, ctx)
+
+
+@mcp.tool()
+def mcp_task_status(task_id: str) -> str:
+    """Poll a background task started with background=true. Returns id, state, progress, message, created_at."""
+    return json.dumps(status_snapshot(task_id), indent=2)
+
+
+@mcp.tool()
+def mcp_task_result(task_id: str) -> str:
+    """Fetch a background task result (or error). No-op if still running."""
+    return json.dumps(result_snapshot(task_id), indent=2)
+
 
 register_extensions(
     mcp,
@@ -1568,7 +1649,7 @@ register_extensions(
     safe_path=_safe_path,
     safe_session_id=_safe_session_id,
     run=_run,
-    project_sitrep=project_sitrep,
+    project_sitrep=_project_sitrep_sync,
     pipeline_status=pipeline_status,
 )
 

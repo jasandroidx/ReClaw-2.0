@@ -231,6 +231,16 @@ class SecurityManager:
         granted_dir.mkdir(exist_ok=True)
         (granted_dir / f"{grant.id}.json").write_text(grant.model_dump_json(indent=2), encoding="utf-8")
         self.grants.append(grant)
+        # Clear any pending request(s) for this capability -- otherwise they sit
+        # in approvals_dir forever and get_pending_requests() keeps surfacing a
+        # gate that's already been granted.
+        for f in self.approvals_dir.glob("pending-*.json"):
+            try:
+                data = json.loads(f.read_text())
+            except (json.JSONDecodeError, OSError):
+                continue
+            if data.get("capability") == capability:
+                f.unlink(missing_ok=True)
         return grant
 
     def record_action(self, capability: str, details: dict[str, Any]) -> None:

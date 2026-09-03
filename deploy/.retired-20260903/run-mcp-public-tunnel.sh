@@ -21,6 +21,6 @@ cloudflared tunnel --url "http://127.0.0.1:8100" 2>&1 | while IFS= read -r line;
     echo "$url/mcp" >"$URL_FILE"
     echo "$host" >"$HOST_FILE"
     echo "[mcp-tunnel] grok.com connector URL: $url/mcp" >&2
-    systemctl restart reclaw-mcp-bridge 2>/dev/null || true
+    systemctl restart reclaw-platform-mcp 2>/dev/null || true
   fi
 done

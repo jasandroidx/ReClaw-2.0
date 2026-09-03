@@ -1004,7 +1004,6 @@ cp .env.example .env   # fill in locally, never commit
 
 | Gap | Impact | Fix |
 |-----|--------|-----|
-| MCP bridge not in systemd | Dies on reboot; grok.com tunnel breaks | `sudo cp deploy/reclaw-mcp-bridge.service /etc/systemd/system/ && sudo systemctl enable --now reclaw-mcp-bridge` |
 | grok.com needs public URL | Tailscale serve alone won't work for web UI | ngrok / cloudflared / Tailscale Funnel on `:8100` (see §12) |
 | RAG React dashboard not on port | No hosted RAG UI on compose | Add nginx/service for `dashboard/rag-dashboard/` |
 | Live Census ACS per county | `CENSUS_API_KEY` not in `.env` yet | Add key; falls back to embedded Pike census |

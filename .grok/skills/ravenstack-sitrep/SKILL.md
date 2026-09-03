@@ -5,95 +5,83 @@ description: "Live Fortress status: sitrep, stack health, queue, morning check."
 
 # Fortress Sitrep — full live status
 
-**Core principle:** Always probe live. Never invent health. **Fortress** = entire stack (OpenClaw + ReClaw + repo + Ravenstack + Docker + Tailscale + MCP + nodes) — not OpenClaw alone.
+**Core principle:** Always probe live. Never invent health. **Fortress** = entire stack
+(OpenClaw + ReClaw + repo + Ravenstack + Docker + Tailscale + MCP + nodes).
 
 **REQUIRED:** Call tools **this turn**. Prior sitrep text is not truth.
 
-## When to use / when not
+## HARD RULES
 
-| Use | Not this skill |
-|-----|----------------|
-| Status, sitrep, “what’s broken?”, morning check | **Fix/wire/deploy** → skill `openclaw-mechanic` |
-| Full fortress audit before a big decision | **County flags/scripts** → `county-audit` |
-| User says fortress status / stack status | Mutations (approve queue, restart) unless they ask after |
+1. **Never call `project_sitrep`, `sitrep`, or `github_gap_suggestions`.** Verified
+   2026-08-15 and 2026-09-03: they hang 60s+ and **return nothing**. Synchronous
+   mega-handlers on a single-worker server that self-probe :8100 from inside a request
+   that server is already serving.
+2. **Never run `scripts/post-deploy-healthcheck.sh` as an MCP fallback.** It runs
+   `openclaw mcp list` and can **deadlock** the single-worker server on :8100. The
+   fallback for "MCP is down" must not be capable of taking MCP down.
+3. Read the false alarms below BEFORE scoring anything.
+4. No mutations. No pipeline runs, approvals, or writes unless asked after.
 
-## Non-negotiables
+## Canonical facts — verify live, never from a doc
 
-1. **Always live** — call tools now.
-2. **MCP first** — `reclaw-platform__*` (fallback `ravenstack__*`). Shell only if MCP down.
-3. **One-shot full pass** — `project_sitrep` first (or `morning_digest` for SuperGrok brief). Fill holes only if thin/failed.
-4. **Show the report** — tool markdown is the answer; light rephrase only.
-5. **No mutations** — no pipeline run, approve, ingest, or write unless user asks after.
-6. **Gaps mandatory** — every degraded layer in blockers with severity.
-7. **Secrets** — never print gateway tokens or API keys.
+Source of truth: `/root/obsidian_vault/Ravenstack/ops/incidents/INDEX.md`
+
+- Live MCP unit: **`reclaw-platform-mcp.service`** (NOT `reclaw-mcp-bridge`)
+- Tailnet IP: **`100.85.152.115`** (`100.108.130.82` is dead)
+- Repo branch: **`main`** (docs saying `ravenstack` are wrong)
+- Outbox: `https://openclaw.tail20a090.ts.net:8765/`
+- Serve is HTTPS — never plain `http://100.x:port`
+
+## Known false alarms — do NOT report these as outages
+
+| Reads as | Actually |
+|---|---|
+| `mcp_bridge_unit: inactive` | Probe checks a renamed unit. Confirm `systemctl is-active reclaw-platform-mcp`. |
+| `mcp_tunnel_unit: inactive` | By design — quick tunnel disabled, public plane is Tailscale Funnel. |
+| `public_health_http: 000` | Self-probe deadlock. Verify from off-box. |
+| `dashboard_status` mcp down / PARTIAL | Same self-probe bug. If any tool answered, MCP is up. |
+| Pending `compliance_audit` gate | Real unanswered request — HIGH risk, deliberately not auto-granted. Open decision, not breakage. |
+| PID on :8100 changed | Cron watchdog restarted it, likely tripped by your own tool burst. |
 
 ## Procedure
 
-### A — Primary (always)
+Call these **six in one parallel batch**:
 
-```
-reclaw-platform__project_sitrep
-```
+`stack_health` · `pipeline_status` · `pending_gates` · `git_vault_status` ·
+`dashboard_status` · `connector_status`
 
-(or `ravenstack__project_sitrep` / `sitrep`)
+Fill holes only if one fails: `docker_status`, `openclaw_health`, `reclaw_health`,
+`openclaw_models`, `inspect_session`.
 
-### B — Fill holes (only if A failed / empty)
+Fire the batch **once**. Re-firing to "double-check" is what trips the watchdog.
 
-| Layer | Tool |
-|-------|------|
-| Stack | `stack_health` |
-| Docker | `docker_status` |
-| OpenClaw | `openclaw_health` |
-| MCP | `connector_status` |
-| Pipeline | `pipeline_status` |
-| Session | `inspect_session` (empty id = latest) |
-| Git | `git_status` / `git_vault_status` |
-| Models | `openclaw_models` |
-
-### C — Shell fallback (MCP down only)
+## Shell fallback (MCP genuinely down only)
 
 ```bash
 cd /root/ReClaw-2.0
-./scripts/post-deploy-healthcheck.sh
 docker compose ps
+systemctl is-active reclaw-platform-mcp
+ss -ltnp | grep 8100
 tailscale status | head
-systemctl is-active reclaw-mcp-bridge reclaw-mcp-tunnel
-curl -sf http://127.0.0.1:8000/health
-curl -sf http://127.0.0.1:18789/health || true
+curl -sf -m 5 http://127.0.0.1:8000/health
+curl -sf -m 5 http://127.0.0.1:18789/health || true
 ```
 
-Mark report **DEGRADED (shell fallback)**.
+Mark the report **DEGRADED (shell fallback)**.
 
 ## Output
 
-1. Call `project_sitrep`.
-2. Present tool result (plain English sections).
-3. If tool failed: B/C then same coverage yourself.
-4. End with **top blockers + one next action** if not already clear.
+1. One-line verdict with UTC timestamp
+2. What is broken — RED/AMBER only, each with the tool output proving it
+3. Top blockers + one next action
+4. Green roll-up in a single line
 
-## Triggers
-
-| User says | You do |
-|-----------|--------|
-| sitrep / fortress sitrep / fortress status | Full `project_sitrep` |
-| /ravenstack-sitrep | same |
-| stack status / full analyze / is everything ok | same |
-| just API/docker health | `stack_health` or `docker_status` only if they scoped it |
+Do not dump raw JSON. Do not table everything that is fine.
 
 ## After sitrep (only if asked)
 
 | Ask | Action |
 |-----|--------|
-| Save to vault | `save_ravenstack_note` source=`sitrep` |
-| Fix what’s broken | Hand off to **`openclaw-mechanic`** (or run mechanic procedure) |
-| Put report in outbox | Write under `/root/outbox` → `http://100.108.130.82:8765/` |
-| Approve queue / run pipeline | Explicit human intent only |
-
-## Anti-patterns / red flags
-
-- Partial “API is fine” without Docker/Tailscale/MCP/queue/git/vault
-- Treating skill text or chat memory as live status
-- Dumping raw multi-page JSON
-- Auto-running pipeline or writes
-- Skipping gaps when queue is `awaiting_approval` or tunnel inactive
-- Claiming models/primary without probe
+| Save to vault | `write_vault_file` under `Ravenstack/ops/` |
+| Fix what's broken | Hand off to **`openclaw-mechanic`** |
+| Approve queue / run pipeline | Explicit human intent only — county is FROZEN |
