@@ -108,7 +108,7 @@ def main() -> int:
         if queue
         else None,
         "mcp_public_url_present": bool(public_url),
-        "bridge": _run(["systemctl", "is-active", "reclaw-mcp-bridge"]),
+        "bridge": _run(["systemctl", "is-active", "reclaw-platform-mcp"]),
         "tunnel": _run(["systemctl", "is-active", "reclaw-mcp-tunnel"]),
     }
 

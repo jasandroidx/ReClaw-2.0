@@ -117,7 +117,8 @@ def register_extensions(
         )
         # NEVER curl this process's own :8100 from inside a tool call — single-worker
         # streamable-http deadlocks (health/tool hang until client timeout).
-        bridge = run(["systemctl", "is-active", "reclaw-mcp-bridge"]).strip()
+        # Service was renamed to reclaw-platform-mcp; reclaw-mcp-bridge no longer exists.
+        bridge = run(["systemctl", "is-active", "reclaw-platform-mcp"]).strip()
         tunnel = run(["systemctl", "is-active", "reclaw-mcp-tunnel"]).strip()
         listen = run(
             ["bash", "-lc", "ss -tlnp 2>/dev/null | grep -F ':8100' | head -1 || true"]

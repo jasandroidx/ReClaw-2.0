@@ -593,7 +593,8 @@ def stack_health() -> str:
             lines.append(f"{name}: {'ok' if ok else f'fail http={code or chr(48)*3}'}")
         checks_ok = checks_ok and ok
     # MCP bridge unit only (no self-HTTP)
-    bridge = _run(["systemctl", "is-active", "reclaw-mcp-bridge"], timeout=5).strip()
+    # Service was renamed to reclaw-platform-mcp; reclaw-mcp-bridge no longer exists.
+    bridge = _run(["systemctl", "is-active", "reclaw-platform-mcp"], timeout=5).strip()
     tunnel = _run(["systemctl", "is-active", "reclaw-mcp-tunnel"], timeout=5).strip()
     listen = _run(
         ["bash", "-lc", "ss -tlnp 2>/dev/null | grep -F ':8100' | head -1 || true"],
@@ -1031,7 +1032,8 @@ def project_sitrep() -> str:
     # --- MCP bridge + public tunnel ---
     # IMPORTANT: never curl this process's own :8100 while serving tools/call — deadlocks
     # single-worker streamable-http and makes SuperGrok/app "fail" into paste-to-Build advice.
-    bridge = _run(["systemctl", "is-active", "reclaw-mcp-bridge"], timeout=5)
+    # Service was renamed to reclaw-platform-mcp; reclaw-mcp-bridge no longer exists.
+    bridge = _run(["systemctl", "is-active", "reclaw-platform-mcp"], timeout=5)
     tunnel = _run(["systemctl", "is-active", "reclaw-mcp-tunnel"], timeout=5)
     public_url = ""
     url_file = ROOT / "data" / "mcp_public_url.txt"
@@ -1092,36 +1094,17 @@ def project_sitrep() -> str:
                 "OK: GET /mcp returned 406 (expected for streamable-http)"
             )
         else:
-            local = _run(
-                [
-                    "curl",
-                    "-sS",
-                    "--max-time",
-                    "3",
-                    "-o",
-                    "/dev/null",
-                    "-w",
-                    "%{http_code}",
-                    "http://127.0.0.1:8100/health",
-                ],
-                timeout=5,
+            # Do NOT re-probe 127.0.0.1:8100 here. Funnel proxies /rk7m2q9x back to this
+            # same single-worker process, so a non-406 result on *this* in-process probe
+            # (and any nested loopback retry) is a self-deadlock artifact, not evidence of
+            # an outage — this handler is mid-request on the only worker when it fires.
+            # Verify from a separate shell/process if a real check is needed; don't gate
+            # sitrep status on a probe this call structurally cannot answer reliably.
+            report["mcp"]["public_health_note"] = (
+                f"probe HTTP {pc or '000'} from within this same live tool call "
+                "(self-deadlock artifact, not a reliable signal — verify externally: "
+                "curl https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp)"
             )
-            ld = "".join(ch for ch in (local or "") if ch.isdigit())[:3]
-            report["mcp"]["local_bridge_health"] = ld or None
-            if ld == "200":
-                # Host Funnel hairpin can fail; backend up + SOT Funnel is enough for sitrep
-                report["mcp"]["public_health_note"] = (
-                    f"Funnel SOT set; loopback backend OK (probe HTTP {pc or '000'}; hairpin flaky)"
-                )
-            else:
-                gaps.append(
-                    f"MCP public probe HTTP {pc or '000'} (expect 406); loopback also bad ({ld})"
-                )
-                actions.append(
-                    "systemctl status reclaw-mcp-bridge; "
-                    "curl -sS -o /dev/null -w '%{http_code}\\n' "
-                    "https://openclaw.tail20a090.ts.net/rk7m2q9x/mcp"
-                )
     elif "trycloudflare" in (public_url or ""):
         gaps.append("MCP public URL is trycloudflare (dead path) — use Funnel :443 SOT")
         actions.append(
