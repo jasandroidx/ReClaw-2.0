@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "action": { "type": "string" },
+    "confirm": { "type": "boolean" }
+  },
+  "if": {
+    "required": ["action"],
+    "properties": {
+      "action": { "enum": ["approve", "advance"] }
+    }
+  },
+  "then": {
+    "properties": {
+      "confirm": { "const": true }
+    },
+    "required": ["confirm"]
+  }
+}

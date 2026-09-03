@@ -1,0 +1,5 @@
+{
+  "tasks": [{"status": "live", "invented": false}],
+  "occupancy": "live",
+  "KEEP_PULSE_URL": "http://example.com"
+}
