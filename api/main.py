@@ -40,6 +40,7 @@ from core.handoff import ContentPackage, AgentEvent
 from core.session import create_session, Session
 from core.security import SecurityManager, DECLARED_CAPABILITIES
 from core.knowledge import KnowledgeManager  # Forces Oracle/Ravenstack rules on every gateway start
+from core.fs_utils import get_sorted_files_by_mtime
 
 app = FastAPI(title="ReClaw 2.0", version="2.0.0", description="General Agent Platform API (rural_data module + future domains)")
 
@@ -268,7 +269,7 @@ def get_job(job_id: str):
 @app.get("/jobs/latest")
 def latest_job():
     """Return metadata for the most recent run on disk."""
-    runs = sorted(settings.runs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    runs = get_sorted_files_by_mtime(settings.runs_dir, pattern="*.json")
     if not runs:
         return {"message": "No runs yet"}
     latest_path = runs[0]
@@ -292,7 +293,7 @@ def latest_job():
 def list_packages(limit: int = 20):
     """List recent completed packages from disk (lightweight index)."""
     items = []
-    for p in sorted(settings.runs_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+    for p in get_sorted_files_by_mtime(settings.runs_dir, limit=limit, pattern="*.json"):
         try:
             d = json.loads(p.read_text())
             items.append({
@@ -342,11 +343,7 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
-        sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )[:5]
+        sorted_sessions = get_sorted_files_by_mtime(sess_root, limit=5, directories_only=True)
 
         for sess_dir in sorted_sessions:
             recent_sessions.append({"session_id": sess_dir.name})
@@ -428,9 +425,8 @@ def list_sessions(limit: int = 20):
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+    for p in get_sorted_files_by_mtime(sess_root, limit=limit, directories_only=True):
+        items.append({"session_id": p.name, "path": str(p)})
     return {"count": len(items), "sessions": items}
 
 
