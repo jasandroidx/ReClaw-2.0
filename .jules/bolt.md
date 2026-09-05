@@ -1,0 +1,4 @@
+
+## $(date +%Y-%m-%d) - Optimize Directory Listing with os.scandir()
+**Learning:** In Python, using `pathlib.Path.glob("...")` or `iterdir()` paired with a sort key of `lambda p: p.stat().st_mtime` is inefficient because `p.stat()` triggers a separate system call for every file in the directory. `os.scandir()` provides a significantly faster alternative because it caches `stat()` attributes (like `st_mtime`) on many platforms when retrieving the directory entries, preventing excessive sys calls during the sort.
+**Action:** When scanning and sorting large directories by modification time, avoid `pathlib` with `stat()`. Instead, use `os.scandir()` to extract the `st_mtime` from the yielded `os.DirEntry` objects. For this ReClaw project, a centralized utility (`core.fs_utils.get_sorted_files_by_mtime`) was created and should be used going forward.
