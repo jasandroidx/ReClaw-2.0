@@ -1,0 +1,3 @@
+## 2026-09-06 - Optimized Directory Sorting by mtime
+**Learning:** Using `os.scandir()` instead of `pathlib.Path.glob()` combined with `.stat().st_mtime` provides a noticeable performance boost for sorting files by modification time, especially in directories with many files (e.g. sessions, runs). `os.scandir()` yields `os.DirEntry` objects which inherently cache `stat()` results under the hood on most systems, thereby avoiding individual `stat()` syscalls for every file.
+**Action:** When sorting files or directories by modification time or size in new feature development, default to using the centralized `core.fs_utils.get_sorted_files_by_mtime` helper function instead of raw `glob` or `iterdir`.

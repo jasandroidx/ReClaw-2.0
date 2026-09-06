@@ -16,6 +16,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+
+from core.fs_utils import get_sorted_files_by_mtime
+
 os.environ.setdefault("RECLAW_KNOWLEDGE_PATH", "/root/obsidian_vault/Ravenstack")
 os.environ.setdefault("RECLAW_OBSIDIAN_VAULT_PATH", "/root/obsidian_vault")
 
@@ -147,7 +150,7 @@ def list_recent_sessions(limit: int = 5) -> str:
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions dir"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    dirs = get_sorted_files_by_mtime(sessions, only_dirs=True)
     return "\n".join(d.name for d in dirs[:limit])
 
 
