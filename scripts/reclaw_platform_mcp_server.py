@@ -18,6 +18,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -142,6 +143,11 @@ mcp = FastMCP(
         "OPERATOR GUIDE: connector_guide or skill_stack_map. "
         "Also: pipeline_status, inspect_session, query_knowledge, connector_status, "
         "docker_status, openclaw_models, ollama_models, git_vault_status. "
+        "CODE WRITES: write_repo_file(repo='reclaw'|'keep', relative_path, content) writes a "
+        "file to disk only (sandboxed, refuses .git/, .env*, castle_map.json, secret-looking "
+        "content). git_commit_and_push(repo, message, paths, confirm=true) stages ONLY the "
+        "listed paths, commits, and pushes — GATED, confirm=false returns a dry-run diff and "
+        "commits nothing. Never call confirm=true without explicit human intent. "
         "LONG TOOLS: project_sitrep, sitrep, morning_digest, rag_sync_vault, sleep_and_count "
         "accept background=true — they return a task id immediately. Tell the user "
         "'started task <id>, poll with mcp_task_status'. Fetch with mcp_task_result. "
@@ -196,6 +202,41 @@ def _safe_path(base: Path, rel: str) -> Path:
     if not str(p).startswith(str(base.resolve())):
         raise ValueError(f"path escapes sandbox: {rel}")
     return p
+
+
+# --- Code repo write access (write_repo_file / git_commit_and_push) ---
+#
+# Two whitelisted repos only. No arbitrary paths, no OAuth dance — the gate is
+# confirm=true on the commit/push step, same pattern as county_queue_run_next /
+# session_approve_capability in reclaw_platform_mcp_extensions.py.
+REPO_ROOTS: dict[str, Path] = {
+    "reclaw": ROOT,
+    "keep": Path(os.environ.get("RAVENSTACK_KEEP_PATH", "/root/ravenstack-keep")),
+}
+
+# Deliberately broad: matches an assignment-shaped "key/token/secret/password = 'value'"
+# (covers Python, JSON, YAML, .env-style) or a PEM private-key header. This will refuse
+# some legitimate code that happens to match (e.g. a config schema literally named
+# API_KEY with a placeholder value) — that's the intended conservative trade-off for a
+# tool that can push to git. It does not flag mere mentions like os.environ.get("API_KEY")
+# or a comment that says "pass your token here" (no quoted value after '=' or ':').
+_SECRET_ASSIGN_RE = re.compile(
+    r"(?:api[_-]?key|secret|password|passwd|token)\s*[:=]\s*(['\"])(?=[^'\"\n]{6,})[^'\"\n]+\1",
+    re.IGNORECASE,
+)
+_PRIVATE_KEY_RE = re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----")
+
+
+def _looks_like_secret(text: str) -> bool:
+    return bool(_SECRET_ASSIGN_RE.search(text) or _PRIVATE_KEY_RE.search(text))
+
+
+def _repo_root(repo: str) -> Path | None:
+    return REPO_ROOTS.get((repo or "").strip().lower())
+
+
+def _git_run(cmd: list[str], cwd: Path, timeout: int = 30) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True, timeout=timeout)
 
 
 def _curl(url: str, method: str = "GET", body: dict | None = None, timeout: int = 120) -> str:
@@ -397,6 +438,154 @@ def read_repo_file(relative_path: str, max_chars: int = 12000) -> str:
     if not p.exists():
         return f"not found: {relative_path}"
     return p.read_text(encoding="utf-8", errors="replace")[:max_chars]
+
+
+@mcp.tool()
+def write_repo_file(repo: str, relative_path: str, content: str) -> str:
+    """Write or overwrite one code file under a whitelisted repo. Disk write ONLY —
+    no git add/commit/push here. Follow up with git_commit_and_push(confirm=true)
+    once you've inspected the result (e.g. via read_repo_file or a dry-run diff).
+
+    repo: "reclaw" (/root/ReClaw-2.0) or "keep" (/root/ravenstack-keep). No other
+    value is accepted — this never writes to an arbitrary path.
+
+    Refuses (and says exactly why) rather than silently no-op'ing:
+      - anything under .git/
+      - .env or .env.* files
+      - castle_map.json (spatial coordinates — do not alter blindly)
+      - content (new OR the file's existing content) that looks like a secret:
+        API key / token / secret / password assignment, or a PEM private-key header
+    """
+    base = _repo_root(repo)
+    if base is None:
+        return f"REFUSED: unknown repo '{repo}'. Use 'reclaw' or 'keep'."
+    try:
+        p = _safe_path(base, relative_path)
+    except ValueError as e:
+        return f"REFUSED: {e}"
+
+    parts = Path(relative_path).as_posix().lstrip("/").split("/")
+    basename = p.name
+
+    if ".git" in parts:
+        return f"REFUSED: path is under .git/ — {relative_path}"
+    if basename == ".env" or basename.startswith(".env."):
+        return f"REFUSED: refusing to write an env file — {relative_path}"
+    if basename == "castle_map.json":
+        return (
+            "REFUSED: castle_map.json holds spatial dashboard coordinates and has an "
+            f"explicit do-not-alter-blindly rule elsewhere in this stack — {relative_path}"
+        )
+    if _looks_like_secret(content):
+        return (
+            "REFUSED: new content matches a secret-looking pattern "
+            f"(key/token/secret/password assignment or private-key header) — {relative_path}"
+        )
+    if p.exists():
+        try:
+            existing = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            existing = ""
+        if _looks_like_secret(existing):
+            return f"REFUSED: existing file content matches a secret-looking pattern — {relative_path}"
+
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(content, encoding="utf-8")
+    return f"wrote {len(content)} chars → {p}"
+
+
+@mcp.tool()
+def git_commit_and_push(repo: str, message: str, paths: list[str], confirm: bool = False) -> str:
+    """GATE: stage, commit, and push an EXACT list of paths in a whitelisted repo.
+
+    repo: "reclaw" (/root/ReClaw-2.0) or "keep" (/root/ravenstack-keep).
+
+    confirm=false (default, dry run): stages nothing. Returns `git status --porcelain`
+    and `git diff --stat`, both scoped to exactly `paths` — inspect this before deciding
+    to commit. confirm=true required to actually add/commit/push.
+
+    Never runs `git add -A` or `git add .` — only the listed paths are staged, so
+    unrelated untracked files never ride along in the commit.
+
+    If push fails only because the branch has no upstream, retries once with
+    `git push --set-upstream origin <branch>` and says so in the result. Any other
+    failure (including commit-succeeded-but-push-failed) is reported exactly as that —
+    never rounded up to a plain success.
+    """
+    base = _repo_root(repo)
+    if base is None:
+        return f"REFUSED: unknown repo '{repo}'. Use 'reclaw' or 'keep'."
+    if not paths:
+        return "REFUSED: paths is empty — list the exact files to stage."
+
+    resolved = base.resolve()
+    rels: list[str] = []
+    for rel in paths:
+        try:
+            p = _safe_path(base, rel)
+        except ValueError as e:
+            return f"REFUSED: {e}"
+        rels.append(str(p.relative_to(resolved)))
+
+    if not confirm:
+        status = _git_run(["git", "status", "--porcelain", "--"] + rels, base, timeout=20)
+        diff = _git_run(["git", "diff", "--stat", "--"] + rels, base, timeout=30)
+        return (
+            "DRY RUN (confirm=false) — nothing staged, committed, or pushed.\n\n"
+            f"repo: {repo} ({base})\n"
+            f"paths: {rels}\n\n"
+            "## git status --porcelain (scoped to paths)\n"
+            f"{status.stdout.strip() or '(clean — no changes in these paths)'}\n\n"
+            "## git diff --stat (scoped to paths)\n"
+            f"{diff.stdout.strip() or '(no diff)'}\n\n"
+            "Call again with confirm=true to commit and push exactly these paths."
+        )
+
+    msg = (message or "").strip()
+    if not msg:
+        return "REFUSED: commit message is required."
+
+    add = _git_run(["git", "add", "--"] + rels, base, timeout=30)
+    if add.returncode != 0:
+        return f"BLOCKED at git add — nothing staged or committed. stderr: {add.stderr.strip()}"
+
+    commit = _git_run(["git", "commit", "-m", msg, "--"] + rels, base, timeout=30)
+    if commit.returncode != 0:
+        return (
+            "BLOCKED at git commit — staged but NOT committed, NOT pushed. "
+            f"stdout: {commit.stdout.strip()} stderr: {commit.stderr.strip()}"
+        )
+
+    commit_hash = _git_run(["git", "rev-parse", "--short", "HEAD"], base, timeout=10).stdout.strip() or "unknown"
+    branch = _git_run(["git", "rev-parse", "--abbrev-ref", "HEAD"], base, timeout=10).stdout.strip() or "unknown"
+
+    push = _git_run(["git", "push"], base, timeout=60)
+    if push.returncode != 0:
+        combined = (push.stdout or "") + (push.stderr or "")
+        if "set-upstream" in combined.lower() or "no upstream branch" in combined.lower():
+            retry = _git_run(["git", "push", "--set-upstream", "origin", branch], base, timeout=60)
+            if retry.returncode == 0:
+                return (
+                    f"COMMITTED and PUSHED (no upstream existed — set one). "
+                    f"commit={commit_hash} branch={branch}\n"
+                    f"push output (git push --set-upstream origin {branch}):\n"
+                    f"{retry.stdout.strip()}\n{retry.stderr.strip()}"
+                )
+            return (
+                f"COMMITTED but PUSH FAILED even after --set-upstream retry. "
+                f"commit={commit_hash} branch={branch}\n"
+                f"first push stderr: {push.stderr.strip()}\n"
+                f"retry stderr: {retry.stderr.strip()}"
+            )
+        return (
+            f"COMMITTED but PUSH FAILED. commit={commit_hash} branch={branch}\n"
+            f"stderr: {push.stderr.strip()}"
+        )
+
+    return (
+        f"COMMITTED and PUSHED. commit={commit_hash} branch={branch}\n"
+        f"push output: {push.stdout.strip()}\n{push.stderr.strip()}"
+    )
 
 
 # --- ReClaw pipeline ---
@@ -1583,11 +1772,13 @@ TOOL GROUPS:
   Knowledge: query_knowledge, read_oculai, list_knowledge_topics, read_vault_file,
              read_repo_file
   Models: openclaw_models, ollama_models, git_vault_status, git_status
-  Writes (intent): write_vault_file, save_ravenstack_note, ingest_to_ravenstack,
+  Writes (intent): write_vault_file, write_repo_file(repo='reclaw'|'keep'),
+                   save_ravenstack_note, ingest_to_ravenstack,
                    run_pike_winslow, rag_sync_vault, save_operator_decision,
                    morning_digest(write_to_vault=true)
   GATED (confirm=true): county_queue_approve, county_queue_reject, county_queue_run_next,
-                        re_export_package, session_approve_capability, file_github_gaps
+                        re_export_package, session_approve_capability, file_github_gaps,
+                        git_commit_and_push(repo, message, paths, confirm=true)
   Meta: connector_help, connector_guide, skill_stack_map, github_gap_suggestions
   Background: sleep_and_count, mcp_task_status, mcp_task_result.
               Long tools (project_sitrep, sitrep, morning_digest, rag_sync_vault,
