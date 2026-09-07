@@ -7,7 +7,12 @@ import json
 import os
 import subprocess
 from pathlib import Path
+import sys
 
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from core.fs_utils import get_sorted_files_by_mtime
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("reclaw-api")
@@ -108,8 +113,8 @@ def list_recent_sessions(limit: int = 5) -> str:
     sessions = REPO / "data" / "sessions"
     if not sessions.exists():
         return "no sessions dir"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-    return "\n".join(d.name for d in dirs[:limit])
+    dirs = get_sorted_files_by_mtime(sessions, reverse=True, limit=limit)
+    return "\n".join(d.name for d in dirs)
 
 
 if __name__ == "__main__":
