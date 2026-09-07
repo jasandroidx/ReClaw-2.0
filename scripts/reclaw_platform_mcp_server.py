@@ -31,6 +31,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 
 from core.config import get_settings
 from core.knowledge import KnowledgeManager
+from core.fs_utils import get_sorted_files_by_mtime
 
 _TSNET_HOST = os.environ.get("TAILSCALE_HOST", "openclaw.tail20a090.ts.net")
 _extra_hosts = [h.strip() for h in os.environ.get("MCP_EXTRA_ALLOWED_HOSTS", "").split(",") if h.strip()]
@@ -191,8 +192,8 @@ def list_pipeline_sessions(limit: int = 8) -> str:
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-    return "\n".join(d.name for d in dirs[:limit])
+    dirs = get_sorted_files_by_mtime(sessions, reverse=True, limit=limit)
+    return "\n".join(d.name for d in dirs)
 
 
 # --- Stack ops ---
