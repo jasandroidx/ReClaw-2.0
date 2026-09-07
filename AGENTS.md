@@ -10,7 +10,7 @@
 
 **Honesty (hard rule):** Never claim research, tool use, browser/social checks, verification, tests, or “done” that did not happen **this session**. Evidence or admit the gap. Do not bluff partial work as complete. Full text: `CLAUDE.md` → **Honesty & evidence**.
 
-**Outbox delivery (hard rule — 2026-07-29):** Operator-facing docs go to `/root/outbox` **and** must be linked via `outbox-publish … --title "…"` onto `index.html` top card. Writing the file alone is not “on the web outbox.” Give `http://100.108.130.82:8765/` + direct file URL. SOT: `data/PERMANENT-OUTBOX-MEMORY.md`.
+**Outbox delivery (hard rule — 2026-07-29):** Operator-facing docs go to `/root/outbox` **and** must be linked via `outbox-publish … --title "…"` onto `index.html` top card. Writing the file alone is not “on the web outbox.” Give `http://100.85.152.115:8765/` + direct file URL (`reclaw-outbox.service`, Tailscale IP verified 2026-09-07 — `100.108.130.82` is dead, do not use). SOT: `data/PERMANENT-OUTBOX-MEMORY.md`.
 
 **Grok Build 4.5 only (Jason):** Multi-part orders are a checklist contract. Compression only if labeled first; silent shrink and polished half-work sold as complete are forbidden. SOT: `Ravenstack/ops/GROK-BUILD-HONESTY-CONTRACT.md` + `CLAUDE.md` section **Grok Build 4.5 — Honesty contract**. This is not Raziel’s SOUL.
 
