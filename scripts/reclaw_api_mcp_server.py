@@ -9,6 +9,9 @@ import subprocess
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from core.fs_utils import get_sorted_files_by_mtime
 
 mcp = FastMCP("reclaw-api")
 GATEWAY = os.environ.get("RECLAW_GATEWAY_URL", "http://127.0.0.1:8000")
@@ -108,7 +111,7 @@ def list_recent_sessions(limit: int = 5) -> str:
     sessions = REPO / "data" / "sessions"
     if not sessions.exists():
         return "no sessions dir"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    dirs = get_sorted_files_by_mtime(sessions, directories_only=True)
     return "\n".join(d.name for d in dirs[:limit])
 
 
