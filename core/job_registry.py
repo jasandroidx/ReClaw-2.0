@@ -18,6 +18,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Any
+from core.fs_utils import get_sorted_glob_by_mtime
 
 log = logging.getLogger(__name__)
 
@@ -74,11 +75,7 @@ class JobRegistry:
 
     def list(self, limit: int = 20) -> list[dict[str, Any]]:
         """Return up to `limit` most-recently-modified job records."""
-        status_files = sorted(
-            self._dir.glob("*.status.json"),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )
+        status_files = get_sorted_glob_by_mtime(self._dir, "*.status.json")
         results = []
         for p in status_files[:limit]:
             try:
