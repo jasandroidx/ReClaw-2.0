@@ -29,6 +29,7 @@ from typing import Any
 from uuid import uuid4
 
 from core.job_registry import JobRegistry
+from core.fs_utils import get_sorted_dirs_by_mtime, get_sorted_glob_by_mtime
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Header, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -342,11 +343,7 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
-        sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )[:5]
+        sorted_sessions = get_sorted_dirs_by_mtime(sess_root)[:5]
 
         for sess_dir in sorted_sessions:
             recent_sessions.append({"session_id": sess_dir.name})
@@ -428,9 +425,10 @@ def list_sessions(limit: int = 20):
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
-        if p.is_dir():
-            items.append({"session_id": p.name, "path": str(p)})
+
+    sorted_dirs = get_sorted_dirs_by_mtime(sess_root)[:limit]
+    for p in sorted_dirs:
+        items.append({"session_id": p.name, "path": str(p)})
     return {"count": len(items), "sessions": items}
 
 
