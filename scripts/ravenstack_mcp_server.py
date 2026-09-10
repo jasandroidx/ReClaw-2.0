@@ -22,6 +22,7 @@ os.environ.setdefault("RECLAW_OBSIDIAN_VAULT_PATH", "/root/obsidian_vault")
 from mcp.server.fastmcp import FastMCP
 
 from core.config import get_settings
+from core.fs_utils import get_sorted_files_by_mtime
 from core.knowledge import KnowledgeManager
 
 mcp = FastMCP("ravenstack")
@@ -147,8 +148,8 @@ def list_recent_sessions(limit: int = 5) -> str:
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions dir"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-    return "\n".join(d.name for d in dirs[:limit])
+    dirs = get_sorted_files_by_mtime(sessions, reverse=True)
+    return "\n".join([d.name for d in dirs if d.is_dir()][:limit])
 
 
 @mcp.tool()
