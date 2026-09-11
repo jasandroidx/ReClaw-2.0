@@ -26,6 +26,7 @@ sys.path.insert(0, str(ROOT))
 os.environ.setdefault("RECLAW_KNOWLEDGE_PATH", str(VAULT / "Ravenstack"))
 os.environ.setdefault("RECLAW_OBSIDIAN_VAULT_PATH", str(VAULT))
 
+from core.fs_utils import get_sorted_files_by_mtime
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
@@ -191,7 +192,7 @@ def list_pipeline_sessions(limit: int = 8) -> str:
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    dirs = get_sorted_files_by_mtime(sessions, reverse=True)
     return "\n".join(d.name for d in dirs[:limit])
 
 

@@ -21,6 +21,7 @@ Core endpoints:
 
 from __future__ import annotations
 
+from core.fs_utils import get_sorted_files_by_mtime
 import asyncio
 import json
 from datetime import datetime
@@ -342,11 +343,7 @@ def get_state():
     pending_approvals: list[dict] = []
 
     if sess_root.exists():
-        sorted_sessions = sorted(
-            (p for p in sess_root.iterdir() if p.is_dir()),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )[:5]
+        sorted_sessions = [p for p in get_sorted_files_by_mtime(sess_root, reverse=True) if p.is_dir()][:5]
 
         for sess_dir in sorted_sessions:
             recent_sessions.append({"session_id": sess_dir.name})
@@ -428,7 +425,7 @@ def list_sessions(limit: int = 20):
     if not sess_root.exists():
         return {"sessions": []}
     items = []
-    for p in sorted(sess_root.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
+    for p in get_sorted_files_by_mtime(sess_root, reverse=True)[:limit]:
         if p.is_dir():
             items.append({"session_id": p.name, "path": str(p)})
     return {"count": len(items), "sessions": items}
