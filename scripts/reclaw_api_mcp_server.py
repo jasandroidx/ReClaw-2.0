@@ -7,12 +7,15 @@ import json
 import os
 import subprocess
 from pathlib import Path
+import sys
 
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("reclaw-api")
 GATEWAY = os.environ.get("RECLAW_GATEWAY_URL", "http://127.0.0.1:8000")
 REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO))
+import core.fs_utils as fs_utils
 
 
 @mcp.tool()
@@ -108,7 +111,7 @@ def list_recent_sessions(limit: int = 5) -> str:
     sessions = REPO / "data" / "sessions"
     if not sessions.exists():
         return "no sessions dir"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    dirs = fs_utils.get_sorted_files_by_mtime(sessions)
     return "\n".join(d.name for d in dirs[:limit])
 
 
