@@ -58,6 +58,37 @@ class TestVaultSynchronizer:
         # Files in .obsidian should be skipped
         assert any(".obsidian/" in p for p in sync.SKIP_PATTERNS)
         assert any("templates/" in p for p in sync.SKIP_PATTERNS)
+        assert "**/inbox/**" in sync.SKIP_PATTERNS
+        assert "inbox" in sync.HIDDEN_STATUSES
+        assert "stub" in sync.HIDDEN_STATUSES
+
+    def test_inbox_and_dry_run_not_discovered(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vault = Path(tmpdir)
+            (vault / "Ravenstack").mkdir()
+            (vault / "Ravenstack" / "wiki").mkdir(parents=True)
+            (vault / "Ravenstack" / "inbox").mkdir()
+            (vault / "Ravenstack" / "harvest" / "dry-run").mkdir(parents=True)
+            (vault / "Ravenstack" / "principles.md").write_text("# P\n")
+            (vault / "Ravenstack" / "wiki" / "hot.md").write_text("# hot\n")
+            (vault / "Ravenstack" / "inbox" / "raw.md").write_text(
+                "---\nstatus: inbox\n---\n# raw\n"
+            )
+            (vault / "Ravenstack" / "harvest" / "dry-run" / "x.md").write_text("# x\n")
+            (vault / "Ravenstack" / "ops").mkdir()
+            (vault / "Ravenstack" / "ops" / "morning-brief-2026-09-12.md").write_text(
+                "# brief\n"
+            )
+            sync = VaultSynchronizer(
+                vault_path=vault,
+                state_dir=Path(tmpdir) / "state",
+            )
+            names = [str(p.relative_to(vault)).replace("\\", "/") for p in sync._discover_files()]
+            assert "Ravenstack/principles.md" in names
+            assert "Ravenstack/wiki/hot.md" in names
+            assert not any("inbox" in n for n in names)
+            assert not any("dry-run" in n for n in names)
+            assert not any("morning-brief" in n for n in names)
 
     def test_state_persistence(self):
         with tempfile.TemporaryDirectory() as tmpdir:

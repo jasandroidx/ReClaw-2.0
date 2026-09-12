@@ -61,13 +61,39 @@ class VaultSynchronizer:
         "_archive/",
         "__pycache__/",
         "library/processed/",
+        "**/inbox/**",
+        "Ravenstack/inbox/",
+        "**/mcp-audit/**",
+        "**/ops/harvest/**",
+        "**/ops/morning-brief-*.md",
     ]
 
     # Automatic full vault sync: distilled notes only.
     # Raw PDFs/CSV/TXT still go in when Jason names a file and we POST /rag/ingest.
     INGEST_EXTENSIONS = {".md", ".markdown"}
 
-    HIDDEN_STATUSES = frozenset({"superseded", "trash", "skip", "retired"})
+    HIDDEN_STATUSES = frozenset(
+        {"superseded", "trash", "skip", "retired", "inbox", "stub"}
+    )
+
+    # When distilled_only (default), only these prefixes plus Ravenstack/*.md
+    # at the Ravenstack root. Noisy root files get status: skip, not a denylist.
+    ALLOW_PREFIXES = (
+        "Ravenstack/wiki/",
+        "Ravenstack/protocols/",
+        "Ravenstack/claims/",
+        "Ravenstack/ops/decisions/",
+        "Ravenstack/ops/VAULT-LAYOUT.md",
+        "Ravenstack/ops/HOW-TO-RUN-OBSIDIAN.md",
+        "Ravenstack/ops/OPERATOR-DASHBOARD.md",
+        "Ravenstack/ops/OPERATOR-PREFS.md",
+        "Ravenstack/ops/BOYDSCOMP-OBSIDIAN-CHECKLIST.md",
+        "Ravenstack/ops/READ-VAULT.md",
+        "Ravenstack/ops/STATE.md",
+        "Ravenstack/agents/",
+        "Ravenstack/skills/",
+        "Ravenstack/memory/",
+    )
 
     # State file for tracking what's been ingested
     STATE_FILENAME = "vault_sync_state.json"
@@ -223,7 +249,7 @@ class VaultSynchronizer:
         for path in self.vault_path.rglob("*"):
             if not path.is_file():
                 continue
-            rel = str(path.relative_to(self.vault_path))
+            rel = str(path.relative_to(self.vault_path)).replace("\\", "/")
             # Skip patterns
             if any(
                 fnmatch.fnmatch(rel, pattern) or pattern in rel
@@ -233,8 +259,36 @@ class VaultSynchronizer:
             # Check extension
             if path.suffix.lower() not in self.INGEST_EXTENSIONS:
                 continue
+            if not self._allowed_for_rag(rel):
+                continue
             files.append(path)
         return sorted(files)
+
+    def _distilled_only(self) -> bool:
+        import os
+
+        v = os.environ.get("RAG_DISTILLED_ONLY")
+        if v is None:
+            try:
+                from rag.config import get_rag_settings
+
+                return get_rag_settings().distilled_only
+            except Exception:
+                return True
+        return v.lower() in ("true", "1", "yes", "on")
+
+    def _allowed_for_rag(self, rel: str) -> bool:
+        """False means do not even open the file for ingest when distilled_only."""
+        if not self._distilled_only():
+            return True
+        rel = rel.replace("\\", "/")
+        for prefix in self.ALLOW_PREFIXES:
+            if rel == prefix.rstrip("/") or rel.startswith(prefix):
+                return True
+        parts = rel.split("/")
+        if len(parts) == 2 and parts[0] == "Ravenstack" and parts[1].endswith(".md"):
+            return True
+        return False
 
     def _peek_note_status(self, file_path: Path) -> str:
         """Frontmatter status only. Missing/invalid → empty (indexable)."""

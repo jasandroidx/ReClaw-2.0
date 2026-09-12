@@ -90,6 +90,11 @@ class RAGSettings:
         return self._get("vault_sync_interval", 300)
 
     @property
+    def distilled_only(self) -> bool:
+        """Default on: index compiled wiki/topics, not harvest/ops dumps."""
+        return self._get("distilled_only", True)
+
+    @property
     def vault_path(self) -> Path:
         """Get vault path from core settings."""
         return self._core.obsidian_vault_path
@@ -111,6 +116,7 @@ class RAGSettings:
             "persist_dir": str(self.persist_dir),
             "collection_name": self.collection_name,
             "vault_sync_interval": self.vault_sync_interval,
+            "distilled_only": self.distilled_only,
             "vault_path": str(self.vault_path),
         }
 
