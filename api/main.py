@@ -180,6 +180,9 @@ from rag.api import router as rag_router
 
 app.include_router(rag_router)
 
+from core.keep_status import router as keep_status_router
+app.include_router(keep_status_router)
+
 
 @app.post("/trigger/{county}", response_model=TriggerResponse)
 def trigger_county(
