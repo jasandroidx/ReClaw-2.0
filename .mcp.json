@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "reclaw-platform": {
+      "command": "python3",
+      "args": ["scripts/reclaw_platform_mcp_server.py"],
+      "env": {
+        "MCP_TRANSPORT": "stdio",
+        "RECLAW_OBSIDIAN_VAULT_PATH": "${RECLAW_OBSIDIAN_VAULT_PATH:-/root/obsidian_vault}",
+        "RECLAW_KNOWLEDGE_PATH": "${RECLAW_KNOWLEDGE_PATH:-/root/obsidian_vault/Ravenstack}"
+      }
+    }
+  }
+}
