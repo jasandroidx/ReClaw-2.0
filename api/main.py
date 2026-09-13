@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -437,13 +438,19 @@ def list_sessions(limit: int = 20):
 @app.post("/re-export/{package_id}")
 def re_export(package_id: str):
     # Find the run artifact
-    for p in settings.runs_dir.glob(f"*{package_id}*.json"):
-        data = json.loads(p.read_text())
-        pkg = ContentPackage(**data)
-        # Re-create a minimal writer (no session needed for re-export)
-        from core.obsidian_writer import ObsidianWriter
-        path = ObsidianWriter(settings).write_package(pkg)
-        return {"written": str(path)}
+    if settings.runs_dir.exists():
+        # Optimization: Use os.scandir instead of Path.glob to avoid redundant stat calls
+        # and object creation overhead during directory traversal
+        with os.scandir(settings.runs_dir) as it:
+            for entry in it:
+                if package_id in entry.name and entry.name.endswith(".json"):
+                    p = Path(entry.path)
+                    data = json.loads(p.read_text())
+                    pkg = ContentPackage(**data)
+                    # Re-create a minimal writer (no session needed for re-export)
+                    from core.obsidian_writer import ObsidianWriter
+                    path = ObsidianWriter(settings).write_package(pkg)
+                    return {"written": str(path)}
     raise HTTPException(404, "Package artifact not found")
 
 
@@ -454,11 +461,18 @@ def get_session(session_id: str):
     if not sess_dir.exists():
         raise HTTPException(404, f"No such session: {session_id}")
     handoffs = {}
-    for hf in (sess_dir / "handoffs").glob("*.json"):
-        try:
-            handoffs[hf.stem] = json.loads(hf.read_text())
-        except Exception:
-            pass
+    handoffs_dir = sess_dir / "handoffs"
+    if handoffs_dir.exists():
+        # Optimization: Use os.scandir instead of Path.glob to avoid redundant stat calls
+        # and object creation overhead during directory traversal
+        with os.scandir(handoffs_dir) as it:
+            for entry in it:
+                if entry.name.endswith(".json"):
+                    hf = Path(entry.path)
+                    try:
+                        handoffs[hf.stem] = json.loads(hf.read_text())
+                    except Exception:
+                        pass
     return {
         "session_id": session_id,
         "path": str(sess_dir),

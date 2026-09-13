@@ -21,6 +21,7 @@ Future: integrate with actual container security (seccomp, AppArmor, user namesp
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -182,12 +183,18 @@ class SecurityManager:
         granted_dir = self.approvals_dir / "granted"
         if not granted_dir.exists():
             return
-        for f in granted_dir.glob("*.json"):
-            try:
-                data = json.loads(f.read_text())
-                self.grants.append(SessionGrant(**data))
-            except Exception:
-                pass
+
+        # Optimization: Use os.scandir instead of Path.glob to avoid redundant stat calls
+        # and object creation overhead during directory traversal
+        with os.scandir(granted_dir) as it:
+            for entry in it:
+                if entry.name.endswith(".json"):
+                    f = Path(entry.path)
+                    try:
+                        data = json.loads(f.read_text())
+                        self.grants.append(SessionGrant(**data))
+                    except Exception:
+                        pass
 
     def is_granted(self, capability: str) -> bool:
         cap = DECLARED_CAPABILITIES.get(capability)
@@ -246,11 +253,19 @@ class SecurityManager:
 
     def get_pending_requests(self) -> list[ApprovalRequest]:
         out = []
-        for f in self.approvals_dir.glob("pending-*.json"):
-            try:
-                out.append(ApprovalRequest(**json.loads(f.read_text())))
-            except Exception:
-                continue
+        if not self.approvals_dir.exists():
+            return out
+
+        # Optimization: Use os.scandir instead of Path.glob to avoid redundant stat calls
+        # and object creation overhead during directory traversal
+        with os.scandir(self.approvals_dir) as it:
+            for entry in it:
+                if entry.name.startswith("pending-") and entry.name.endswith(".json"):
+                    f = Path(entry.path)
+                    try:
+                        out.append(ApprovalRequest(**json.loads(f.read_text())))
+                    except Exception:
+                        continue
         return out
 
 
