@@ -32,6 +32,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 
 from core.config import get_settings
 from core.knowledge import KnowledgeManager
+from core import fs_utils
 
 _TSNET_HOST = os.environ.get("TAILSCALE_HOST", "openclaw.tail20a090.ts.net")
 _TS_IP = os.environ.get("TAILSCALE_IP", "100.108.130.82")
@@ -538,7 +539,12 @@ def list_pipeline_sessions(limit: int = 8) -> str:
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+
+    # ⚡ Bolt Optimization:
+    # Replaced `sessions.iterdir()` + manual `p.stat()` sorting with `fs_utils.get_sorted_files_by_mtime`.
+    # This prevents redundant OS stat calls by using `os.scandir`'s cached stats.
+    # The slicing bug on string joining is also bypassed by slicing the input list before joining.
+    dirs = fs_utils.get_sorted_files_by_mtime(sessions)
     return "\n".join(d.name for d in dirs[:limit])
 
 
