@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "invented": { "type": "boolean" }
+        },
+        "if": {
+          "required": ["status"],
+          "properties": { "status": { "const": "live" } }
+        },
+        "then": { "properties": { "invented": { "const": false } } }
+      }
+    },
+    "occupancy": {
+      "type": "string"
+    },
+    "KEEP_PULSE_URL": {
+      "type": "string"
+    }
+  },
+  "if": {
+    "required": ["occupancy"],
+    "properties": {
+      "occupancy": {
+        "const": "live"
+      }
+    }
+  },
+  "then": {
+    "required": ["KEEP_PULSE_URL"]
+  }
+}

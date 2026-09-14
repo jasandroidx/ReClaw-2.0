@@ -166,12 +166,13 @@ class OracleMCP:
 
     def _drain_wal_to_obsidian(self, connector_name: str, data: dict):
         try:
+            safe_connector = re.sub(r"[^a-zA-Z0-9_-]", "_", os.path.basename(connector_name))
             ts = datetime.utcnow().strftime("%Y-%m-%d")
-            rel = f"mcp-audit/{ts}/{connector_name}-{datetime.utcnow().strftime('%H%M%S')}.md"
+            rel = f"mcp-audit/{ts}/{safe_connector}-{datetime.utcnow().strftime('%H%M%S')}.md"
             vault = VAULT_MCP_DIR
             full = os.path.join(vault, rel)
             os.makedirs(os.path.dirname(full), exist_ok=True)
-            note = f"# MCP {connector_name}\n\n```json\n{json.dumps(data, indent=2)}\n```\n"
+            note = f"# MCP {safe_connector}\n\n```json\n{json.dumps(data, indent=2)}\n```\n"
             with open(full, "w", encoding="utf-8") as f:
                 f.write(note)
         except Exception:

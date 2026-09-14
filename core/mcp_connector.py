@@ -601,6 +601,15 @@ class ObsidianConnector(Connector):
         action = self.validate_params(params)
         session_id = params.get("session_id", "phase1")
 
+        def _get_safe_path(requested_path: str) -> str:
+            # Strip leading slashes to prevent absolute path injection via os.path.join
+            safe_requested = requested_path.lstrip("/\\")
+            full = os.path.abspath(os.path.join(self.vault_path, safe_requested))
+            safe_vault = os.path.abspath(self.vault_path)
+            if not (full == safe_vault or full.startswith(safe_vault + os.sep)):
+                raise ValueError("Access denied: path is outside the vault")
+            return full
+
         def _run():
             if action == "search":
                 q = params.get("query", "").lower()
@@ -620,12 +629,21 @@ class ObsidianConnector(Connector):
                 return {"matches": matches[:10], "total_searched": len(files)}
             if action == "read":
                 path = params.get("path", "")
-                full = os.path.join(self.vault_path, path)
+                try:
+                    full = _get_safe_path(path)
+                except ValueError as e:
+                    return {"error": str(e)}
+
                 with open(full, "r", encoding="utf-8", errors="ignore") as fh:
                     return {"content": fh.read()[:8000]}
+
             path = params.get("path", "")
             content = params.get("content", "")
-            full = os.path.join(self.vault_path, path)
+            try:
+                full = _get_safe_path(path)
+            except ValueError as e:
+                return {"error": str(e)}
+
             os.makedirs(os.path.dirname(full), exist_ok=True)
             with open(full, "w", encoding="utf-8") as fh:
                 fh.write(content)
