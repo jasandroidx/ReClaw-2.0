@@ -227,3 +227,58 @@ Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-
 ### Domain docs
 
 Single-context layout; platform truth in Obsidian vault + `data/reclaw_orchestration.yaml`. See `docs/agents/domain.md`.
+
+## Universal to-do / open threads
+
+Read this before starting unrelated work — checking whether something here overlaps
+saves redoing it. Any agent that closes one of these: update this list in the same
+change, don't just fix it silently. Formal tracking is GitHub Issues on this repo (see
+Issue tracker above); promote an item there if it needs real triage instead of a line
+here.
+
+- **Vault charter docs are missing.** `RAVENSTACK-ORACLE.md` and
+  `RAVENSTACK-ARCHITECTURE.md` don't exist at the path both this file and
+  `ravenstack-keep/AGENTS.md` point to, in either `/root/obsidian_vault` or
+  `/root/obsidian-vault` (both exist, unreconciled — likely two generations of the same
+  reorg). Every "mandatory first step" instruction across the fortress currently points
+  at a 404. Needs: find where this content actually lives now (or rebuild it), reconcile
+  or retire one of the two vault directories, fix both AGENTS.md pointers.
+  (Flagged 2026-09-14.)
+- **`ReClaw-2.0/ingestion/` drop folder needs a pass.** Real work data (Pike County
+  budget/anomaly CSVs) sits mixed in with a large pile of generic AI/prompt-engineering
+  e-books and a couple of loose personal notes. `scripts/ingest.py` (Groq-distill →
+  `oracle_mcp.ingest_document` → vault, per `RAVENSTACK-OCULAI.md`) exists but its
+  current run status against this folder is unconfirmed. Also unclear: how this relates
+  to the `grokbot/` output already appearing in the vault (`archivist` and
+  `treasure-hunter` dated files, most recent same-day) — that may already be a live,
+  separate ingest path nobody's cataloged. Deliberately deferred — do not touch until
+  the operator decides the shape of this. (Flagged 2026-09-14.)
+- **Ravenstack Keep's Corvid room** (`ravenstack-keep`, `ui-v2/src/lib/keep/catalog.ts`)
+  is still an unforged placeholder (`status: draft`). Its intended job needs redefining
+  once the ingest pipeline above is settled, since the two may overlap. (Flagged
+  2026-09-14.)
+- **Raziel's Discord bot only has Hermes commands** — its original commands are gone,
+  suspected cause is a webhook misconfiguration during Hermes setup. Not touched.
+  (Flagged 2026-09-14.)
+- **Hermes needs a real fix, not just a stop.** Both the Docker container
+  (`ravenstack-hermes-worker`) and a native `hermes gateway run --replace` process
+  (orphaned — `/opt/hermes` no longer exists on disk, so no clean CLI stop was
+  available) were stopped 2026-09-14 to recover CPU (box load dropped from 16.87 to
+  ~1.0). `/root/hermes-runtime/mcp_vault_tools.py` (backs `fastmcp-ravenstack.service`,
+  port 8105) is a separate, real, still-running service — do not confuse the two or stop
+  it. Whether/how to properly reinstall or replace Hermes is undecided.
+- **Firecrawl stack fully stopped** (`docker compose stop` in `/root/firecrawl`, all 7
+  containers) 2026-09-14 — its own worker logs showed it failing on load ("Can't accept
+  connection due to RAM/CPU load"), and this was most of the box's CPU pressure. Not
+  removed, just stopped; restart with `cd /root/firecrawl && docker compose start` if
+  still needed for something.
+- **`litellm-router` Docker container removed** (was a broken duplicate of the working
+  `litellm` container on port 4000 — same port, conflicting network modes, crash-looping
+  workers). The real one is untouched and healthy. `ravenstack-keep/ui-v2/src/lib/keep/ai.ts`
+  currently talks to Ollama/Gemini directly instead of through this router — routing it
+  through `127.0.0.1:4000` instead would pick up the already-configured Groq + dual
+  Gemini-key fallback chain for free. Not done yet.
+- **~30 unmerged branches on `jasandroidx/ravenstack-keep`**, several duplicate attempts
+  at the same task (4x `bolt-debounce-search*`, 5x `palette-*-fastmcp-badge-a11y*`) —
+  the pattern (bot opens branch/PR, nobody merges-or-closes) is worth fixing, not just
+  the branch count. Needs a human pass to see what's actually worth keeping.
