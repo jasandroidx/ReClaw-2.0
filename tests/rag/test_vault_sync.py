@@ -47,7 +47,7 @@ class TestVaultSynchronizer:
             cs1 = sync._file_checksum(Path(f.name))
             cs2 = sync._file_checksum(Path(f.name))
             assert cs1 == cs2
-            assert len(cs1) == 32  # MD5 hex
+            assert len(cs1) == 64  # SHA256 hex
             Path(f.name).unlink()
 
     def test_skip_patterns(self):

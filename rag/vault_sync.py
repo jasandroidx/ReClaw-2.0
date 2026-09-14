@@ -217,7 +217,7 @@ class VaultSynchronizer:
 
     def _file_checksum(self, file_path: Path) -> str:
         """Quick checksum for file content."""
-        h = hashlib.md5()
+        h = hashlib.sha256()
         try:
             h.update(file_path.read_bytes())
         except Exception:

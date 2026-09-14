@@ -336,7 +336,8 @@ class ResearcherAgent:
         seed = self._build_from_seed(county, area)
         props = seed.property_records
         for p in props:
-            p.notes = (p.notes or "") + " [GIS: verify at beacon.schneidercorp.com — seed until live GIS wired]"
+            suffix = " [GIS: verify at beacon.schneidercorp.com — seed until live GIS wired]"
+            p.notes = p.notes + suffix if p.notes else suffix
         sources.append(
             SourceRef(
                 kind="web",
@@ -478,7 +479,8 @@ class ResearcherAgent:
         seed = self._build_from_seed(county, area)
         props = seed.property_records
         for p in props:
-            p.notes = (p.notes or "") + " [GIS: verify at beacon.schneidercorp.com — seed parcel until live GIS wired]"
+            suffix = " [GIS: verify at beacon.schneidercorp.com — seed parcel until live GIS wired]"
+            p.notes = p.notes + suffix if p.notes else suffix
         sources.append(
             SourceRef(
                 kind="web",
@@ -572,7 +574,7 @@ class ResearcherAgent:
                 if resp.status_code == 200:
                     soup = BeautifulSoup(resp.text, "html.parser")
                     # Very naive extraction just to prove the pipeline
-                    text = soup.get_text(" ", strip=True)[:1500]
+                    soup.get_text(" ", strip=True)[:1500]
                     sources.append(SourceRef(kind="web", url="https://www.pikecounty.in.gov/", note="homepage scrape for freshness check"))
                     # We still return seed-augmented in this stub because full scrape is out of scope for MVP
                     # In a real iteration you would parse tables here and append to props/budgets.

@@ -140,6 +140,14 @@ class GitHubConnector(Connector):
         action = self.validate_params(params)
         session_id = params.get("session_id", "phase1")
 
+        def _get_safe_path(requested_path: str) -> str:
+            safe_requested = requested_path.lstrip("/\\")
+            full = os.path.abspath(os.path.join(self.vault_path, safe_requested))
+            safe_vault = os.path.abspath(self.vault_path)
+            if not (full == safe_vault or full.startswith(safe_vault + os.sep)):
+                raise ValueError("Access denied: path is outside the vault")
+            return full
+
         def _run():
             import requests
 
@@ -250,6 +258,14 @@ class LLMConnector(Connector):
         model = params.get("model")
         session_id = params.get("session_id", "phase1")
 
+        def _get_safe_path(requested_path: str) -> str:
+            safe_requested = requested_path.lstrip("/\\")
+            full = os.path.abspath(os.path.join(self.vault_path, safe_requested))
+            safe_vault = os.path.abspath(self.vault_path)
+            if not (full == safe_vault or full.startswith(safe_vault + os.sep)):
+                raise ValueError("Access denied: path is outside the vault")
+            return full
+
         def _run():
             import requests
 
@@ -316,6 +332,14 @@ class HetznerConnector(Connector):
     async def query(self, params: Dict[str, Any]) -> Dict[str, Any]:
         action = self.validate_params(params)
         session_id = params.get("session_id", "phase1")
+
+        def _get_safe_path(requested_path: str) -> str:
+            safe_requested = requested_path.lstrip("/\\")
+            full = os.path.abspath(os.path.join(self.vault_path, safe_requested))
+            safe_vault = os.path.abspath(self.vault_path)
+            if not (full == safe_vault or full.startswith(safe_vault + os.sep)):
+                raise ValueError("Access denied: path is outside the vault")
+            return full
 
         def _run():
             import requests
@@ -484,6 +508,14 @@ class NotionConnector(Connector):
         action = self.validate_params(params)
         session_id = params.get("session_id", "phase1")
 
+        def _get_safe_path(requested_path: str) -> str:
+            safe_requested = requested_path.lstrip("/\\")
+            full = os.path.abspath(os.path.join(self.vault_path, safe_requested))
+            safe_vault = os.path.abspath(self.vault_path)
+            if not (full == safe_vault or full.startswith(safe_vault + os.sep)):
+                raise ValueError("Access denied: path is outside the vault")
+            return full
+
         def _run():
             import requests
 
@@ -522,6 +554,14 @@ class GoogleDriveConnector(Connector):
     async def query(self, params: Dict[str, Any]) -> Dict[str, Any]:
         action = self.validate_params(params)
         session_id = params.get("session_id", "phase1")
+
+        def _get_safe_path(requested_path: str) -> str:
+            safe_requested = requested_path.lstrip("/\\")
+            full = os.path.abspath(os.path.join(self.vault_path, safe_requested))
+            safe_vault = os.path.abspath(self.vault_path)
+            if not (full == safe_vault or full.startswith(safe_vault + os.sep)):
+                raise ValueError("Access denied: path is outside the vault")
+            return full
 
         def _run():
             import requests
@@ -562,6 +602,14 @@ class GmailConnector(Connector):
         action = self.validate_params(params)
         session_id = params.get("session_id", "phase1")
 
+        def _get_safe_path(requested_path: str) -> str:
+            safe_requested = requested_path.lstrip("/\\")
+            full = os.path.abspath(os.path.join(self.vault_path, safe_requested))
+            safe_vault = os.path.abspath(self.vault_path)
+            if not (full == safe_vault or full.startswith(safe_vault + os.sep)):
+                raise ValueError("Access denied: path is outside the vault")
+            return full
+
         def _run():
             import requests
 
@@ -601,6 +649,22 @@ class ObsidianConnector(Connector):
         action = self.validate_params(params)
         session_id = params.get("session_id", "phase1")
 
+        def _get_safe_path(requested_path: str) -> str:
+            safe_requested = requested_path.lstrip("/\\")
+            full = os.path.abspath(os.path.join(self.vault_path, safe_requested))
+            safe_vault = os.path.abspath(self.vault_path)
+            if not (full == safe_vault or full.startswith(safe_vault + os.sep)):
+                raise ValueError("Access denied: path is outside the vault")
+            return full
+
+        def _get_safe_path(requested_path: str) -> str:
+            safe_requested = requested_path.lstrip("/\\")
+            full = os.path.abspath(os.path.join(self.vault_path, safe_requested))
+            safe_vault = os.path.abspath(self.vault_path)
+            if not (full == safe_vault or full.startswith(safe_vault + os.sep)):
+                raise ValueError("Access denied: path is outside the vault")
+            return full
+
         def _run():
             if action == "search":
                 q = params.get("query", "").lower()
@@ -620,12 +684,18 @@ class ObsidianConnector(Connector):
                 return {"matches": matches[:10], "total_searched": len(files)}
             if action == "read":
                 path = params.get("path", "")
-                full = os.path.join(self.vault_path, path)
+                try:
+                    full = _get_safe_path(path)
+                except ValueError as e:
+                    return {"error": str(e)}
                 with open(full, "r", encoding="utf-8", errors="ignore") as fh:
                     return {"content": fh.read()[:8000]}
             path = params.get("path", "")
             content = params.get("content", "")
-            full = os.path.join(self.vault_path, path)
+            try:
+                full = _get_safe_path(path)
+            except ValueError as e:
+                return {"error": str(e)}
             os.makedirs(os.path.dirname(full), exist_ok=True)
             with open(full, "w", encoding="utf-8") as fh:
                 fh.write(content)
@@ -641,6 +711,14 @@ class OllamaConnector(Connector):
     api_base = os.getenv("OLLAMA_API_BASE", "http://localhost:11434")
 
     async def _api_tags(self) -> Dict[str, Any]:
+        def _get_safe_path(requested_path: str) -> str:
+            safe_requested = requested_path.lstrip("/\\")
+            full = os.path.abspath(os.path.join(self.vault_path, safe_requested))
+            safe_vault = os.path.abspath(self.vault_path)
+            if not (full == safe_vault or full.startswith(safe_vault + os.sep)):
+                raise ValueError("Access denied: path is outside the vault")
+            return full
+
         def _run():
             import requests
             r = requests.get(f"{self.api_base}/api/tags", timeout=10)
@@ -702,6 +780,14 @@ class HuggingFaceConnector(Connector):
     async def query(self, params: Dict[str, Any]) -> Dict[str, Any]:
         action = self.validate_params(params)
         session_id = params.get("session_id", "phase1")
+
+        def _get_safe_path(requested_path: str) -> str:
+            safe_requested = requested_path.lstrip("/\\")
+            full = os.path.abspath(os.path.join(self.vault_path, safe_requested))
+            safe_vault = os.path.abspath(self.vault_path)
+            if not (full == safe_vault or full.startswith(safe_vault + os.sep)):
+                raise ValueError("Access denied: path is outside the vault")
+            return full
 
         def _run():
             import requests
