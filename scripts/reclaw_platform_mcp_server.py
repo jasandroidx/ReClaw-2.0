@@ -1340,7 +1340,10 @@ def project_sitrep() -> str:
     latest_path = rural / "_latest.md"
     if latest_path.is_file():
         latest_rural = latest_path.read_text(encoding="utf-8", errors="replace")[:300]
-    rural_count = len(list(rural.glob("*.md"))) if rural.is_dir() else 0
+    rural_count = 0
+    if rural.is_dir():
+        with os.scandir(rural) as it:
+            rural_count = sum(1 for entry in it if entry.name.endswith(".md") and entry.is_file())
     report["obsidian"] = {
         "vault_path": str(VAULT),
         "ravenstack_md_count": len(topics),
