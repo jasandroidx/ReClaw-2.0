@@ -236,22 +236,29 @@ change, don't just fix it silently. Formal tracking is GitHub Issues on this rep
 Issue tracker above); promote an item there if it needs real triage instead of a line
 here.
 
-- **Vault charter docs are missing.** `RAVENSTACK-ORACLE.md` and
-  `RAVENSTACK-ARCHITECTURE.md` don't exist at the path both this file and
-  `ravenstack-keep/AGENTS.md` point to, in either `/root/obsidian_vault` or
-  `/root/obsidian-vault` (both exist, unreconciled — likely two generations of the same
-  reorg). Every "mandatory first step" instruction across the fortress currently points
-  at a 404. Needs: find where this content actually lives now (or rebuild it), reconcile
-  or retire one of the two vault directories, fix both AGENTS.md pointers.
-  (Flagged 2026-09-14.)
+- **The vault's charter/session-start/incident layer is gone, not just two files.**
+  `/root/obsidian_vault` (underscore) is the confirmed-correct vault path — see "Known
+  gotchas" below, `/root/obsidian-vault` (hyphen) is a known typo-path, not a second
+  candidate. But even under the correct path, none of these exist anymore:
+  `Ravenstack/RAVENSTACK-ORACLE.md`, `Ravenstack/RAVENSTACK-ARCHITECTURE.md`,
+  `Ravenstack/wiki/hot.md`, `Ravenstack/ops/SESSION-START.md`,
+  `Ravenstack/ops/incidents/INDEX.md`. That's everything `FOR-CLAUDE.md` and both
+  `AGENTS.md` files call mandatory first-reads. `Ravenstack/ops/audits/` and
+  `Ravenstack/grokbot/` (see below) do still exist, so this wasn't a full vault loss —
+  more likely a restructure whose top-level pointers never got updated. Needs: find
+  where this content actually lives now (or rebuild it), fix every AGENTS.md /
+  FOR-CLAUDE.md pointer to match. Until then, no agent can actually comply with
+  `FOR-CLAUDE.md` rule 4 ("grep incidents/INDEX.md before mutating gateway/MCP/Docker") —
+  say so rather than skip it silently. (Flagged 2026-09-14.)
 - **`ReClaw-2.0/ingestion/` drop folder needs a pass.** Real work data (Pike County
   budget/anomaly CSVs) sits mixed in with a large pile of generic AI/prompt-engineering
   e-books and a couple of loose personal notes. `scripts/ingest.py` (Groq-distill →
   `oracle_mcp.ingest_document` → vault, per `RAVENSTACK-OCULAI.md`) exists but its
-  current run status against this folder is unconfirmed. Also unclear: how this relates
-  to the `grokbot/` output already appearing in the vault (`archivist` and
-  `treasure-hunter` dated files, most recent same-day) — that may already be a live,
-  separate ingest path nobody's cataloged. Deliberately deferred — do not touch until
+  current run status against this folder is unconfirmed. Confirmed by Jason
+  2026-09-14: the `grokbot/` output in the vault (`archivist` and `treasure-hunter`
+  dated files, most recent same-day) **is** the "Grok bots in the Drive folder" ingest
+  system — a real, separate, already-running path, just not yet reconciled with
+  `scripts/ingest.py` or documented anywhere. Deliberately deferred — do not touch until
   the operator decides the shape of this. (Flagged 2026-09-14.)
 - **Ravenstack Keep's Corvid room** (`ravenstack-keep`, `ui-v2/src/lib/keep/catalog.ts`)
   is still an unforged placeholder (`status: draft`). Its intended job needs redefining
