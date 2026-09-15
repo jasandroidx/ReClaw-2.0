@@ -7,11 +7,11 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import glob
 import json
 import os
 import time
 from abc import ABC, abstractmethod
+from pathlib import Path
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -612,8 +612,11 @@ class ObsidianConnector(Connector):
 
         def _run():
             if action == "search":
+                from core.fs_utils import fast_rglob
                 q = params.get("query", "").lower()
-                files = glob.glob(f"{self.vault_path}/**/*.md", recursive=True)
+                # OPTIMIZATION: Use fast_rglob (os.scandir wrapper) instead of glob.glob
+                # for better performance when traversing large vault directories
+                files = fast_rglob(self.vault_path, ".md")
                 matches = []
                 for f in files[:50]:
                     try:
@@ -828,8 +831,10 @@ class ReClawMetaConnector(Connector):
                     "status": "healthy" if avg >= 80 else "degraded" if avg >= 50 else "critical",
                 }
             elif action == "vault_stats":
+                from core.fs_utils import fast_rglob
                 vault = os.getenv("OBSIDIAN_VAULT_PATH", "/root/obsidian_vault/Ravenstack")
-                files = glob.glob(f"{vault}/**/*.md", recursive=True)
+                # OPTIMIZATION: Use fast_rglob (os.scandir wrapper) instead of glob.glob for better performance
+                files = fast_rglob(vault, ".md")
                 result = {"total_notes": len(files), "vault_path": vault}
             elif action == "system_health":
                 docker = await ConnectorRegistry.get("docker").query({"action": "compose_ps"})

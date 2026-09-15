@@ -21,6 +21,7 @@ Future: integrate with actual container security (seccomp, AppArmor, user namesp
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -182,12 +183,17 @@ class SecurityManager:
         granted_dir = self.approvals_dir / "granted"
         if not granted_dir.exists():
             return
-        for f in granted_dir.glob("*.json"):
-            try:
-                data = json.loads(f.read_text())
-                self.grants.append(SessionGrant(**data))
-            except Exception:
-                pass
+        # OPTIMIZATION: Use os.scandir instead of pathlib.glob for faster file iteration.
+        # This avoids redundant stat calls and overhead of glob on every agent load.
+        with os.scandir(granted_dir) as it:
+            for entry in it:
+                if entry.name.endswith(".json") and entry.is_file():
+                    try:
+                        with open(entry.path, "r", encoding="utf-8") as f:
+                            data = json.loads(f.read())
+                        self.grants.append(SessionGrant(**data))
+                    except Exception:
+                        pass
 
     def is_granted(self, capability: str) -> bool:
         cap = DECLARED_CAPABILITIES.get(capability)
@@ -246,11 +252,18 @@ class SecurityManager:
 
     def get_pending_requests(self) -> list[ApprovalRequest]:
         out = []
-        for f in self.approvals_dir.glob("pending-*.json"):
-            try:
-                out.append(ApprovalRequest(**json.loads(f.read_text())))
-            except Exception:
-                continue
+        if not self.approvals_dir.exists():
+            return out
+        # OPTIMIZATION: Use os.scandir instead of pathlib.glob to improve performance
+        # on the /state endpoint's 5s polling hot path.
+        with os.scandir(self.approvals_dir) as it:
+            for entry in it:
+                if entry.name.startswith("pending-") and entry.name.endswith(".json") and entry.is_file():
+                    try:
+                        with open(entry.path, "r", encoding="utf-8") as f:
+                            out.append(ApprovalRequest(**json.loads(f.read())))
+                    except Exception:
+                        continue
         return out
 
 

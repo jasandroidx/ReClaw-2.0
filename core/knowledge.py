@@ -10,6 +10,7 @@ Follows all rules from knowledge/agent-architecture.md and principles.md.
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from typing import Any, Dict
@@ -196,7 +197,13 @@ class KnowledgeManager:
 
     def list_topics(self) -> list[str]:
         """List all available knowledge files."""
-        return [f.name for f in self.knowledge_path.glob("*.md") if f.name != "knowledge_index.md"]
+        out = []
+        if self.knowledge_path.exists():
+            with os.scandir(self.knowledge_path) as it:
+                for entry in it:
+                    if entry.name.endswith(".md") and entry.is_file() and entry.name != "knowledge_index.md":
+                        out.append(entry.name)
+        return out
 
     def save_to_backlog(self, source_name: str, distilled_content: str, potential_for: str = "clawsmith-visual-agents, revenue-loops, automation") -> Path:
         """OpenClaw/Open extraction entrypoint. Saves distilled book/PDF info to backlog/ for later implementation.
