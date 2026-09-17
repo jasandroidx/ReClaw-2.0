@@ -1,3 +1,3 @@
-## 2026-09-06 - [Performance] Centralize os.scandir for fast mtime sorts
-**Learning:** `pathlib.Path.glob` and `pathlib.Path.iterdir` combined with `key=lambda x: x.stat().st_mtime` causes redundant and slow stat system calls. Using `os.scandir` yields `os.DirEntry` objects which inherently cache `st_mtime` from the system call.
-**Action:** Created `core/fs_utils.py` with `get_sorted_files_by_mtime` and `get_sorted_glob_by_mtime` helpers to utilize `os.scandir()` instead of `iterdir()`/`glob()`, and applied them across the codebase to prevent redundant OS stat calls.
+## 2026-09-17 - Recursive File Matching Bottleneck
+**Learning:** `glob.glob(..., recursive=True)` and `Path.rglob()` create a performance bottleneck in this architecture when searching large directories (like the Obsidian vault). Python's built-in `glob` performs complex pattern splitting and string manipulations for `**` evaluation, which is observably slower than a dedicated recursive `os.scandir` loop checking `fnmatch` locally.
+**Action:** Use `core.fs_utils.fast_rglob` instead of `glob.glob` or `Path.rglob` for simple recursive extension matching to leverage fast `os.scandir` iteration and prevent unnecessary string allocations.

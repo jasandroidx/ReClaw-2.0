@@ -7,13 +7,14 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import glob
 import json
 import os
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+
+from core.fs_utils import fast_rglob
 
 
 def _envelope(
@@ -613,7 +614,7 @@ class ObsidianConnector(Connector):
         def _run():
             if action == "search":
                 q = params.get("query", "").lower()
-                files = glob.glob(f"{self.vault_path}/**/*.md", recursive=True)
+                files = fast_rglob(self.vault_path, "*.md")
                 matches = []
                 for f in files[:50]:
                     try:
@@ -829,7 +830,7 @@ class ReClawMetaConnector(Connector):
                 }
             elif action == "vault_stats":
                 vault = os.getenv("OBSIDIAN_VAULT_PATH", "/root/obsidian_vault/Ravenstack")
-                files = glob.glob(f"{vault}/**/*.md", recursive=True)
+                files = fast_rglob(vault, "*.md")
                 result = {"total_notes": len(files), "vault_path": vault}
             elif action == "system_health":
                 docker = await ConnectorRegistry.get("docker").query({"action": "compose_ps"})
