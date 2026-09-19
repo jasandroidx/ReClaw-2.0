@@ -1,10 +1,16 @@
 import json
+import sys
+import os
 import jsonschema
 import pytest
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from core.fs_utils import fast_rglob
+
 def get_schemas(dir_path):
-    return list(Path(dir_path).rglob("*.schema.json")) + list(Path(dir_path).rglob("*.agent-spec.json"))
+    return list(fast_rglob(Path(dir_path), "*.schema.json")) + list(fast_rglob(Path(dir_path), "*.agent-spec.json"))
 
 def get_fixtures(schema_path):
     schema_name = schema_path.name

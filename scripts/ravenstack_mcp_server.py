@@ -23,6 +23,7 @@ import core.fs_utils as fs_utils
 from mcp.server.fastmcp import FastMCP
 
 from core.config import get_settings
+from core.fs_utils import fast_rglob
 from core.knowledge import KnowledgeManager
 
 mcp = FastMCP("ravenstack")
@@ -80,7 +81,7 @@ def query_knowledge(query: str, top_k: int = 5) -> str:
 def list_knowledge_topics() -> str:
     """List Ravenstack knowledge files and ORACLE anchors."""
     kp = _km().knowledge_path
-    files = sorted(p.relative_to(kp).as_posix() for p in kp.rglob("*.md") if p.is_file())
+    files = sorted(p.relative_to(kp).as_posix() for p in fast_rglob(kp, "*.md"))
     return "\n".join(files[:80])
 
 

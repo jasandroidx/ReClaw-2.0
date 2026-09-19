@@ -272,6 +272,7 @@ Auto-routed to backlog (review and move to main topic files when ready).
         from sklearn.metrics.pairwise import cosine_similarity
         import joblib
         from pathlib import Path
+        from core.fs_utils import fast_rglob
         import re
 
         index_dir = Path("data/ravenstack_index")
@@ -279,7 +280,7 @@ Auto-routed to backlog (review and move to main topic files when ready).
 
         documents = []
         metadata = []
-        for md_file in self.knowledge_path.rglob("*.md"):
+        for md_file in fast_rglob(self.knowledge_path, "*.md"):
             if "index" in md_file.name.lower():
                 continue
             content = md_file.read_text(encoding="utf-8")
