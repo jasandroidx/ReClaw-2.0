@@ -31,6 +31,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 from core.config import get_settings
+from core.fs_utils import fast_rglob
 from core.knowledge import KnowledgeManager
 
 _TSNET_HOST = os.environ.get("TAILSCALE_HOST", "openclaw.tail20a090.ts.net")
@@ -281,7 +282,7 @@ def read_oracle(section: str = "") -> str:
 def list_knowledge_topics() -> str:
     """List markdown files under Ravenstack knowledge base."""
     kp = _km().knowledge_path
-    files = sorted(p.relative_to(kp).as_posix() for p in kp.rglob("*.md"))
+    files = sorted(p.relative_to(kp).as_posix() for p in fast_rglob(kp, "*.md"))
     return "\n".join(files[:100])
 
 
@@ -1332,7 +1333,7 @@ def project_sitrep() -> str:
 
     # --- Obsidian / Ravenstack knowledge ---
     kp = VAULT / "Ravenstack"
-    topics = sorted(p.relative_to(kp).as_posix() for p in kp.rglob("*.md") if p.is_file()) if kp.is_dir() else []
+    topics = sorted(p.relative_to(kp).as_posix() for p in fast_rglob(kp, "*.md")) if kp.is_dir() else []
     oracle_ok = (kp / "RAVENSTACK-ORACLE.md").is_file()
     mcp_doc_ok = (kp / "mcp-connector.md").is_file()
     rural = VAULT / "Rural Data"

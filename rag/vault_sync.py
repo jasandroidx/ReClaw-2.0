@@ -20,6 +20,7 @@ import json
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from core.fs_utils import fast_rglob
 from typing import Callable
 
 from .ingestor import DocumentIngestor
@@ -199,9 +200,7 @@ class VaultSynchronizer:
     def _discover_files(self) -> list[Path]:
         """Discover all ingestable files in the vault."""
         files: list[Path] = []
-        for path in self.vault_path.rglob("*"):
-            if not path.is_file():
-                continue
+        for path in fast_rglob(self.vault_path, "*"):
             rel = str(path.relative_to(self.vault_path))
             # Skip patterns
             if any(
