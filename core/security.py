@@ -24,6 +24,7 @@ import json
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
+from core.fs_utils import get_sorted_glob_by_mtime
 from typing import Any
 from uuid import uuid4
 
@@ -182,7 +183,7 @@ class SecurityManager:
         granted_dir = self.approvals_dir / "granted"
         if not granted_dir.exists():
             return
-        for f in granted_dir.glob("*.json"):
+        for f in get_sorted_glob_by_mtime(granted_dir, "*.json"):
             try:
                 data = json.loads(f.read_text())
                 self.grants.append(SessionGrant(**data))
@@ -246,7 +247,7 @@ class SecurityManager:
 
     def get_pending_requests(self) -> list[ApprovalRequest]:
         out = []
-        for f in self.approvals_dir.glob("pending-*.json"):
+        for f in get_sorted_glob_by_mtime(self.approvals_dir, "pending-*.json"):
             try:
                 out.append(ApprovalRequest(**json.loads(f.read_text())))
             except Exception:

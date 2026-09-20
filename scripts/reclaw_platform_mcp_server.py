@@ -31,6 +31,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 from core.config import get_settings
+from core.fs_utils import fast_rglob, get_sorted_files_by_mtime, get_sorted_glob_by_mtime
 from core.knowledge import KnowledgeManager
 
 _TSNET_HOST = os.environ.get("TAILSCALE_HOST", "openclaw.tail20a090.ts.net")
@@ -281,7 +282,7 @@ def read_oracle(section: str = "") -> str:
 def list_knowledge_topics() -> str:
     """List markdown files under Ravenstack knowledge base."""
     kp = _km().knowledge_path
-    files = sorted(p.relative_to(kp).as_posix() for p in kp.rglob("*.md"))
+    files = sorted(p.relative_to(kp).as_posix() for p in fast_rglob(kp, "*.md"))
     return "\n".join(files[:100])
 
 
@@ -538,7 +539,7 @@ def list_pipeline_sessions(limit: int = 8) -> str:
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    dirs = get_sorted_files_by_mtime(sessions)
     return "\n".join(d.name for d in dirs[:limit])
 
 
@@ -1332,7 +1333,7 @@ def project_sitrep() -> str:
 
     # --- Obsidian / Ravenstack knowledge ---
     kp = VAULT / "Ravenstack"
-    topics = sorted(p.relative_to(kp).as_posix() for p in kp.rglob("*.md") if p.is_file()) if kp.is_dir() else []
+    topics = sorted(p.relative_to(kp).as_posix() for p in fast_rglob(kp, "*.md") if p.is_file()) if kp.is_dir() else []
     oracle_ok = (kp / "RAVENSTACK-ORACLE.md").is_file()
     mcp_doc_ok = (kp / "mcp-connector.md").is_file()
     rural = VAULT / "Rural Data"
@@ -1340,7 +1341,7 @@ def project_sitrep() -> str:
     latest_path = rural / "_latest.md"
     if latest_path.is_file():
         latest_rural = latest_path.read_text(encoding="utf-8", errors="replace")[:300]
-    rural_count = len(list(rural.glob("*.md"))) if rural.is_dir() else 0
+    rural_count = len(get_sorted_glob_by_mtime(rural, "*.md")) if rural.is_dir() else 0
     report["obsidian"] = {
         "vault_path": str(VAULT),
         "ravenstack_md_count": len(topics),

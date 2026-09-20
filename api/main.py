@@ -437,7 +437,7 @@ def list_sessions(limit: int = 20):
 @app.post("/re-export/{package_id}")
 def re_export(package_id: str):
     # Find the run artifact
-    for p in settings.runs_dir.glob(f"*{package_id}*.json"):
+    for p in fs_utils.get_sorted_glob_by_mtime(settings.runs_dir, f"*{package_id}*.json"):
         data = json.loads(p.read_text())
         pkg = ContentPackage(**data)
         # Re-create a minimal writer (no session needed for re-export)
@@ -454,7 +454,7 @@ def get_session(session_id: str):
     if not sess_dir.exists():
         raise HTTPException(404, f"No such session: {session_id}")
     handoffs = {}
-    for hf in (sess_dir / "handoffs").glob("*.json"):
+    for hf in fs_utils.get_sorted_glob_by_mtime((sess_dir / "handoffs"), "*.json"):
         try:
             handoffs[hf.stem] = json.loads(hf.read_text())
         except Exception:
