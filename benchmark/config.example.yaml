@@ -1,0 +1,21 @@
+# Ollama CPU-Safe Benchmark Harness Configuration Example
+# Copy this file to benchmark/config.yaml for custom local overrides.
+# NOTE: Do NOT commit secrets or real endpoint credentials.
+
+endpoint: "http://127.0.0.1:11434"
+default_model: "llama3.2:1b"
+timeout_seconds: 120
+keep_alive: "5m"
+num_predict: 512
+min_free_ram_mb: 2048
+min_free_swap_mb: 512
+
+context_sizes:
+  - 2048
+  - 4096
+  - 8192
+
+output_dir: "benchmark/results"
+redact_patterns:
+  - '(?i)(bearer\s+)[a-zA-Z0-9_\-\.]{10,}'
+  - '(?i)(api[_-]?key|secret|password|token)\s*[:=]\s*([^\s]+)'

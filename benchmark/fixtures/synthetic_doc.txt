@@ -1,0 +1,6 @@
+Synthetic Technical Overview Document
+======================================
+The Ravenstack architecture consists of decoupled agents communicating via FastMCP servers
+and local FastAPI endpoints. Data flows through strict JSON Schema validation gates before
+persisting to storage. Memory management is prioritized on local hardware, ensuring background
+processes maintain safe RAM margins and finite keep-alive parameters.
