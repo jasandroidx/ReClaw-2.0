@@ -8,6 +8,17 @@
 
 > **📖 Full production reference:** [docs/PLATFORM-HANDBOOK.md](docs/PLATFORM-HANDBOOK.md) — everything wired, built, connected, and running on the server (ports, API, MCP, vault, RAG, Docker, ops cheat sheet).
 
+## Documentation Index
+
+- [Architecture Reference](docs/ARCHITECTURE.md)
+- [Configuration Reference](docs/CONFIGURATION.md)
+- [Operations Handbook](docs/OPERATIONS.md)
+- [Incident Records & Notes](docs/INCIDENTS.md)
+- [Security Model & Gate Policies](docs/SECURITY_MODEL.md)
+- [Agent Operating State & Facts](docs/AGENT_STATE.md)
+- [Architectural Decision Records (ADRs)](docs/DECISIONS.md)
+- [Known Technical Issues & Tracking](docs/KNOWN_ISSUES.md)
+
 ReClaw 2.0 provides a domain-agnostic core (Gateway, Session isolation, Security/approval gates, Obsidian durable memory, event model for future visual frontend). The current repo implements **rural_data** (county research, red-flag analysis, content packages) as the first concrete module. Future domains (grants, local_leads, content, research_packets, visual office) add cleanly under `agents/<domain>/` without changing core.
 
 ## Core Principles (from SOUL.md)
