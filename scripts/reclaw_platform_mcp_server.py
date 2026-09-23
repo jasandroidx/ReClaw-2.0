@@ -32,6 +32,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 
 from core.config import get_settings
 from core.knowledge import KnowledgeManager
+from core import fs_utils
 
 _TSNET_HOST = os.environ.get("TAILSCALE_HOST", "openclaw.tail20a090.ts.net")
 _TS_IP = os.environ.get("TAILSCALE_IP", "100.108.130.82")
@@ -281,7 +282,7 @@ def read_oracle(section: str = "") -> str:
 def list_knowledge_topics() -> str:
     """List markdown files under Ravenstack knowledge base."""
     kp = _km().knowledge_path
-    files = sorted(p.relative_to(kp).as_posix() for p in kp.rglob("*.md"))
+    files = sorted(p.relative_to(kp).as_posix() for p in fs_utils.fast_rglob(kp, "*.md"))
     return "\n".join(files[:100])
 
 
@@ -538,7 +539,7 @@ def list_pipeline_sessions(limit: int = 8) -> str:
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+    dirs = fs_utils.get_sorted_files_by_mtime(sessions)
     return "\n".join(d.name for d in dirs[:limit])
 
 
@@ -1332,7 +1333,7 @@ def project_sitrep() -> str:
 
     # --- Obsidian / Ravenstack knowledge ---
     kp = VAULT / "Ravenstack"
-    topics = sorted(p.relative_to(kp).as_posix() for p in kp.rglob("*.md") if p.is_file()) if kp.is_dir() else []
+    topics = sorted(p.relative_to(kp).as_posix() for p in fs_utils.fast_rglob(kp, "*.md") if p.is_file()) if kp.is_dir() else []
     oracle_ok = (kp / "RAVENSTACK-ORACLE.md").is_file()
     mcp_doc_ok = (kp / "mcp-connector.md").is_file()
     rural = VAULT / "Rural Data"

@@ -20,3 +20,28 @@ def get_sorted_glob_by_mtime(dir_path: Path, pattern: str, reverse: bool = True)
         entries = [e for e in it if fnmatch.fnmatch(e.name, pattern)]
     entries.sort(key=lambda e: e.stat().st_mtime, reverse=reverse)
     return [Path(e.path) for e in entries]
+
+def fast_rglob(dir_path: Path, pattern: str) -> List[Path]:
+    """Return a list of Paths matching pattern in dir_path and its subdirectories.
+
+    Optimized to use os.scandir() instead of Path.rglob() to prevent redundant
+    stat() system calls and improve performance.
+    """
+    if not dir_path.exists() or not dir_path.is_dir():
+        return []
+
+    result = []
+
+    def _scan(path: Path):
+        try:
+            with os.scandir(path) as it:
+                for entry in it:
+                    if entry.is_dir(follow_symlinks=False):
+                        _scan(Path(entry.path))
+                    elif entry.is_file(follow_symlinks=False) and fnmatch.fnmatch(entry.name, pattern):
+                        result.append(Path(entry.path))
+        except (PermissionError, FileNotFoundError):
+            pass
+
+    _scan(dir_path)
+    return result
