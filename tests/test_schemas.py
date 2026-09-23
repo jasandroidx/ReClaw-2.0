@@ -4,7 +4,8 @@ import pytest
 from pathlib import Path
 
 def get_schemas(dir_path):
-    return list(Path(dir_path).rglob("*.schema.json")) + list(Path(dir_path).rglob("*.agent-spec.json"))
+    from core import fs_utils
+    return fs_utils.fast_rglob(Path(dir_path), "*.schema.json") + fs_utils.fast_rglob(Path(dir_path), "*.agent-spec.json")
 
 def get_fixtures(schema_path):
     schema_name = schema_path.name

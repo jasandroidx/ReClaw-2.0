@@ -5,3 +5,7 @@
 ## 2026-09-13 - [Performance] os.scandir fallback safety
 **Learning:** While `os.scandir` is significantly faster than `pathlib.Path.glob` for shallow directory traversal by preventing redundant `stat()` system calls, it must be guarded by an `.exists()` check because it raises `FileNotFoundError` on non-existent directories, unlike `Path.glob` which safely yields an empty generator.
 **Action:** When replacing `pathlib.Path.glob` with `os.scandir` in Python codebases, always explicitly check `dir.exists()` before entering the `with os.scandir(dir)` block to maintain parity with `glob`'s safe fallback behavior.
+
+## 2026-09-23 - [Performance] Fast recursive globbing with os.scandir
+**Learning:** `pathlib.Path.rglob()` and `glob.glob(recursive=True)` are convenient but perform excessive stat operations. A custom recursive function utilizing `os.scandir` allows fetching both the path and file type information without additional `stat()` calls, making recursive directory traversal much faster.
+**Action:** Implemented `fast_rglob` in `core/fs_utils.py` and replaced usages of `rglob` and `glob.glob(recursive=True)` for faster recursive file discovery.

@@ -613,7 +613,10 @@ class ObsidianConnector(Connector):
         def _run():
             if action == "search":
                 q = params.get("query", "").lower()
-                files = glob.glob(f"{self.vault_path}/**/*.md", recursive=True)
+                from core import fs_utils
+                from pathlib import Path
+                # Use fast_rglob instead of glob.glob
+                files = [str(p) for p in fs_utils.fast_rglob(Path(self.vault_path), "*.md")]
                 matches = []
                 for f in files[:50]:
                     try:
@@ -829,7 +832,10 @@ class ReClawMetaConnector(Connector):
                 }
             elif action == "vault_stats":
                 vault = os.getenv("OBSIDIAN_VAULT_PATH", "/root/obsidian_vault/Ravenstack")
-                files = glob.glob(f"{vault}/**/*.md", recursive=True)
+                from core import fs_utils
+                from pathlib import Path
+                # Use fast_rglob instead of glob.glob
+                files = [str(p) for p in fs_utils.fast_rglob(Path(vault), "*.md")]
                 result = {"total_notes": len(files), "vault_path": vault}
             elif action == "system_health":
                 docker = await ConnectorRegistry.get("docker").query({"action": "compose_ps"})
