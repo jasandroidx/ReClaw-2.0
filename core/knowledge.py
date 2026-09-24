@@ -18,6 +18,7 @@ import yaml
 from pydantic import BaseModel
 
 from .config import get_settings
+from .fs_utils import fast_rglob
 
 
 class KnowledgeSection(BaseModel):
@@ -279,7 +280,10 @@ Auto-routed to backlog (review and move to main topic files when ready).
 
         documents = []
         metadata = []
-        for md_file in self.knowledge_path.rglob("*.md"):
+        # Bolt: Performance optimization
+        # Use fast_rglob (os.scandir) instead of Path.rglob to avoid redundant stat() calls
+        # and significantly speed up the recursive file system traversal.
+        for md_file in fast_rglob(self.knowledge_path, "*.md"):
             if "index" in md_file.name.lower():
                 continue
             content = md_file.read_text(encoding="utf-8")
