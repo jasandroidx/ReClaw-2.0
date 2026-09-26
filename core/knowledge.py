@@ -196,7 +196,7 @@ class KnowledgeManager:
 
     def list_topics(self) -> list[str]:
         """List all available knowledge files."""
-        return [f.name for f in self.knowledge_path.glob("*.md") if f.name != "knowledge_index.md"]
+        return [f.name for f in get_sorted_glob_by_mtime(self.knowledge_path, "*.md") if f.name != "knowledge_index.md"]
 
     def save_to_backlog(self, source_name: str, distilled_content: str, potential_for: str = "clawsmith-visual-agents, revenue-loops, automation") -> Path:
         """OpenClaw/Open extraction entrypoint. Saves distilled book/PDF info to backlog/ for later implementation.
@@ -279,7 +279,8 @@ Auto-routed to backlog (review and move to main topic files when ready).
 
         documents = []
         metadata = []
-        for md_file in self.knowledge_path.rglob("*.md"):
+        from core.fs_utils import fast_rglob, get_sorted_glob_by_mtime
+        for md_file in fast_rglob(self.knowledge_path, "*.md"):
             if "index" in md_file.name.lower():
                 continue
             content = md_file.read_text(encoding="utf-8")

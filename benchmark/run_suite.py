@@ -17,6 +17,9 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from core.fs_utils import get_sorted_glob_by_mtime
 
 # Try importing yaml, fallback to basic json/yaml parser
 try:
@@ -324,7 +327,7 @@ def load_test_cases(test_cases_dir="benchmark/test_cases"):
     if not tc_dir.exists():
         return cases
 
-    for file in sorted(tc_dir.glob("*.json")):
+    for file in get_sorted_glob_by_mtime(tc_dir, "*.json", reverse=False):
         try:
             data = json.loads(file.read_text(encoding="utf-8"))
             if isinstance(data, list):
@@ -334,7 +337,7 @@ def load_test_cases(test_cases_dir="benchmark/test_cases"):
         except Exception:
             pass
 
-    for file in sorted(tc_dir.glob("*.yaml")):
+    for file in get_sorted_glob_by_mtime(tc_dir, "*.yaml", reverse=False):
         if yaml is not None:
             try:
                 data = yaml.safe_load(file.read_text(encoding="utf-8"))

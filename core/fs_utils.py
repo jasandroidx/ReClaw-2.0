@@ -20,3 +20,24 @@ def get_sorted_glob_by_mtime(dir_path: Path, pattern: str, reverse: bool = True)
         entries = [e for e in it if fnmatch.fnmatch(e.name, pattern)]
     entries.sort(key=lambda e: e.stat().st_mtime, reverse=reverse)
     return [Path(e.path) for e in entries]
+
+def fast_rglob(dir_path: Path, pattern: str = "*") -> List[Path]:
+    """Recursively yield Paths matching pattern in dir_path using os.scandir for performance.
+    Symlinks are not followed to prevent infinite loops."""
+    result = []
+    if not dir_path.exists() or not dir_path.is_dir():
+        return result
+
+    def _scan(path: str):
+        try:
+            with os.scandir(path) as it:
+                for entry in it:
+                    if fnmatch.fnmatch(entry.name, pattern):
+                        result.append(Path(entry.path))
+                    if entry.is_dir(follow_symlinks=False):
+                        _scan(entry.path)
+        except PermissionError:
+            pass
+
+    _scan(str(dir_path))
+    return result
