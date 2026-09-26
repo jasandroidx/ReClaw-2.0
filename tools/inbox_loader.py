@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from tools.public_data_loaders import INGESTION, REPO_ROOT
+from core.fs_utils import get_sorted_files_by_mtime
 
 INBOX = REPO_ROOT / "data" / "inbox"
 MANIFEST = INBOX / "manifest.json"
@@ -45,7 +46,7 @@ def scan_inbox(*, copy: bool = True) -> dict:
     known = {f.get("name") for f in manifest.get("files", [])}
     new_count = 0
 
-    for path in sorted(INBOX.iterdir()):
+    for path in get_sorted_files_by_mtime(INBOX, reverse=False):
         if path.name.startswith(".") or path.name in ("manifest.json", "extracted"):
             continue
         if path.suffix.lower() not in SUPPORTED_SUFFIXES:

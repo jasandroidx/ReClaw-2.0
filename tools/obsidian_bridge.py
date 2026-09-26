@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from core.fs_utils import get_sorted_glob_by_mtime
 from pathlib import Path
 
 from core.config import get_settings
@@ -167,6 +168,6 @@ def vault_health() -> dict:
         "exists": root.exists(),
         "rural_data": str(rural),
         "rural_data_exists": rural.exists(),
-        "note_count": len(list(rural.glob("*.md"))) if rural.exists() else 0,
+        "note_count": len(get_sorted_glob_by_mtime(rural, "*.md")) if rural.exists() else 0,
         "git_repo": (root / ".git").exists(),
     }
