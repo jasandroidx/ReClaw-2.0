@@ -18,6 +18,7 @@ import json
 import os
 import subprocess
 import sys
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -928,8 +929,10 @@ def _format_sitrep_plain(report: dict) -> str:
         if sess:
             lines.append("- Recent sessions: " + ", ".join(str(s) for s in sess[:5]))
         api_p = pipe.get("api") or {}
-        if api_p:
+        if isinstance(api_p, dict):
             lines.append(f"- API (from pipeline): {api_p.get('status')} v{api_p.get('version', '?')}")
+        else:
+            lines.append(f"- API (from pipeline): {api_p}")
     ls = report.get("latest_session") or {}
     if ls and not ls.get("error"):
         lines.append(
@@ -1031,7 +1034,9 @@ def _format_sitrep_plain(report: dict) -> str:
 
 
 @mcp.tool()
-def project_sitrep() -> str:
+async def project_sitrep() -> str:
+    # ⚡ Bolt: Make sitrep async to avoid blocking main MCP loop
+    # using asyncio.to_thread for long blocking synchronous commands.
     """FULL live fortress status report in PLAIN ENGLISH — ready to show the user.
 
     Returns a complete markdown sitrep (every section summarized). Call with no arguments.
@@ -1154,7 +1159,8 @@ def project_sitrep() -> str:
     public_code = ""
     if public_url:
         probe = public_url if public_url.rstrip("/").endswith("/mcp") else public_url.rstrip("/") + "/mcp"
-        public_code = _run(
+        public_code = await asyncio.to_thread(
+            _run,
             [
                 "curl",
                 "-sS",
@@ -1203,7 +1209,8 @@ def project_sitrep() -> str:
                 "OK: GET /mcp returned 406 (expected for streamable-http)"
             )
         else:
-            local = _run(
+            local = await asyncio.to_thread(
+                _run,
                 [
                     "curl",
                     "-sS",
@@ -1274,12 +1281,12 @@ def project_sitrep() -> str:
         report["latest_session"] = {"error": str(e)}
 
     # --- Git: ReClaw + vault ---
-    def _git_summary(path: Path) -> dict:
+    async def _git_summary(path: Path) -> dict:
         if not (path / ".git").exists() and not path.exists():
             return {"error": "missing"}
-        br = _run(["git", "status", "-sb"], cwd=path, timeout=15)
-        rem = _run(["git", "remote", "-v"], cwd=path, timeout=10)
-        log = _run(["git", "log", "-1", "--oneline"], cwd=path, timeout=10)
+        br = await asyncio.to_thread(_run, ["git", "status", "-sb"], cwd=path, timeout=15)
+        rem = await asyncio.to_thread(_run, ["git", "remote", "-v"], cwd=path, timeout=10)
+        log = await asyncio.to_thread(_run, ["git", "log", "-1", "--oneline"], cwd=path, timeout=10)
         dirty = any(
             line.startswith(" M") or line.startswith("??") or line.startswith(" D") or line[:1] in "MADRC"
             for line in br.splitlines()[1:]
@@ -1295,8 +1302,8 @@ def project_sitrep() -> str:
         }
 
     report["git"] = {
-        "reclaw": _git_summary(ROOT),
-        "obsidian_vault": _git_summary(VAULT),
+        "reclaw": await _git_summary(ROOT),
+        "obsidian_vault": await _git_summary(VAULT),
     }
     if report["git"]["reclaw"].get("dirty"):
         gaps.append("ReClaw repo dirty (uncommitted work)")
@@ -1306,7 +1313,7 @@ def project_sitrep() -> str:
         actions.append("Review vault porcelain (listed below); commit/sync vault when ready")
 
     # Vault exact dirty list (porcelain)
-    vault_porcelain = _run(["git", "status", "--porcelain"], cwd=VAULT, timeout=20)
+    vault_porcelain = await asyncio.to_thread(_run, ["git", "status", "--porcelain"], cwd=VAULT, timeout=20)
     if vault_porcelain.startswith("error:"):
         vault_dirty_lines: list[str] = [vault_porcelain[:200]]
     else:
@@ -1319,7 +1326,8 @@ def project_sitrep() -> str:
         actions.append("ReClaw branch is ahead of origin — push when ready: git -C /root/ReClaw-2.0 push")
 
     # --- GitHub (gh, read-only) ---
-    gh = _run(
+    gh = await asyncio.to_thread(
+        _run,
         ["gh", "repo", "view", "jasandroidx/ReClaw-2.0", "--json", "name,defaultBranchRef,updatedAt,isPrivate,url"],
         timeout=20,
     )
@@ -1358,7 +1366,8 @@ def project_sitrep() -> str:
         actions.append("Restore Ravenstack/mcp-connector.md in the vault")
 
     # --- RAG smoke ---
-    rag_raw = _curl(
+    rag_raw = await asyncio.to_thread(
+        _curl,
         f"{GATEWAY}/rag/search",
         method="POST",
         body={"query": "Ravenstack MCP connector", "top_k": 2},
@@ -1408,7 +1417,7 @@ def project_sitrep() -> str:
     report["whatsapp"] = {"enabled": wa_enabled, "status": wa_status}
 
     # --- Disk usage ---
-    df_out = _run(["df", "-h", "/", "/root"], timeout=10)
+    df_out = await asyncio.to_thread(_run, ["df", "-h", "/", "/root"], timeout=10)
     report["disk"] = df_out[:800] if df_out else "df unavailable"
     # flag high usage
     for line in (df_out or "").splitlines():
@@ -1423,7 +1432,8 @@ def project_sitrep() -> str:
                 pass
 
     # --- Gateway errors/warnings last 45 minutes ---
-    gw_logs = _run(
+    gw_logs = await asyncio.to_thread(
+        _run,
         [
             "docker",
             "compose",
@@ -1464,7 +1474,8 @@ def project_sitrep() -> str:
 
     # --- OpenClaw doctor --lint (read-only) ---
     # Prefer JSON; fall back to truncated text. Skip heavy CLI only if gateway is hard-down? Still useful offline.
-    doctor_raw = _run(
+    doctor_raw = await asyncio.to_thread(
+        _run,
         ["openclaw", "doctor", "--lint", "--json"],
         timeout=90,
     )
@@ -1631,9 +1642,9 @@ def project_sitrep() -> str:
 
 
 @mcp.tool()
-def sitrep() -> str:
+async def sitrep() -> str:
     """Same as project_sitrep: full plain-English fortress status. Call now; show user the result."""
-    return project_sitrep()
+    return await project_sitrep()
 
 
 @mcp.tool()
