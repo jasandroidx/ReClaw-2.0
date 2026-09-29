@@ -5,3 +5,7 @@
 ## 2026-09-13 - [Performance] os.scandir fallback safety
 **Learning:** While `os.scandir` is significantly faster than `pathlib.Path.glob` for shallow directory traversal by preventing redundant `stat()` system calls, it must be guarded by an `.exists()` check because it raises `FileNotFoundError` on non-existent directories, unlike `Path.glob` which safely yields an empty generator.
 **Action:** When replacing `pathlib.Path.glob` with `os.scandir` in Python codebases, always explicitly check `dir.exists()` before entering the `with os.scandir(dir)` block to maintain parity with `glob`'s safe fallback behavior.
+
+## 2026-09-24 - [String Slicing Optimization]
+**Learning:** When performing string slicing with `.lower()`, such as `l.lower()[:80]`, the entire string is converted to lowercase before the first 80 characters are extracted.
+**Action:** When only a slice of the string needs to be evaluated, perform the slice first before calling `.lower()` (e.g., `l[:80].lower()`). This avoids unnecessary string transformations on characters that will ultimately be discarded.
