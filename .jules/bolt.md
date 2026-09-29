@@ -1,7 +1,7 @@
-## 2026-09-06 - [Performance] Centralize os.scandir for fast mtime sorts
-**Learning:** `pathlib.Path.glob` and `pathlib.Path.iterdir` combined with `key=lambda x: x.stat().st_mtime` causes redundant and slow stat system calls. Using `os.scandir` yields `os.DirEntry` objects which inherently cache `st_mtime` from the system call.
-**Action:** Created `core/fs_utils.py` with `get_sorted_files_by_mtime` and `get_sorted_glob_by_mtime` helpers to utilize `os.scandir()` instead of `iterdir()`/`glob()`, and applied them across the codebase to prevent redundant OS stat calls.
+## 2026-09-06 - Optimize directory listing performance
+**Learning:** `pathlib.Path.iterdir()` combined with `.stat()` requires a separate syscall per file. `os.scandir()` caches stat information (like `st_mtime`), preventing N redundant syscalls during sorts.
+**Action:** Always prefer `os.scandir()` (or `core.fs_utils.get_sorted_files_by_mtime`) over `iterdir()` + `stat()` for directory sorts to avoid unnecessary file I/O overhead.
 
-## 2026-09-13 - [Performance] os.scandir fallback safety
-**Learning:** While `os.scandir` is significantly faster than `pathlib.Path.glob` for shallow directory traversal by preventing redundant `stat()` system calls, it must be guarded by an `.exists()` check because it raises `FileNotFoundError` on non-existent directories, unlike `Path.glob` which safely yields an empty generator.
-**Action:** When replacing `pathlib.Path.glob` with `os.scandir` in Python codebases, always explicitly check `dir.exists()` before entering the `with os.scandir(dir)` block to maintain parity with `glob`'s safe fallback behavior.
+## 2026-09-29 - FastMCP Thread Blocking Deadlock
+**Learning:** `mcp.server.fastmcp` (FastMCP) handles requests synchronously if defined as `def`, blocking the main event loop. If a tool like `project_sitrep` makes an HTTP request to its own server's public endpoint (hairpin/funnel self-probe), it deadlocks because the server cannot process the incoming check while the original tool is still blocking the thread waiting for it.
+**Action:** Always define slow, blocking, or self-probing tools as `async def` and wrap any internal blocking calls (like subprocesses or `requests`) in `await asyncio.to_thread(...)` to avoid starving the MCP event loop.
