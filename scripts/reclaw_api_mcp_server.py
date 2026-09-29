@@ -112,7 +112,8 @@ def list_recent_sessions(limit: int = 5) -> str:
     if not sessions.exists():
         return "no sessions dir"
     dirs = fs_utils.get_sorted_files_by_mtime(sessions)
-    return "\n".join(d.name for d in dirs[:limit])
+    import itertools
+    return "\n".join(d.name for d in itertools.islice(dirs, limit))
 
 
 if __name__ == "__main__":
