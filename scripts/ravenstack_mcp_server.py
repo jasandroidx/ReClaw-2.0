@@ -80,7 +80,7 @@ def query_knowledge(query: str, top_k: int = 5) -> str:
 def list_knowledge_topics() -> str:
     """List Ravenstack knowledge files and ORACLE anchors."""
     kp = _km().knowledge_path
-    files = sorted(p.relative_to(kp).as_posix() for p in kp.rglob("*.md") if p.is_file())
+    files = sorted(p.relative_to(kp).as_posix() for p in kfs_utils.fast_rglob(kp, "*.md") if p.is_file())
     return "\n".join(files[:80])
 
 
@@ -149,7 +149,8 @@ def list_recent_sessions(limit: int = 5) -> str:
     if not sessions.exists():
         return "no sessions dir"
     dirs = fs_utils.get_sorted_files_by_mtime(sessions)
-    return "\n".join(d.name for d in dirs[:limit])
+    import itertools
+    return "\n".join(d.name for d in itertools.islice(dirs, limit))
 
 
 @mcp.tool()

@@ -31,6 +31,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 from core.config import get_settings
+from core import fs_utils
 from core.knowledge import KnowledgeManager
 
 _TSNET_HOST = os.environ.get("TAILSCALE_HOST", "openclaw.tail20a090.ts.net")
@@ -281,7 +282,7 @@ def read_oracle(section: str = "") -> str:
 def list_knowledge_topics() -> str:
     """List markdown files under Ravenstack knowledge base."""
     kp = _km().knowledge_path
-    files = sorted(p.relative_to(kp).as_posix() for p in kp.rglob("*.md"))
+    files = sorted(p.relative_to(kp).as_posix() for p in kfs_utils.fast_rglob(p, "*.md"))
     return "\n".join(files[:100])
 
 
@@ -538,8 +539,9 @@ def list_pipeline_sessions(limit: int = 8) -> str:
     sessions = ROOT / "data" / "sessions"
     if not sessions.exists():
         return "no sessions"
-    dirs = sorted(sessions.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
-    return "\n".join(d.name for d in dirs[:limit])
+    dirs = fs_utils.get_sorted_files_by_mtime(sessions)
+    import itertools
+    return "\n".join(d.name for d in itertools.islice(dirs, limit))
 
 
 @mcp.tool()
@@ -1168,7 +1170,8 @@ def project_sitrep() -> str:
             ],
             timeout=12,
         )
-        public_code = "".join(ch for ch in (public_code or "") if ch.isdigit())[:3]
+        import itertools
+        public_code = "".join(itertools.islice((ch for ch in (public_code or "") if ch.isdigit()), 3))
 
     report["mcp"] = {
         "bridge_systemd": bridge,
@@ -1187,7 +1190,7 @@ def project_sitrep() -> str:
         gaps.append("MCP bridge inactive")
         actions.append("sudo systemctl restart reclaw-mcp-bridge && journalctl -u reclaw-mcp-bridge -n 40 --no-pager")
     # Public plane: Funnel :443 secret path — GET /mcp expects HTTP 406 (streamable-http).
-    pc = "".join(ch for ch in (public_code or "") if ch.isdigit())[:3]
+    pc = "".join(itertools.islice((ch for ch in (public_code or "") if ch.isdigit()), 3))
     report["mcp"]["public_health_http"] = pc or None
     report["mcp"]["public_probe_expect"] = "406"
     is_funnel = bool(_FUNNEL_PATH) and f"/{_FUNNEL_PATH}" in (public_url or "") and _TSNET_HOST in (
@@ -1217,7 +1220,7 @@ def project_sitrep() -> str:
                 ],
                 timeout=5,
             )
-            ld = "".join(ch for ch in (local or "") if ch.isdigit())[:3]
+            ld = "".join(itertools.islice((ch for ch in (local or "") if ch.isdigit()), 3))
             report["mcp"]["local_bridge_health"] = ld or None
             if ld == "200":
                 # Host Funnel hairpin can fail; backend up + SOT Funnel is enough for sitrep
@@ -1332,7 +1335,7 @@ def project_sitrep() -> str:
 
     # --- Obsidian / Ravenstack knowledge ---
     kp = VAULT / "Ravenstack"
-    topics = sorted(p.relative_to(kp).as_posix() for p in kp.rglob("*.md") if p.is_file()) if kp.is_dir() else []
+    topics = sorted(p.relative_to(kp).as_posix() for p in kfs_utils.fast_rglob(p, "*.md") if p.is_file()) if kp.is_dir() else []
     oracle_ok = (kp / "RAVENSTACK-ORACLE.md").is_file()
     mcp_doc_ok = (kp / "mcp-connector.md").is_file()
     rural = VAULT / "Rural Data"

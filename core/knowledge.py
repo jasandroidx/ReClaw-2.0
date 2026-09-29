@@ -279,7 +279,8 @@ Auto-routed to backlog (review and move to main topic files when ready).
 
         documents = []
         metadata = []
-        for md_file in self.knowledge_path.rglob("*.md"):
+        for entry in fs_utils.fast_rglob(self.knowledge_path, "*.md"):
+            md_file = Path(entry.path)
             if "index" in md_file.name.lower():
                 continue
             content = md_file.read_text(encoding="utf-8")
